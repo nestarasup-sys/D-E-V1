@@ -11,6 +11,6 @@ describe('projeto multitrilha',()=>{
   it('impede áudio colocado na faixa visual',()=>{expect(()=>applyOperations(copy(),[{type:'addAsset',asset},{type:'addClip',clip:{...clip,lane:'visual'}}])).toThrow();});
   it('permite mover clipe com validação',()=>{const p=applyOperations(copy(),[{type:'addAsset',asset},{type:'addClip',clip}]);const q=applyOperations(p,[{type:'updateClip',clipId:clip.id,changes:{startFrame:40,volume:0.5}}]);expect(q.clips[0].startFrame).toBe(40);expect(q.clips[0].volume).toBe(.5);});
   it('corta clipes que atravessam uma cena removida',()=>{let p:Project=copy();p=applyOperations(p,[{type:'addAsset',asset},{type:'addClip',clip:{...clip,startFrame:150,durationFrames:200}}]);p=applyOperations(p,[{type:'removeScene',sceneId:'scene-2'}]);expect(p.clips[0].durationFrames).toBe(30);});
-  it('rejeita reordenação sem ripple quando há mídia',()=>{const p=applyOperations(copy(),[{type:'addAsset',asset},{type:'addClip',clip}]);expect(()=>applyOperations(p,[{type:'moveScene',sceneId:'scene-1',direction:'right'}])).toThrow(/sincronização/);});
+  it('rejeita reordenação sem ripple quando há mídia',()=>{const p=applyOperations(copy(),[{type:'addAsset',asset},{type:'addClip',clip}]);expect(()=>applyOperations(p,[{type:'moveScene',sceneId:'scene-1',direction:'right'}])).toThrow(/Reordenação/);});
   it('impede media URL arbitrária',()=>{expect(()=>applyOperations(copy(),[{type:'addAsset',asset:{...asset,url:'http://evil.example/media/'+asset.id}}])).toThrow();});
 });
