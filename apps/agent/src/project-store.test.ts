@@ -11,6 +11,24 @@ async function withRepo(run: (repo: ProjectRepository)=>Promise<void>) {
   finally {await rm(root,{recursive:true,force:true});}
 }
 describe('Projetos locais para Codex externo',()=>{
+  it('mantém snapshots imutáveis antes de salvar e recupera com revisão',async()=>withRepo(async repo=>{
+    const initial=await repo.create('Original');
+    const changed=await repo.save(initial.project.id,{...initial.project,name:'Segunda versão'},initial.revision);
+    const snapshots=await repo.history(initial.project.id);
+    expect(snapshots.length).toBeGreaterThan(0);
+    expect(snapshots[0].revision).toBe(initial.revision);
+    const restored=await repo.restore(initial.project.id,initial.revision,changed.revision);
+    expect(restored.project.name).toBe('Original');
+    const after=await repo.history(initial.project.id);
+    expect(after.some(item=>item.revision===changed.revision)).toBe(true);
+    await expect(repo.restore(initial.project.id,initial.revision,changed.revision))
+      .rejects.toMatchObject({status:409});
+  }));
+  it('bloqueia restauração de versão que não existe',async()=>withRepo(async repo=>{
+    const a=await repo.create('Controle');
+    await expect(repo.restore(a.project.id,'a'.repeat(64),a.revision)).rejects.toMatchObject({status:400});
+  }));
+
   it('aplica edição local, cria backup e mantém o mesmo projeto',async()=>withRepo(async repo=>{
     const original=await repo.create('Documentário original');
     const sceneId=original.project.scenes[0].id;

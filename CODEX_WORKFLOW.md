@@ -67,3 +67,19 @@ Para um novo vídeo, peça ao Codex para criar um projeto com \`npm run project 
 - Roteiros, projetos e mídias ficam fora do repositório, por padrão em \`%USERPROFILE%\DarkStudio\`.
 - Codex Local executa comandos no seu computador, mas o conteúdo que a IA lê ou recebe pode ser processado pela OpenAI. Não interprete \`Local\` como \`sem envio de contexto a servidores\`.
 - O Dark Studio não precisa de acesso ao GitHub CLI, conta GitHub ou token para criar/editar/exportar projetos.
+
+## Fluxo recomendado para novos pedidos (a partir da v0.7)
+
+**Use o chat do Codex como sempre**. O agente pode executar os comandos abaixo por você:
+
+~~~powershell
+npm run project -- info UUID-DO-PROJETO
+npm run project -- preview UUID-DO-PROJETO .\edicoes.json REVISAO
+npm run project -- propose UUID-DO-PROJETO .\edicoes.json REVISAO
+~~~
+
+Diga ao Codex: **"Faça uma proposta, não aplique; vou revisar no editor."**
+
+Na tela inicial, abra **Revisar Codex**. O botão **Aprovar** salva a alteração e cria um snapshot anterior. **Descartar** remove só a proposta. A revisão da proposta é verificada novamente na hora da aplicação.
+
+Para diagnóstico \`npm run project -- doctor UUID-DO-PROJETO\`. Para recuperação \`npm run project -- history UUID\` seguido de \`restore UUID SNAPSHOT REVISAO_ATUAL\`. Para legenda SRT, peça ao Codex um arquivo com timestamps precisos e depois importe na biblioteca do editor. Para evidências, a IA pode cadastrar *pendente*, mas só uma conferência humana pode mudar o status.

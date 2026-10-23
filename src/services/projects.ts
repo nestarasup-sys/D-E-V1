@@ -57,3 +57,16 @@ export async function duplicateProject(id:string):Promise<ProjectRecord>{
 export async function archiveProject(id:string):Promise<void>{
   await request('/v1/projects/'+encodeURIComponent(id),{method:'DELETE'});
 }
+
+export interface ProjectSnapshot {revision:string;createdAt:string;name:string;scenes:number}
+export async function getProjectHistory(id:string):Promise<ProjectSnapshot[]>{
+  const result=await request('/v1/projects/'+encodeURIComponent(id)+'/history');
+  if(typeof result!=='object'||result===null||!('snapshots' in result)||!Array.isArray(result.snapshots))
+    throw new ApiError('Histórico inválido.',500);
+  return result.snapshots as ProjectSnapshot[];
+}
+export async function restoreProject(id:string,revision:string,expectedRevision:string):Promise<ProjectRecord>{
+  return record(await request('/v1/projects/'+encodeURIComponent(id)+'/restore',{
+    method:'POST',headers:{...jsonHeaders,'If-Match':expectedRevision},body:JSON.stringify({revision}),
+  }));
+}

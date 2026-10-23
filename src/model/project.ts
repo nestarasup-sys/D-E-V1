@@ -41,6 +41,23 @@ export const legacyProjectSchema = z.object({
   scenes: z.array(sceneSchema).min(1).max(200),
 }).strict();
 
+/** Legendas cronometradas (importadas de SRT ou geradas por ferramenta local). */
+export const captionSchema=z.object({
+  id:z.string().uuid(),
+  startFrame:z.number().int().min(0),
+  endFrame:z.number().int().positive(),
+  text:z.string().trim().min(1).max(600),
+}).strict();
+export const evidenceSchema=z.object({
+  id:z.string().uuid(),
+  sceneId:z.string().min(1).max(80).optional(),
+  claim:z.string().trim().min(1).max(500),
+  sourceTitle:z.string().trim().min(1).max(200),
+  sourceUrl:z.union([z.literal(''),z.string().url().max(2000).refine(s=>s.startsWith('https://'),'Fonte online precisa usar HTTPS')]).default(''),
+  notes:z.string().max(600).default(''),
+  reviewStatus:z.enum(['pending','verified','rejected']).default('pending'),
+}).strict();
+
 export const projectSchema = z.object({
   version: z.literal(2),
   id: z.string().min(1), name: z.string().min(1).max(120),
@@ -48,12 +65,25 @@ export const projectSchema = z.object({
   scenes: z.array(sceneSchema).min(1).max(200),
   assets: z.array(assetSchema).max(2000),
   clips: z.array(clipSchema).max(4000),
+  captions:z.array(captionSchema).max(3000).default([]),
+  evidence:z.array(evidenceSchema).max(2000).default([]),
 }).strict().superRefine((p, ctx) => {
   if (new Set(p.scenes.map(s => s.id)).size !== p.scenes.length) ctx.addIssue({code:'custom', message:'IDs de cenas duplicados'});
   if (new Set(p.assets.map(a => a.id)).size !== p.assets.length) ctx.addIssue({code:'custom', message:'IDs de assets duplicados'});
   if (new Set(p.clips.map(c => c.id)).size !== p.clips.length) ctx.addIssue({code:'custom', message:'IDs de clipes duplicados'});
+  if(new Set(p.captions.map(c=>c.id)).size!==p.captions.length)ctx.addIssue({code:'custom',message:'IDs de legendas duplicados'});
+  if(new Set(p.evidence.map(e=>e.id)).size!==p.evidence.length)ctx.addIssue({code:'custom',message:'IDs de evidências duplicados'});
+  const knownScenes=new Set(p.scenes.map(s=>s.id));
+  p.evidence.forEach((e,i)=>{
+    if(e.sceneId&&!knownScenes.has(e.sceneId))ctx.addIssue({code:'custom',path:['evidence',i,'sceneId'],message:'Evidência ligada a cena inexistente'});
+  });
   const assetById = new Map(p.assets.map(a => [a.id, a]));
   const total = p.scenes.reduce((n, s) => n + s.durationFrames, 0);
+  const ordered=[...p.captions].sort((a,b)=>a.startFrame-b.startFrame);
+  ordered.forEach((c,i)=>{
+    if(c.endFrame<=c.startFrame || c.endFrame>total)ctx.addIssue({code:'custom',message:'Legenda fora do tempo do projeto'});
+    if(i && c.startFrame<ordered[i-1].endFrame)ctx.addIssue({code:'custom',message:'Legendas não podem se sobrepor'});
+  });
   p.clips.forEach((c, i) => {
     const a = assetById.get(c.assetId);
     if (!a) ctx.addIssue({code:'custom', path:['clips',i,'assetId'], message:'Arquivo de mídia não cadastrado'});
@@ -63,6 +93,8 @@ export const projectSchema = z.object({
   });
 });
 
+export type Caption=z.infer<typeof captionSchema>;
+export type Evidence=z.infer<typeof evidenceSchema>;
 export type Scene = z.infer<typeof sceneSchema>;
 export type SceneKind = Scene['kind'];
 export type Asset = z.infer<typeof assetSchema>;
@@ -78,7 +110,7 @@ export function parseProject(input: unknown): Project {
 
 export const starterProject: Project = {
   version: 2, id: 'dark-studio-demo', name: 'Investigação sem rosto', fps: 30, width: 1920, height: 1080,
-  assets: [], clips: [],
+  assets: [], clips: [], captions: [], evidence: [],
   scenes: [
     {id:'scene-1',kind:'title',title:'QUEM CONTROLA A INFORMAÇÃO?',subtitle:'Uma investigação sobre dados, poder e influência',kicker:'CAPÍTULO 01',durationFrames:180,accentColor:'#f1bd67',backgroundColor:'#0a111e',imageUrl:''},
     {id:'scene-2',kind:'stat',title:'247%',subtitle:'Exemplo de estatística visual — substitua por dados verificados',kicker:'DADOS & CONTEXTO',durationFrames:150,accentColor:'#f1bd67',backgroundColor:'#141e30',imageUrl:''},

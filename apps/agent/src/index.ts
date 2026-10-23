@@ -3,6 +3,7 @@ import {handleMedia} from './media';
 import {handleExport} from './export';
 import {handleProjects} from './projects';
 import {json} from './http';
+import {runtimeDiagnostics} from './diagnostics';
 
 const HOST='127.0.0.1';
 const PORT=4317;
@@ -33,6 +34,7 @@ const server=createServer(async(req,res)=>{
   }
   try{
     const url=new URL(req.url||'/', 'http://127.0.0.1:4317');
+    if(req.method==='GET'&&url.pathname==='/v1/diagnostics'){json(res,200,runtimeDiagnostics());return;}
     if(await handleProjects(req,res,url))return;
     if(await handleMedia(req,res,url))return;
     if(await handleExport(req,res,url))return;

@@ -6,6 +6,7 @@ import {createHash, randomUUID} from 'node:crypto';
 import {copyFile, mkdir, readFile, readdir, rename, stat, writeFile} from 'node:fs/promises';
 import {join, resolve} from 'node:path';
 import {homedir} from 'node:os';
+import {listHistory,readSnapshot,snapshotBeforeSave,type Snapshot} from './history';
 import {parseProject, projectSchema, starterProject, type Project} from '../../../src/model/project';
 
 export const DEFAULT_PROJECTS_ROOT = process.env.DARK_STUDIO_PROJECTS_DIR
@@ -132,6 +133,7 @@ export class ProjectRepository {
       const current = await this.read(id);
       if (current.revision !== expectedRevision) throw new ProjectError('Conflito: o projeto mudou no disco. Recarregue antes de salvar.', 409);
       await writeFile(temp, JSON.stringify(project,null,2)+'\n', {encoding:'utf8',flag:'wx'});
+      await snapshotBeforeSave(join(this.root,id),await readFile(file,'utf8'));
       await copyFile(file, join(this.root,id,'project.previous.json'));
       await rename(temp, file);
       return this.read(id);
@@ -140,6 +142,20 @@ export class ProjectRepository {
       const {rm}=await import('node:fs/promises');
       await rm(temp,{force:true}).catch(()=>{});
     }
+  }
+  async history(id:string):Promise<Snapshot[]> {
+    await this.read(id);
+    return listHistory(join(this.root,id));
+  }
+  async restore(id:string,snapshotRevision:string,expectedRevision:string):Promise<ProjectRecord> {
+    // save() cuida de garantir a revisão e de guardar também a versão atual.
+    if(!/^[0-9a-f]{64}$/.test(expectedRevision))throw new ProjectError('Revisão atual obrigatória.',428);
+    await this.read(id);
+    let candidate:unknown;
+    try{candidate=await readSnapshot(join(this.root,id),snapshotRevision);}
+    catch(e){throw new ProjectError('Snapshot não encontrado ou inválido: '+(e instanceof Error?e.message:String(e)),400);}
+    if(!candidate || (candidate as Project).id!==id)throw new ProjectError('ID do snapshot não corresponde ao projeto.',422);
+    return this.save(id,candidate,expectedRevision);
   }
   async duplicate(id: string): Promise<ProjectRecord> {
     const record=await this.read(id);

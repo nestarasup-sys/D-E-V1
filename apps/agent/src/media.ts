@@ -22,6 +22,12 @@ let mediaIndex:Record<string,Stored>|null=null;
 async function index(){if(mediaIndex)return mediaIndex;await mkdir(MEDIA_DIR,{recursive:true});try{mediaIndex=JSON.parse(await readFile(INDEX,'utf8')) as Record<string,Stored>;}catch{mediaIndex={};}return mediaIndex;}
 async function persist(){const tmp=INDEX+'.tmp';await writeFile(tmp,JSON.stringify(mediaIndex,null,2),'utf8');await rename(tmp,INDEX);}
 function nameFromHeader(v:string|undefined){if(!v)return null;try{return decodeURIComponent(v);}catch{return null;}}
+export async function mediaExistsFor(id:string):Promise<boolean>{
+  const entry=(await index())[id];
+  if(!entry)return false;
+  try{const details=await stat(join(MEDIA_DIR,entry.id+entry.ext));return details.isFile()&&details.size>0;}
+  catch{return false;}
+}
 export async function handleMedia(req:IncomingMessage,res:ServerResponse,url:URL):Promise<boolean>{
   if(req.method==='GET'&&url.pathname==='/v1/media'){json(res,200,{assets:Object.values(await index()).map(({ext:_,bytes:__,...a})=>a)});return true;}
   if(req.method==='POST'&&url.pathname==='/v1/media/import'){

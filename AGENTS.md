@@ -22,3 +22,12 @@
 - Serviço Node em \`apps/agent\` gerencia disco/mídia/render; UI React/Tauri em \`src/\`.
 - Verificar TypeScript, testes, build frontend e CI Windows/MP4 antes de marcar pronto.
 - Trabalhar somente na \`main\` conforme preferência do usuário.
+
+## Regras novas: v0.6–v0.10
+
+- Use **proposta em vez de edição direta por padrão**: \`npm run project -- info <id>\`, depois \`npm run project -- propose <id> <ops.json> <revision>\`. Oriente o usuário a abrir **Revisar Codex** no dashboard; não execute \`accept\` sem pedido claro.
+- Ao pedir alteração de storyboard/roteiro, mantenha evidências com estado \`pending\`. Nunca assinale \`verified\` por decisão da IA.
+- Schema adicional no projeto: \`captions\` (startFrame,endFrame,text,UUID) e \`evidence\` (id,sceneId?,claim,sourceTitle,sourceUrl HTTPS opcional,notes,reviewStatus). Campos existem no JSON v2 com defaults para compatibilidade.
+- Arquivos \`.srt\` são legendas importáveis pelo editor, **não transcrição automática**.
+- Ferramentas locais: \`history\`, \`restore\`, \`preview\`, \`propose\`, \`pending\`, \`accept\`, \`reject\`, \`doctor\`. Nenhuma delas usa GitHub para dados de usuário.
+- Snapshots históricos em \`history\` (até 30) e propostas em \`proposals\` ficam no diretório privado de cada projeto. Não publique esses arquivos.

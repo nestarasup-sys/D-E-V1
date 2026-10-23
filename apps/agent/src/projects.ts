@@ -1,9 +1,13 @@
 import type {IncomingMessage, ServerResponse} from 'node:http';
 import {z} from 'zod';
 import {ProjectError, ProjectRepository} from './project-store';
+import {ProposalRepository} from './proposals';
 import {json,readJson} from './http';
+import {mediaExistsFor} from './media';
+import {diagnoseProject} from './diagnostics';
 
 export const projects = new ProjectRepository();
+export const proposals = new ProposalRepository(projects);
 function failure(res: ServerResponse, error: unknown) {
   if (error instanceof ProjectError) { json(res,error.status,{error:error.message}); return; }
   if (error instanceof z.ZodError) {json(res,400,{error:'Projeto fora do esquema: '+error.issues[0]?.message});return;}
@@ -25,6 +29,46 @@ export async function handleProjects(req: IncomingMessage,res: ServerResponse,ur
   if (url.pathname==='/v1/projects/import' && req.method==='POST') {
     try {const parsed=z.object({project:z.unknown()}).strict().parse(await readJson(req,2_000_000));json(res,201,await projects.import(parsed.project));}
     catch(e){failure(res,e);}
+    return true;
+  }
+  const diagnostics=/^\/v1\/projects\/([0-9a-f-]{36})\/diagnostics$/.exec(url.pathname);
+  if(diagnostics && req.method==='GET'){
+    try{
+      const project=(await projects.read(diagnostics[1])).project;
+      json(res,200,await diagnoseProject(project,mediaExistsFor));
+    }catch(e){failure(res,e);}
+    return true;
+  }
+  const proposalList=/^\/v1\/projects\/([0-9a-f-]{36})\/proposals$/.exec(url.pathname);
+  if(proposalList){
+    try{
+      if(req.method==='GET'){json(res,200,{proposals:await proposals.list(proposalList[1])});return true;}
+      if(req.method==='POST'){
+        const payload=z.object({operations:z.unknown()}).strict().parse(await readJson(req,512000));
+        json(res,201,await proposals.create(proposalList[1],payload.operations,String(req.headers['if-match']||'')));return true;
+      }
+    }catch(e){failure(res,e);return true;}
+  }
+  const proposalAction=/^\/v1\/projects\/([0-9a-f-]{36})\/proposals\/([0-9a-f-]{36})\/(accept|reject)$/.exec(url.pathname);
+  if(proposalAction && req.method==='POST'){
+    try{
+      if(proposalAction[3]==='accept')json(res,200,await proposals.accept(proposalAction[1],proposalAction[2]));
+      else {await proposals.reject(proposalAction[1],proposalAction[2]);json(res,200,{rejected:true});}
+    }catch(e){failure(res,e);}
+    return true;
+  }
+  const history=/^\/v1\/projects\/([0-9a-f-]{36})\/history$/.exec(url.pathname);
+  if(history && req.method==='GET') {
+    try{json(res,200,{snapshots:await projects.history(history[1])});}
+    catch(e){failure(res,e);}
+    return true;
+  }
+  const restore=/^\/v1\/projects\/([0-9a-f-]{36})\/restore$/.exec(url.pathname);
+  if(restore && req.method==='POST'){
+    try{
+      const input=z.object({revision:z.string().regex(/^[0-9a-f]{64}$/)}).strict().parse(await readJson(req,2000));
+      json(res,200,await projects.restore(restore[1],input.revision,String(req.headers['if-match']||'')));
+    }catch(e){failure(res,e);}
     return true;
   }
   const duplicate=/^\/v1\/projects\/([0-9a-f-]{36})\/duplicate$/.exec(url.pathname);

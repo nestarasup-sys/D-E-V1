@@ -1,39 +1,54 @@
-# Dark Studio — Roadmap oficial (único)
+# Dark Studio — Roadmap oficial
 
-Atualizado em 23 de outubro de 2026. **Branch única main**, sem branches paralelas.
+Atualizado em 23/10/2026. Branch única: **main**. Projetos de usuários ficam no Windows, não no repositório do código.
 
-## Arquitetura correta
+## Visão
 
-**Codex Local no ChatGPT Desktop → projeto no Windows → Dark Studio Desktop.**
+Editor de documentários investigativos, com controle manual da timeline e **Codex no chat do aplicativo ChatGPT em modo Local** (fora da interface Dark Studio). O Codex acessa a pasta do projeto somente com permissão do usuário. O editor detecta alterações de arquivo no Windows; o aplicativo não possui chat embutido nem sincroniza projetos por GitHub.
 
-O usuário conversa com o Codex no app ChatGPT Desktop em modo Local e permite que ele manipule seus arquivos de projeto. O Dark Studio abre os mesmos arquivos, atualiza a timeline e exporta MP4. **Nenhum GitHub no caminho dos dados**. O GitHub público D-E-V1 continua apenas para o código-fonte.
+Hardware de referência: Windows 11, Ryzen 5 4600G, RX 7600, 16 GB RAM. 1080p/30 FPS, render Remotion com concorrência 1, proxies e render por segmentos planejados. A RX 7600 não é presumida aceleradora do pipeline atual.
 
-Dados por padrão em \`%USERPROFILE%\DarkStudio\`; cenas/projetos JSON, biblioteca de mídia local. O conteúdo que o Codex enviar para processamento por IA não deve ser confundido com projeto sincronizado no GitHub.
+## Cinco etapas estruturais implementadas nesta rodada
 
-### Hardware de referência
-Windows 11, Ryzen 5 4600G, Radeon RX 7600, 16 GB RAM, 1920 × 1080, 30 FPS. Render Remotion/FFmpeg em processo separado com concorrência 1. Futuros proxies e otimização de memória. Aceleração de hardware da RX 7600 não validada.
-
-## Marcos e critérios de aceite
-
-| Marco | Estado | Entrega |
+| Marco | Estrutura entregue | O que ainda precisa de validação |
 | --- | --- | --- |
-| v0.1 | Base implementada, sem teste manual | Cenas, edição manual, preview Remotion |
-| v0.2 | Código implementado, teste manual pendente | Biblioteca local, trilhas visual/narração/música e exportação MP4 |
-| v0.2.1 | CI aprovada | Tauri Windows check e smoke de render MP4 |
-| v0.3 | Painel de chat removido por mudança de requisitos | Esquemas de operação reversível, agora acionados externamente |
-| v0.4 | Implementada, sem validação pessoal | Dashboard de projetos, armazenamento e autosave, detecção de mudanças de disco |
-| **v0.5 (local)** | **Em validação** | Codex externo por CLI local, projeto por arquivo, aplicação com revisão e render via CLI; sem ponte GitHub |
-| v0.6 | Planejada | Transcrição de narração, timestamps, waveform e sincronização automática |
-| v0.7 | Planejada | Biblioteca de evidências, fontes/licenças, motion graphics e performance/proxies |
-| v1.0 | Dependente de testes reais | Instalador Windows com serviço incluído, segurança, backups robustos, vídeos longos |
+| v0.6 — Recuperação | Snapshots locais imutáveis dos salvamentos, histórico de até 30 versões anteriores, restauração com backup, API, CLI e tela inicial | Restaurar projetos grandes e testar conflitos reais no Windows |
+| v0.7 — Propostas do Codex | Codex gera proposta validada em arquivo local com revisão-base; prévia, aceitar/rejeitar pela tela inicial; transação com backup | Fluxo real ChatGPT Local → botão Revisar Codex; revisão detalhada de cada operação |
+| v0.8 — Narração e legenda | Modelo de captions em frames, importação e exportação SRT, linha de legendas na timeline, sobreposição no Remotion, suporte a operações Codex | Reconhecimento automático de voz, waveform e ajuste de cenas à duração da narração |
+| v0.9 — Evidências | Fontes por cena (afirmação, título, URL HTTPS, notas, status pendente/verificada/rejeitada); operações locais reversíveis | Pesquisa/licenciamento automático e confirmação factual por pessoa |
+| v0.10 — Diagnóstico | Check de referências de mídia no disco, cenas factuais sem fonte, evidências não verificadas, áudio/legendas ausentes, resumo de ambiente Windows, API, CLI e painel | Ensaios de codecs, integridade do arquivo original, instalador autossuficiente |
 
-## Princípios que não devem ser quebrados
+Estas cinco etapas compõem a **base de produto**, não um editor finalizado. Evitamos novos efeitos/transições para priorizar consistência de dados, rastreabilidade e controle de alterações.
 
-1. Projetos e mídia não são versionados/enviados ao GitHub do código.
-2. Codex Local opera nos arquivos do PC somente dentro das permissões concedidas; não há chat de IA dentro do editor.
-3. Todas as edições automáticas devem respeitar o schema e a revisão existente; conflitos nunca geram sobrescritas silenciosas.
-4. Tempo em frames (30 FPS); media provenance e evidências devem ser verificadas antes da publicação.
-5. Compilação Linux e CI Windows não substituem testes manuais no computador do usuário.
-6. Licenciamento Remotion deve ser confirmado para eventual comercialização.
+## Pipeline de trabalho esperado
 
-Veja [CODEX_WORKFLOW.md](CODEX_WORKFLOW.md) para executar o fluxo.
+1. Abra o Dark Studio e crie o projeto na tela inicial.
+2. Use o Codex no ChatGPT Desktop em **Local** com permissão explícita ao diretório \`%USERPROFILE%\DarkStudio\projects\`.
+3. O Codex lê o esquema, cria operações e usa \`npm run project -- propose <id> operacoes.json <revision>\`. O JSON do projeto não é alterado nesta etapa.
+4. No Dark Studio, clique em **Revisar Codex**, confira a proposta e aprove ou descarte. Aprovação faz backup da versão anterior e aplica mudanças atômicas.
+5. Para recuperar edições, use **Versões** no cartão do projeto. Para verificar arquivos e fontes, clique em **Diagnóstico**.
+6. Para legendas, importe um SRT sincronizado no editor. A narração já pode ser inserida como mídia local, gerada por qualquer sintetizador offline/sem IA.
+7. Gere MP4 pelo editor ou \`npm run project -- render <id>\`.
+
+## Regras e limites
+
+- Nunca publicar roteiro, áudio ou projeto pessoal no GitHub do código sem instrução explícita.
+- Eventos de um SRT possuem timestamps, mas importar legendas **não transcreve áudio**.
+- Fonte com status \`verified\` reflete declaração humana; o software não verifica sua veracidade automaticamente.
+- Diagnóstico não garante exportação bem-sucedida nem integridade de todos os codecs.
+- Propostas com revisão antiga não podem ser aprovadas por cima de alterações novas.
+- Snapshots (até 30) são históricos locais pontuais, não backup geograficamente redundante.
+- Arquivos de mídia continuam na biblioteca de mídia local, não embutidos no JSON.
+- WebView2/Tauri, inicialização e renderização em vídeos longos ainda precisam ser testados no PC do usuário.
+- Serviço 127.0.0.1 ainda experimental e sem autenticação forte de sessão; não expor na rede.
+- Checar licenciamento Remotion antes de comercialização.
+
+## Próximas etapas após esta base
+
+- v0.11: transcrição realmente automática e waveform, preferencialmente com motor local opt-in.
+- v0.12: proxies, cache e render por segmentos para longos documentários e 16 GB RAM.
+- v0.13: instalador e serviço embarcado/gerenciado, controle de permissões, autenticação local e atualização segura.
+- v0.14: investigação editorial com fontes auditáveis, importação de materiais e revisão de direitos.
+- Somente depois: biblioteca de motion graphics, refinamento cinematográfico e UX de edição profissional.
+
+Critério de concluído: testes unitários + verificação TypeScript + build frontend + CI Windows com smoke MP4 **e teste real no Windows do usuário**. A CI não substitui a última etapa.

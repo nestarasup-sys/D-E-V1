@@ -4,6 +4,8 @@ import { Documentary } from './video/Documentary';
 import { useEditor } from './model/store';
 import { projectDuration, sceneStart, type Scene, type Project, type Asset, type Lane, type MediaClip } from './model/project';
 import type { Operation } from './model/operations';
+import {parseSrt,exportSrt} from './model/captions';
+import {EvidencePanel} from './components/EvidencePanel';
 
 const endpoint = 'http://127.0.0.1:4317';
 const seconds = (frames:number, fps:number) => `${Math.floor(frames/fps/60).toString().padStart(2,'0')}:${Math.floor((frames/fps)%60).toString().padStart(2,'0')}`;
@@ -26,6 +28,8 @@ export function Editor({onHome,syncStatus,onReload}:{onHome:()=>void,syncStatus:
   const [exportState,setExportState] = useState('');
   const [exportProgress,setExportProgress] = useState(0);
   const mediaFile = useRef<HTMLInputElement>(null);
+  const captionFile = useRef<HTMLInputElement>(null);
+  const [captionNotice,setCaptionNotice] = useState('');
   const [mediaMessage,setMediaMessage] = useState('');
   const {selectedClipId,selectClip}=useEditor();
   const selectedClip=project.clips.find(c=>c.id===selectedClipId)||null;
@@ -49,6 +53,23 @@ export function Editor({onHome,syncStatus,onReload}:{onHome:()=>void,syncStatus:
     }
     void poll();return()=>{cancelled=true;clearTimeout(timer);};
   },[exportId]);
+  async function importSubtitles(event:ChangeEvent<HTMLInputElement>){
+    const file=event.target.files?.[0];
+    event.target.value='';
+    if(!file)return;
+    setCaptionNotice('');
+    try{
+      const captions=parseSrt(await file.text(),project.fps,projectDuration(project),()=>crypto.randomUUID());
+      if(project.captions.length&&!window.confirm('Substituir as legendas atuais por '+captions.length+' trechos do SRT? Você pode desfazer.'))return;
+      apply([{type:'replaceCaptions',captions}]);
+      setCaptionNotice(captions.length+' legendas sincronizadas importadas. O áudio permanece inalterado.');
+    }catch(e){setCaptionNotice(e instanceof Error?e.message:'Arquivo SRT inválido');}
+  }
+  function downloadSubtitles(){
+    const blob=new Blob([exportSrt(project.captions,project.fps)],{type:'application/x-subrip;charset=utf-8'});
+    const url=URL.createObjectURL(blob);const a=document.createElement('a');
+    a.href=url;a.download='dark-studio-legendas.srt';a.click();URL.revokeObjectURL(url);
+  }
   async function uploadMedia(event:ChangeEvent<HTMLInputElement>){
     const files=Array.from(event.target.files||[]);event.target.value='';if(!files.length)return;
     setImporting(true);setMediaMessage('');
@@ -104,9 +125,10 @@ export function Editor({onHome,syncStatus,onReload}:{onHome:()=>void,syncStatus:
   }
   function jumpTo(index:number) {select(project.scenes[index].id);player.current?.seekTo(sceneStart(project,index));}
   return <div className="shell">
-    <header className="topbar"><div className="brand"><span className="brandmark">D</span><div><strong>DARK STUDIO</strong><small>INVESTIGATIVE EDITOR 0.4</small></div></div>
+    <header className="topbar"><div className="brand"><span className="brandmark">D</span><div><strong>DARK STUDIO</strong><small>INVESTIGATIVE EDITOR 0.6</small></div></div>
       <div className="projectName"><span className="dot"/>{project.name}</div>
       <div className="topActions"><button onClick={onHome}>← Projetos</button><button onClick={undo} disabled={!past.length} title="Desfazer">↶ Desfazer</button><button onClick={redo} disabled={!future.length} title="Refazer">↷ Refazer</button><button onClick={()=>mediaFile.current?.click()} disabled={importing}>{importing?'Importando...':'Importar mídia'}</button><button className="primary" onClick={()=>void exportVideo()}>Exportar MP4</button><button onClick={()=>saveJson(project)}>Exportar JSON ↧</button></div>
+      <input className="hidden" ref={captionFile} type="file" accept=".srt,.txt" onChange={e=>void importSubtitles(e)}/>
       <input className="hidden" ref={mediaFile} type="file" multiple accept=".png,.jpg,.jpeg,.webp,.mp4,.webm,.mov,.mp3,.wav,.m4a,.ogg" onChange={uploadMedia}/>
     </header>
     <div className="workspace">
@@ -120,6 +142,12 @@ export function Editor({onHome,syncStatus,onReload}:{onHome:()=>void,syncStatus:
       <div className="assetList">{project.assets.map(a=><div className="assetRow" key={a.id}><strong title={a.name}>{a.kind==='image'?'▣':a.kind==='video'?'▶':'♫'} {a.name}</strong><div className="assetActions">
       {a.kind==='audio'?<><button onClick={()=>insertAsset(a,'narration')}>+ Narração</button><button onClick={()=>insertAsset(a,'music')}>+ Música</button></>:<button onClick={()=>insertAsset(a,'visual')}>+ Visual</button>}
       </div></div>)}</div>{mediaMessage&&<p className="warning" role="alert">{mediaMessage}</p>}</div>
+      <div className="libraryNote"><b>LEGENDAS SINCRONIZADAS · {project.captions.length}</b>
+        <p>Importe um SRT com timestamps (gerado por ferramenta local ou pelo Codex) e revise o timing em relação à narração.</p>
+        <div className="projectActions"><button onClick={()=>captionFile.current?.click()}>Importar SRT</button>
+          <button disabled={!project.captions.length} onClick={downloadSubtitles}>Exportar SRT</button></div>
+        {captionNotice&&<p className="warning" role="status">{captionNotice}</p>}
+      </div>
       </aside>
       <main className="stage"><div className="panelTitle">PRÉ-VISUALIZAÇÃO <span>1920 × 1080 • 30 FPS</span></div>
         <div className="preview"><Player ref={player} component={Documentary} inputProps={{project}} fps={project.fps} durationInFrames={Math.max(1,total)} compositionWidth={project.width} compositionHeight={project.height} controls clickToPlay style={{width:'100%',aspectRatio:'16/9'}}/></div>
@@ -132,6 +160,11 @@ export function Editor({onHome,syncStatus,onReload}:{onHome:()=>void,syncStatus:
             {project.clips.filter(c=>c.lane===lane).map(c=>{const a=project.assets.find(item=>item.id===c.assetId);return <button key={c.id} title={a?.name||c.id} className={`mediaClip ${c.id===selectedClipId?'clipSelected':''}`} style={{left:`${c.startFrame/total*100}%`,width:`${c.durationFrames/total*100}%`}} onClick={()=>{selectClip(c.id);player.current?.seekTo(c.startFrame);}}><span>{a?.name||'Arquivo ausente'}</span></button>;})}
           </div></div>)}
         </div>
+        {project.captions.length>0&&<div className="track captionTrack"><span className="trackLabel">LEGENDAS</span><div className="laneRail">
+          {project.captions.map(c=><button key={c.id} className="captionTick"
+            title={c.text} style={{left:(c.startFrame/total*100)+'%',width:((c.endFrame-c.startFrame)/total*100)+'%'}}
+            onClick={()=>player.current?.seekTo(c.startFrame)}>{c.text}</button>)}
+        </div></div>}
         <div className="timelineHint">Clipes têm posição temporal independente das cenas. Clique para editar início, duração, corte e volume. Reordenação de cenas fica bloqueada enquanto houver mídia para preservar sincronização.</div>
         {exportState&&<div className="exportStatus" role="status"><strong>EXPORTAÇÃO MP4 · {exportState}</strong><progress max={1} value={exportProgress}/><small>Renderização local em processo separado, com Remotion e FFmpeg. Salvo em Vídeos/DarkStudio.</small></div>}
       </main>
@@ -154,6 +187,7 @@ export function Editor({onHome,syncStatus,onReload}:{onHome:()=>void,syncStatus:
         <div className="field"><label>Imagem de fundo (URL; para exportar, prefira importar na biblioteca)</label><input placeholder="https://..." value={imageDraft} onChange={e=>setImageDraft(e.target.value)} onBlur={()=>{if(imageDraft!==scene.imageUrl)update({imageUrl:imageDraft});}}/></div>
         <div className="field"><label>Notas de produção / evidências</label><textarea rows={3} maxLength={500} value={scene.productionNotes||''} onChange={e=>update({productionNotes:e.target.value})} placeholder="Direção visual e evidências a verificar..."/></div>
         <div className="sceneActions"><button onClick={()=>action([{type:'moveScene',sceneId:scene.id,direction:'left'}])} disabled={selectedIndex===0}>← Mover</button><button onClick={()=>action([{type:'moveScene',sceneId:scene.id,direction:'right'}])} disabled={selectedIndex===project.scenes.length-1}>Mover →</button><button className="danger" disabled={project.scenes.length===1} onClick={()=>action([{type:'removeScene',sceneId:scene.id}])}>Excluir</button></div>
+        <EvidencePanel sceneId={scene.id} evidence={project.evidence.filter(e=>e.sceneId===scene.id)} onOps={action}/>
         </div>{message&&<p role="alert" className="warning">{message}</p>}
       </aside>
     </div>

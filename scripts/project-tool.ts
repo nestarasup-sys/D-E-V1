@@ -15,10 +15,14 @@
 import {readFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {ProjectRepository} from '../apps/agent/src/project-store';
+import {ProposalRepository} from '../apps/agent/src/proposals';
+import {diagnoseProject,runtimeDiagnostics} from '../apps/agent/src/diagnostics';
+import {mediaExistsFor} from '../apps/agent/src/media';
 import {applyOperations} from '../src/model/operations';
 import {parseProject} from '../src/model/project';
 
 const repository=new ProjectRepository();
+const proposalStore=new ProposalRepository(repository);
 const [command,...args]=process.argv.slice(2);
 const api='http://127.0.0.1:4317';
 
@@ -103,12 +107,46 @@ async function main() {
       console.log('ID: '+created.project.id);
       return;
     }
+    case 'preview': {
+      const id=requireArgument(args[0],'UUID do projeto');
+      const ops=await readLocalJson(requireArgument(args[1],'operações JSON'));
+      const revision=requireArgument(args[2],'revisão do projeto');
+      const result=await proposalStore.preview(id,ops,revision);
+      console.log(JSON.stringify(result,null,2));
+      console.log('Nenhum arquivo foi modificado.');
+      return;
+    }
+    case 'propose': {
+      const id=requireArgument(args[0],'UUID do projeto');
+      const ops=await readLocalJson(requireArgument(args[1],'operações JSON'));
+      const revision=requireArgument(args[2],'revisão do projeto');
+      const proposal=await proposalStore.create(id,ops,revision);
+      console.log('Proposta preparada para revisão no Dark Studio: '+proposal.id);
+      console.log(JSON.stringify(proposal.preview,null,2));
+      return;
+    }
+    case 'pending': {
+      const id=requireArgument(args[0],'UUID do projeto');
+      const pending=await proposalStore.list(id);
+      console.log(JSON.stringify(pending.map(p=>({id:p.id,createdAt:p.createdAt,preview:p.preview})),null,2));
+      return;
+    }
+    case 'accept': {
+      const result=await proposalStore.accept(requireArgument(args[0],'UUID do projeto'),requireArgument(args[1],'UUID da proposta'));
+      console.log('Proposta aplicada com backup local. Revisão: '+result.revision);
+      return;
+    }
+    case 'reject': {
+      await proposalStore.reject(requireArgument(args[0],'UUID do projeto'),requireArgument(args[1],'UUID da proposta'));
+      console.log('Proposta descartada; projeto preservado.');
+      return;
+    }
     case 'apply': {
       const id=requireArgument(args[0],'UUID do projeto');
       const file=requireArgument(args[1],'operações JSON');
       const current=await repository.read(id);
-      const expected=args[2];
-      if(expected&&current.revision!==expected)throw new Error('Conflito: a revisão mudou antes de aplicar. Leia o projeto novamente.');
+      const expected=requireArgument(args[2],'revisão obtida com info');
+      if(current.revision!==expected)throw new Error('Conflito: a revisão mudou antes de aplicar. Leia o projeto novamente.');
       const operations=await readLocalJson(file);
       const next=applyOperations(current.project,operations);
       const saved=await repository.save(id,next,current.revision);
@@ -124,6 +162,30 @@ async function main() {
       const updated=await repository.save(id,project,expected);
       console.log('Projeto atualizado (com backup local): '+updated.path);
       console.log('Nova revisão: '+updated.revision);
+      return;
+    }
+    case 'doctor': {
+      console.log('Ambiente local: '+JSON.stringify(runtimeDiagnostics(),null,2));
+      if(args[0]){
+        const project=(await repository.read(args[0])).project;
+        const result=await diagnoseProject(project,mediaExistsFor);
+        console.log('Diagnóstico de projeto: '+JSON.stringify(result,null,2));
+        if(!result.readyForRender)process.exitCode=2;
+      }
+      return;
+    }
+    case 'history': {
+      const id=requireArgument(args[0],'UUID do projeto');
+      const snapshots=await repository.history(id);
+      console.log(JSON.stringify(snapshots,null,2));
+      return;
+    }
+    case 'restore': {
+      const id=requireArgument(args[0],'UUID do projeto');
+      const revision=requireArgument(args[1],'revisão do histórico');
+      const expected=requireArgument(args[2],'revisão atual');
+      const result=await repository.restore(id,revision,expected);
+      console.log('Projeto restaurado. Nova revisão: '+result.revision);
       return;
     }
     case 'render': {

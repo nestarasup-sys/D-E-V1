@@ -1,4 +1,4 @@
-# Dark Studio v0.5 — Editor desktop com Codex local
+# Dark Studio v0.10 — Editor desktop com Codex local
 
 O **Dark Studio** é um editor de documentários para Windows 11. A interface usa Tauri 2 + React + TypeScript, o preview utiliza Remotion e a exportação MP4 acontece via Remotion Renderer/FFmpeg em processo separado.
 
@@ -115,3 +115,43 @@ npm run smoke:render
 ~~~
 
 Roadmap único: [ROADMAP.md](ROADMAP.md).
+
+## Cinco etapas de estrutura (v0.6–v0.10)
+
+O [ROADMAP.md](ROADMAP.md) descreve o escopo, o status e os limites de cada etapa. A interface mantém o chat de IA **fora do editor**, no Codex local do ChatGPT.
+
+### 1. Versões anteriores / recuperação
+
+Cada salvamento preserva uma cópia anterior em \`projects/<UUID>/history/<revisão>.json\` (até 30 snapshots). Na página inicial, abra **Versões** e restaure uma versão com confirmação. Restaurar registra também a versão substituída. O comando CLI \`history <UUID>\` lista versões; \`restore <UUID> <snapshot-sha> <revision-atual>\` restaura a selecionada.
+
+### 2. Propostas do Codex, sem alterações silenciosas
+
+No terminal que o Codex controla (você continua conversando apenas pelo chat do ChatGPT), dentro do repositório:
+
+~~~powershell
+npm run project -- info SEU-UUID
+npm run project -- preview SEU-UUID .\edicoes.json REVISAO
+npm run project -- propose SEU-UUID .\edicoes.json REVISAO
+~~~
+
+No cartão do projeto, clique **Revisar Codex**. As propostas mostram cenas criadas, alteradas e removidas, e podem ser aprovadas ou descartadas. O comando \`propose\` só grava um arquivo local na pasta \`proposals\`; **não modifica o projeto até você aprovar**. Em caso de alteração concorrente, a revisão obsoleta bloqueia aplicação. \`apply\` e \`replace\` continuam disponíveis para automação intencional, sempre com revisão explícita.
+
+### 3. Legendas SRT sincronizadas com narração
+
+Na biblioteca do editor, clique **Importar SRT**. O arquivo é validado e convertido em frames a 30 FPS. Você verá uma trilha de legendas na timeline e os textos no preview/render MP4. Também pode **Exportar SRT**. Codex local pode produzir um SRT com timestamps para importar. **O Dark Studio ainda não reconhece fala automaticamente**; gerar/transcrever áudio é tarefa de um sintetizador/transcritor externo.
+
+### 4. Registro de fontes e evidências
+
+Cada cena tem um painel **Fontes e evidências**: afirmação, documento/origem, URL HTTPS opcional, notas e status (\`pendente\`, \`verificada por mim\`, \`rejeitada\`). O Codex pode preparar fontes como registros pendentes, e você confirma manualmente. Apagar uma cena não apaga a evidência: ela permanece desvinculada.
+
+### 5. Diagnóstico local
+
+No cartão do projeto, clique **Diagnóstico**. Verifica se as mídias cadastradas estão no disco, alerta sobre cenas factuais sem fonte, fontes pendentes/rejeitadas e ausência de narração/legendas. Comando local:
+
+~~~powershell
+npm run project -- doctor
+npm run project -- doctor SEU-UUID
+~~~
+
+O relatório também mostra o sistema, memória RAM livre e versão Node. Não substitui uma validação de fatos nem garante que todos os codecs do arquivo exportem corretamente.
+

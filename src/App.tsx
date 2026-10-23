@@ -1,5 +1,8 @@
 import {useCallback,useEffect,useRef,useState,type ChangeEvent} from 'react';
 import {Editor} from './Editor';
+import {ProjectHistory} from './components/ProjectHistory';
+import {ProposalReview} from './components/ProposalReview';
+import {ProjectDiagnostics} from './components/ProjectDiagnostics';
 import {useEditor} from './model/store';
 import {parseProject} from './model/project';
 import {
@@ -102,6 +105,9 @@ function ProjectSession({initial,onClose}: {initial:ProjectRecord;onClose:()=>vo
 
 export function App(){
   const [entries,setEntries]=useState<ProjectSummary[]>([]);
+  const [historyId,setHistoryId]=useState<string|null>(null);
+  const [proposalsId,setProposalsId]=useState<string|null>(null);
+  const [diagnosticsId,setDiagnosticsId]=useState<string|null>(null);
   const [directory,setDirectory]=useState('');
   const [active,setActive]=useState<ProjectRecord|null>(null);
   const [busy,setBusy]=useState(false);
@@ -194,7 +200,7 @@ export function App(){
       'Você precisa de acesso local autorizado a esta pasta e ao repositório de código D-E-V1.',
       'Leia src/model/project.ts, src/model/operations.ts e AGENTS.md antes de editar.',
       'No diretório do código D-E-V1, execute npm run project -- info '+entry.id+' para conhecer a revisão atual.',
-      'Leia o JSON, gere operações estruturadas, salve o arquivo de operações num local temporário e aplique com npm run project -- apply '+entry.id+' <arquivo-operacoes.json> <revisao>.',
+      'Leia o JSON, gere operações estruturadas e prepare para minha aprovação com npm run project -- propose '+entry.id+' <arquivo-operacoes.json> <revisao>. Não aplique antes da revisão no Dark Studio.',
       'Preserve os IDs e as evidências existentes. Não invente fatos, fontes nem links de mídia. Não apague cenas sem instrução.',
       'Após aplicar, valide com npm run project -- validate '+entry.id+'. O Dark Studio perceberá a alteração local automaticamente.',
       'Se for solicitado exportar MP4, abra npm run dev:service e use npm run project -- render '+entry.id+'.'
@@ -234,7 +240,7 @@ export function App(){
         <div className="projectArt"><span>D</span><small>{entry.sceneCount} CENA{entry.sceneCount===1?'':'S'}</small></div>
         <div className="projectInfo"><h3 title={entry.name}>{entry.name}</h3>
         <p>{formatDuration(entry.durationFrames)} · {entry.assetCount} arquivos · {new Date(entry.modifiedAt).toLocaleDateString('pt-BR')}</p>
-        <div className="projectActions"><button className="primary" disabled={busy} onClick={()=>void open(entry.id)}>Abrir editor →</button><button disabled={busy} onClick={()=>void act(async()=>{await duplicateProject(entry.id);})}>Duplicar</button><button disabled={busy} onClick={()=>void copyCodexInstruction(entry)}>Copiar instrução Codex</button><button disabled={busy} onClick={()=>{if(window.confirm('Arquivar projeto? Ele será movido para _archived, sem apagar a mídia.'))void act(async()=>{await archiveProject(entry.id);});}}>Arquivar</button></div>
+        <div className="projectActions"><button className="primary" disabled={busy} onClick={()=>void open(entry.id)}>Abrir editor →</button><button disabled={busy} onClick={()=>void act(async()=>{await duplicateProject(entry.id);})}>Duplicar</button><button disabled={busy} onClick={()=>void copyCodexInstruction(entry)}>Copiar instrução Codex</button><button disabled={busy} onClick={()=>setHistoryId(entry.id)}>Versões</button><button disabled={busy} onClick={()=>setProposalsId(entry.id)}>Revisar Codex</button><button disabled={busy} onClick={()=>setDiagnosticsId(entry.id)}>Diagnóstico</button><button disabled={busy} onClick={()=>{if(window.confirm('Arquivar projeto? Ele será movido para _archived, sem apagar a mídia.'))void act(async()=>{await archiveProject(entry.id);});}}>Arquivar</button></div>
         </div>
       </article>)}</div>
       <div className="workspaceInfo">
@@ -247,5 +253,8 @@ export function App(){
         <p className="homeNote">GitHub é usado somente para o código do Dark Studio; projetos, roteiros e mídia não são publicados. O Codex local precisa de permissão de leitura/gravação para a pasta de projetos. O conteúdo utilizado pela IA pode ser processado pelos serviços do ChatGPT conforme o modo e as configurações da conta.</p>
       </div>
     </section>
+    {historyId&&<ProjectHistory id={historyId} onClose={()=>setHistoryId(null)} onRestored={()=>{void refresh();}}/>}
+    {proposalsId&&<ProposalReview projectId={proposalsId} onClose={()=>setProposalsId(null)} onChanged={()=>{void refresh();}}/>}
+    {diagnosticsId&&<ProjectDiagnostics projectId={diagnosticsId} onClose={()=>setDiagnosticsId(null)}/>}
   </main>;
 }

@@ -68,3 +68,27 @@
 
 /* Codex local: confirmação ao copiar instruções, sem serviço remoto */
 .syncSuccess{padding:10px 12px;border:1px solid #3d705c;background:#1b3a30;color:#9be4c0;border-radius:6px;font-size:12px}
+
+.historyOverlay{position:fixed;inset:0;background:#050913da;z-index:20;display:grid;place-items:center;padding:20px}
+.historyDialog{max-height:90vh;overflow:auto;width:min(650px,94vw);background:#121b29;border:1px solid #586782;border-radius:12px;padding:25px;box-shadow:0 20px 80px #000c}
+.historyRow{display:flex;align-items:center;justify-content:space-between;gap:15px;border-bottom:1px solid #37455a;padding:13px 0}
+.historyRow strong,.historyRow small{display:block}
+.historyRow strong{font-size:13px}.historyRow small{font-size:10px;color:#9aaec3;margin-top:5px}
+
+.proposalReviewCard{margin-top:13px;border:1px solid #46566d;background:#192535;border-radius:8px;padding:13px}
+.proposalReviewCard strong,.proposalReviewCard small{display:block}.proposalReviewCard small{color:#a4b6ca;margin-top:6px;font-size:11px}
+.proposalReviewCard ul{font-size:12px;line-height:1.7;color:#d1deed;padding-left:18px;overflow-wrap:anywhere}
+
+.captionTrack{margin:12px 0 0}.captionTick{position:absolute;top:3px;height:31px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+font-size:10px;text-align:left;padding:7px;background:#654c2d;color:#fff4d6;border:1px solid #bd9650;min-width:5px}
+.evidencePanel{margin-top:25px;padding-top:17px;border-top:1px solid #435067}
+.evidenceForm{margin-top:16px}.evidenceForm label{display:block;font-size:11px;margin:9px 0 5px;color:#9fb0c7}
+.evidenceForm input,.evidenceForm textarea{display:block;margin-top:5px;font-size:11px}
+.evidenceItem{padding:11px;margin-top:8px;border:1px solid #35465a;background:#1a2935;border-radius:6px;overflow-wrap:anywhere}
+.evidenceItem strong{font-size:12px;display:block}.evidenceItem small,.evidenceItem a{display:block;font-size:11px;margin-top:6px;color:#a7bbd1}
+.evidenceItem .projectActions{margin-top:9px}.evidenceItem select{font-size:10px;min-width:135px;width:auto;flex:1}
+
+.diagnosticRow{display:flex;gap:12px;align-items:baseline;border-bottom:1px solid #303e50;padding:11px 4px;font-size:12px}
+.diagnosticRow strong{min-width:64px;font-size:10px;color:#aabed4}
+.diagnostic-warning strong{color:#edbc79}.diagnostic-error strong{color:#fa999f}.diagnostic-info strong{color:#8cbfe8}
+.diagnosticRow span{line-height:1.5;overflow-wrap:anywhere}

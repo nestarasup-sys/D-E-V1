@@ -33,6 +33,13 @@ export function Documentary({project}:{project:Project}) {
     {positions.map(({scene,from})=><Sequence key={'background-'+scene.id} from={from} durationInFrames={scene.durationFrames}><SceneVisual scene={scene} layer="background"/></Sequence>)}
     {project.clips.filter(c=>c.lane==='visual').map(clip=>{const asset=assets.get(clip.assetId);return asset?<Sequence key={clip.id} from={clip.startFrame} durationInFrames={clip.durationFrames}><ClipVisual clip={clip} asset={asset}/></Sequence>:null;})}
     {positions.map(({scene,from})=><Sequence key={'text-'+scene.id} from={from} durationInFrames={scene.durationFrames}><SceneVisual scene={scene} layer="text"/></Sequence>)}
+    {project.captions.map(c=><Sequence key={'caption-'+c.id} from={c.startFrame} durationInFrames={c.endFrame-c.startFrame}>
+      <AbsoluteFill style={{justifyContent:'flex-end',alignItems:'center',paddingBottom:90,pointerEvents:'none'}}>
+        <div style={{fontFamily:'Arial, sans-serif',whiteSpace:'pre-line',fontSize:44,fontWeight:700,
+          textAlign:'center',maxWidth:'88%',color:'#fff',textShadow:'0 3px 12px #000,0 1px 3px #000',
+          background:'rgba(0,0,0,.56)',padding:'14px 27px',borderRadius:10}}>{c.text}</div>
+      </AbsoluteFill>
+    </Sequence>)}
     {project.clips.filter(c=>c.lane!=='visual').map(clip=>{const asset=assets.get(clip.assetId);return asset?<Sequence key={clip.id} from={clip.startFrame} durationInFrames={clip.durationFrames}><Audio src={asset.url} startFrom={clip.trimStartFrames} volume={clip.volume}/></Sequence>:null;})}
   </AbsoluteFill>;
 }

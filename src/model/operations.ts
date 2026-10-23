@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { assetSchema, clipSchema, projectSchema, sceneSchema, type Project } from './project';
+import { assetSchema, clipSchema, captionSchema, evidenceSchema, projectSchema, sceneSchema, type Project } from './project';
 
 const editableSceneSchema = sceneSchema.omit({id:true}).partial().strict();
 export const operationSchema = z.discriminatedUnion('type', [
@@ -11,6 +11,10 @@ export const operationSchema = z.discriminatedUnion('type', [
   z.object({type:z.literal('addClip'), clip:clipSchema}).strict(),
   z.object({type:z.literal('updateClip'), clipId:z.string(), changes:clipSchema.omit({id:true,assetId:true}).partial().strict()}).strict(),
   z.object({type:z.literal('removeClip'), clipId:z.string()}).strict(),
+  z.object({type:z.literal('replaceCaptions'), captions:z.array(captionSchema).max(3000)}).strict(),
+  z.object({type:z.literal('addEvidence'), evidence:evidenceSchema}).strict(),
+  z.object({type:z.literal('updateEvidence'), evidenceId:z.string().uuid(), changes:evidenceSchema.omit({id:true}).partial().strict()}).strict(),
+  z.object({type:z.literal('removeEvidence'), evidenceId:z.string().uuid()}).strict(),
 ]);
 export type Operation = z.infer<typeof operationSchema>;
 
@@ -43,13 +47,21 @@ export function applyOperations(project:Project, input:unknown):Project {
           if (c.startFrame<start) return [{...c,durationFrames:start-c.startFrame}];
           return [];
         });
+        draft.captions=draft.captions.flatMap(c=>{
+          if(c.endFrame<=start)return [c];
+          if(c.startFrame>=end)return [{...c,startFrame:c.startFrame-(end-start),endFrame:c.endFrame-(end-start)}];
+          // Evita perder legendas não relacionadas à cena eliminada.
+          if(c.startFrame<start)return [{...c,endFrame:start}];
+          return [];
+        });
+        draft.evidence=draft.evidence.map(e=>e.sceneId===op.sceneId?{...e,sceneId:undefined}:e);
         draft.scenes.splice(i,1); break;
       }
       case 'moveScene': {
         const i = draft.scenes.findIndex(s=>s.id===op.sceneId);
         if(i<0) throw new Error('Cena não encontrada');
         // Mover cenas com clipes destruiria a sincronização absoluta; é bloqueado até o ripple-edit.
-        if(draft.clips.length) throw new Error('Reordenação de cenas com mídia ainda não suportada; remova os clipes antes.');
+        if(draft.clips.length || draft.captions.length) throw new Error('Reordenação de cenas com mídia ou legendas ainda não suportada; remova a sincronização antes.');
         const j=i+(op.direction==='left'?-1:1);
         if(j>=0&&j<draft.scenes.length){const [s]=draft.scenes.splice(i,1);draft.scenes.splice(j,0,s);} break;
       }
@@ -63,6 +75,20 @@ export function applyOperations(project:Project, input:unknown):Project {
       case 'removeClip': {
         const i=draft.clips.findIndex(c=>c.id===op.clipId);
         if(i<0) throw new Error('Clipe não encontrado'); draft.clips.splice(i,1);break;
+      }
+      case 'replaceCaptions': draft.captions=op.captions;break;
+      case 'addEvidence':
+        if(draft.evidence.some(e=>e.id===op.evidence.id))throw new Error('Evidência duplicada');
+        draft.evidence.push(op.evidence);break;
+      case 'updateEvidence': {
+        const index=draft.evidence.findIndex(e=>e.id===op.evidenceId);
+        if(index<0)throw new Error('Evidência não encontrada');
+        draft.evidence[index]=evidenceSchema.parse({...draft.evidence[index],...op.changes});break;
+      }
+      case 'removeEvidence':{
+        const index=draft.evidence.findIndex(e=>e.id===op.evidenceId);
+        if(index<0)throw new Error('Evidência não encontrada');
+        draft.evidence.splice(index,1);break;
       }
     }
   }
