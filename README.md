@@ -6,6 +6,20 @@ O **Dark Studio** é um editor de documentários para Windows 11. A interface us
 
 GitHub serve apenas para hospedar o **código-fonte do aplicativo**, sem roteiros, mídia ou projetos reais de usuários.
 
+## Windows: instalar, atualizar e abrir com dois cliques (BAT)
+
+Os atalhos ficam em [windows/01-INSTALAR-ATUALIZAR.bat](windows/01-INSTALAR-ATUALIZAR.bat) e [windows/02-ABRIR-DARK-STUDIO.bat](windows/02-ABRIR-DARK-STUDIO.bat).
+
+Se você baixou os dois BATs separadamente e os colocou em uma **pasta nova**, mantenha-os juntos:
+
+1. Abra o **01-INSTALAR-ATUALIZAR.bat**. Ele detecta Git e Node.js; se faltarem, pergunta antes de instalar via winget. Baixa o repositório na subpasta **D-E-V1** se ainda não existir. Em execuções seguintes, atualiza a branch **main** com \`git pull --ff-only\`, instala as dependências, verifica TypeScript, testes e build, e confere Rust/MSVC. Pode oferecer instalação de Rust e C++ Build Tools com sua confirmação.
+2. Se um instalador de Git, Node, Rust ou C++ foi executado, feche e reabra o terminal e rode o primeiro BAT de novo. O Microsoft C++ Build Tools é um download grande e pode requerer permissão de administrador; no Windows 11 o WebView2 normalmente já está instalado.
+3. Abra o **02-ABRIR-DARK-STUDIO.bat**. Ele inicia o serviço de projetos/mídia e o aplicativo desktop Tauri em **janelas de terminal separadas**. Mantenha as janelas abertas enquanto trabalha.
+
+Os BATs também funcionam dentro da pasta do repositório ou em sua subpasta \`windows\`. O atualizador não executa \`git reset\`, \`git clean\` ou trocas de branch; se houver alterações locais no código, ele avisa e para, em vez de sobrescrevê-las.
+
+**Importante:** GitHub baixa/atualiza somente o **código-fonte**. Projetos, roteiros, narrações e mídias continuam em pastas locais fora do repositório, e o Codex é usado **pelo chat do aplicativo ChatGPT, em modo Local**.
+
 ## Preparar o Windows
 
 - Node.js 22+, Git e npm.
