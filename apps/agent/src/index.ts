@@ -2,7 +2,6 @@ import {createServer} from 'node:http';
 import {handleMedia} from './media';
 import {handleExport} from './export';
 import {handleProjects} from './projects';
-import {handleSync,syncManager} from './sync-service';
 import {json} from './http';
 
 const HOST='127.0.0.1';
@@ -24,7 +23,7 @@ const server=createServer(async(req,res)=>{
   if(origin){res.setHeader('Access-Control-Allow-Origin',origin);res.setHeader('Vary','Origin');}
   if(req.method==='OPTIONS'){
     res.writeHead(204,{'Access-Control-Allow-Methods':'GET,POST,PUT,DELETE,OPTIONS',
-      'Access-Control-Allow-Headers':'Content-Type,X-File-Name,If-Match,X-Dark-Studio-Client'});
+      'Access-Control-Allow-Headers':'Content-Type,X-File-Name,If-Match'});
     res.end();
     return;
   }
@@ -34,7 +33,6 @@ const server=createServer(async(req,res)=>{
   }
   try{
     const url=new URL(req.url||'/', 'http://127.0.0.1:4317');
-    if(await handleSync(req,res,url))return;
     if(await handleProjects(req,res,url))return;
     if(await handleMedia(req,res,url))return;
     if(await handleExport(req,res,url))return;
@@ -43,7 +41,6 @@ const server=createServer(async(req,res)=>{
     json(res,500,{error:e instanceof Error?e.message:'Erro do serviço local'});
   }
 });
-void syncManager.start().catch(error=>console.error('Erro ao preparar sincronização:',error));
 server.listen(PORT,HOST,()=>console.log(
   'Dark Studio Local Service: http://'+HOST+':'+PORT+
   '\nProjetos em disco, sem Codex incorporado. Execute o Codex separadamente.'

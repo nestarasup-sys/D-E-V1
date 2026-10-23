@@ -1,27 +1,24 @@
-# Codex development instructions for Dark Studio
+# Dark Studio — instruções para Codex Local
 
-## Product intent
-- This is a **desktop video editor**. The user interacts with Codex via **ChatGPT/Codex outside the app**, never in a chat widget inside the editor.
-- The home screen lists projects; the editor manipulates scenes, clips, and assets.
-- Runtime data is saved in separate local folders: %USERPROFILE%\DarkStudio\projects\<UUID>\project.json. Do not commit user projects or media to this public repository by default.
-- Codex Cloud does not automatically access local Windows folders or ChatGPT conversation state. In v0.5 an authorized **separate GitHub private project repository** can carry JSON projects between cloud and local; see PRIVATE_SYNC.md. Never claim automatic ChatGPT access without repo permissions and a commit to main.
+## Intenção
+- Dark Studio é um editor desktop de vídeo; ChatGPT Desktop/Codex é o ambiente **externo** onde o usuário pede montagens e alterações.
+- Usar **Codex Local / This computer**, sem Cloud e sem Worktree para edições compartilhadas ao vivo, a menos que o usuário configure acesso ao mesmo diretório.
+- **Nunca crie chat de IA dentro do Dark Studio.** Não adicione sincronização GitHub para dados de usuários.
+- GitHub \`nestarasup-sys/D-E-V1\` hospeda apenas código. Não envie projetos, roteiros, mídias ou tokens ao repositório.
 
-## Project files
-- Schema: src/model/project.ts
-- Safe edit operations: src/model/operations.ts
-- Local CLI: npm run project -- list | show <id> | validate <id> | apply <id> <ops.json> | create <name> | import <json>.
-- Prefer validated atomic CLI edits over direct writes. Preserve IDs, use frame counts at 30 FPS, do not make up facts/evidence or third-party media rights.
-- A local project may refer to local asset URLs that do not exist in a remote workspace. Do not invent or replace assets with broken URLs.
+## Projetos no computador
+- Por padrão \`%USERPROFILE%\DarkStudio\projects\<UUID>\project.json\`, mídia local fora do repositório.
+- Schema \`src/model/project.ts\`; operações \`src/model/operations.ts\`.
+- CLI \`npm run project -- path | list | create | info | show | validate | import | apply | replace | render\`.
+- Prefira \`apply <id> <ops.json> <revision>\`; para projeto inteiro use \`replace <id> <json> <revision>\`.
+- Releia a revisão se houver conflito, em vez de sobrescrever a edição do usuário. Salve e valide projetos em transações.
+- Um novo documentário deve aparecer no dashboard quando criado pelo CLI. Uma edição em disco deve ser detectada automaticamente pelo editor.
+- Preserve IDs existentes e dados factuais, use quadros a 30 FPS. Sem inventar licenças, fontes, dados ou assets não importados.
 
-## Architecture
-- React/Tauri frontend under src/, desktop host under src-tauri/.
-- Local Node service under apps/agent/ remains for project persistence, media streaming and MP4 render; it no longer embeds the Codex SDK.
-- CI includes TypeScript, unit tests, frontend build, native Windows cargo check and a short Remotion MP4 smoke render.
-- Work only on the main branch when requested; do not introduce branches.
-- GitHub private sync via apps/agent/src/sync-core.ts and sync-github.ts; do not upload projects to this PUBLIC source code repository or send media automatically.
-
-## Safety and quality
-- Keep project data private by default. Do not commit real investigations to a public repository without explicit consent.
-- Do not add ChatGPT/Codex chat controls back into the app.
-- Existing file change conflict policy is HTTP 409 with reload/backup, not silent overwrites.
-- New features should have tests and user-visible error paths.
+## Segurança e qualidade
+- O Codex local precisa ter permissão explícita para acessar o diretório de projetos. Não tentar burlar o sandbox.
+- Projeto/arquivos no computador não significam inferência de IA totalmente offline: evite afirmações de privacidade absolutas.
+- Exportação MP4 por \`npm run project -- render <id>\` exige serviço local ativo.
+- Serviço Node em \`apps/agent\` gerencia disco/mídia/render; UI React/Tauri em \`src/\`.
+- Verificar TypeScript, testes, build frontend e CI Windows/MP4 antes de marcar pronto.
+- Trabalhar somente na \`main\` conforme preferência do usuário.

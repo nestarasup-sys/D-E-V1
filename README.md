@@ -1,30 +1,16 @@
-# Dark Studio v0.5 — projetos locais e sincronização privada opcional com Codex Cloud
+# Dark Studio v0.5 — Editor desktop com Codex local
 
-O Dark Studio é um editor desktop Windows desenvolvido com **Tauri 2 + React + TypeScript + Remotion**. **Não há chat com IA dentro do editor.** O Codex deve ser usado no ChatGPT/ambiente Codex externo. O Dark Studio recebe as edições por arquivos JSON estruturados em disco ou pela importação manual de JSON.
+O **Dark Studio** é um editor de documentários para Windows 11. A interface usa Tauri 2 + React + TypeScript, o preview utiliza Remotion e a exportação MP4 acontece via Remotion Renderer/FFmpeg em processo separado.
 
-## Como funciona a integração
+**Como a IA funciona:** você conversa com o **Codex no aplicativo ChatGPT Desktop, em modo Local / Este computador**. O Codex recebe permissão para trabalhar com arquivos locais do projeto Dark Studio, cria ou modifica projetos e opcionalmente solicita a exportação MP4. O editor detecta alterações no disco. **Não existe chat de IA dentro do Dark Studio; nenhum projeto é sincronizado via GitHub.**
 
-1. Abra o Dark Studio: a **página inicial de projetos** permite criar, abrir, duplicar, arquivar e importar projetos JSON.
-2. Projetos ficam, por padrão, em **%USERPROFILE%\DarkStudio\projects\<UUID>\project.json**. Na página inicial, clique em "Copiar pasta de projetos".
-3. Para usar o **Codex com acesso aos arquivos locais do seu computador**, abra essa pasta no ambiente de desenvolvimento local ao qual o Codex tem acesso. Peça para analisar o arquivo do projeto e gerar edições estruturadas. No Dark Studio aberto, atualizações salvas no disco são detectadas automaticamente (~3,5 s), desde que não existam alterações manuais pendentes.
-4. O caminho preferencial para alterações seguras é o CLI **npm run project -- apply <UUID> edicoes.json**. Ele valida todas as operações, exige revisão atual e cria backup antes de salvar. Consulte [CODEX_WORKFLOW.md](CODEX_WORKFLOW.md).
+GitHub serve apenas para hospedar o **código-fonte do aplicativo**, sem roteiros, mídia ou projetos reais de usuários.
 
-**IMPORTANTE:** o Codex executando remotamente nos servidores do ChatGPT **não tem acesso automático ao disco do Windows**. Nesse caso, forneça ao Codex o JSON exportado ou use uma sincronização intencional que você controle. O Codex pode gerar outro projeto JSON para importar na página inicial. **Não envie projetos investigativos sensíveis para um repositório público sem revisar o conteúdo.** A partir da v0.5 é possível **habilitar explicitamente** uma ponte bidirecional via repositório GitHub privado separado, com compartilhamento por projeto. Consulte [PRIVATE_SYNC.md](PRIVATE_SYNC.md).
+## Preparar o Windows
 
-## Ponte privada opcional (v0.5)
-
-A página inicial contém **Sincronização privada**. Um repositório GitHub privado separado e o GitHub CLI autenticado permitem transferir JSON de projetos para um ambiente Codex Cloud que você tenha conectado e autorizado. **Nenhum projeto local é enviado automaticamente ao ativar a conexão**: selecione cada projeto explicitamente. Projetos novos criados/publicados pelo Codex no privado podem ser recebidos.
-
-A sincronização não transmite vídeos, imagens e áudio. Mudanças conflitantes são preservadas sem sobrescrita automática. Para conhecer as etapas de conexão, restrições e segurança, leia [PRIVATE_SYNC.md](PRIVATE_SYNC.md).
-
-## Preparação Windows 11
-
-Recomendação inicial: Ryzen 5 4600G, Radeon RX 7600, 16 GB RAM, 1080p/30 FPS, renderização com concorrência 1.
-
-- Instale Node.js 22+, npm e Git.
-- Para a sincronização privada OPCIONAL, instale GitHub CLI (`winget install --id GitHub.cli --source winget`) e faça `gh auth login`.
-- Para o desktop Tauri: Rust/rustup, Microsoft C++ Build Tools e WebView2 conforme https://v2.tauri.app/start/prerequisites/.
-- Primeira renderização Remotion pode baixar Chromium. FFmpeg já é integrado ao Renderer no fluxo atual.
+- Node.js 22+, Git e npm.
+- Para executar o Tauri: Rust/rustup, Visual Studio Build Tools (C++) e WebView2. Instruções oficiais: https://v2.tauri.app/start/prerequisites/
+- Hardware de referência: Ryzen 5 4600G, RX 7600, RAM 16 GB, 1080p/30 FPS; render concorrência 1.
 
 No PowerShell:
 
@@ -35,38 +21,77 @@ npm install
 npm run dev:service
 ~~~
 
-Em **outro terminal**, dentro da pasta do projeto:
+Em outro terminal da mesma pasta:
 
 ~~~powershell
 npm run dev:desktop
 ~~~
 
-Para testar somente a interface, rode npm run dev no segundo terminal e abra http://127.0.0.1:1420. O serviço local é necessário para projetos, importação de mídia e exportação MP4. **Este serviço ainda não vem empacotado como instalador autossuficiente.**
+O serviço local gerencia os projetos, a biblioteca de mídia e o render. O Tauri nesta versão ainda não instala/inicia o serviço sozinho. Para testar apenas a interface em desenvolvimento, use npm run dev no segundo terminal e abra http://127.0.0.1:1420.
 
-## Projetos e salvamento
+## Página inicial e projetos
 
-- O serviço local gerencia projetos e mídia; o editor salva alterações automaticamente (debounce de 900 ms).
-- Ao importar um JSON cujo ID já existe na página inicial, o editor pede confirmação para **atualizar o projeto existente**, fazendo backup do anterior. Um JSON com ID novo vira projeto novo.
-- Ao tentar salvar uma revisão obsoleta, o serviço devolve HTTP 409. O editor não sobrescreve automaticamente a alteração externa e oferece "Recarregar projeto do disco". **Exporte o JSON local antes de recarregar** se desejar preservar alterações feitas na interface.
-- O projeto anterior da v0.1/v0.2 ainda pode estar salvo no navegador. Use "Migrar projeto antigo" no dashboard ou importe um JSON exportado.
-- Arquivar move a pasta do projeto para _archived; não apaga os arquivos da biblioteca de mídia.
-- Cada gravação salva uma cópia anterior em project.previous.json na pasta. Isto é um backup pontual, não um histórico permanente.
-- URLs dos arquivos de mídia usam o servidor local; mover o JSON para outro PC não transporta os arquivos.
+Ao abrir o Dark Studio, você verá os projetos recentes. É possível criar, abrir, duplicar, arquivar e importar projetos JSON. Cada projeto fica em uma pasta no Windows:
 
-## Edição e exportação
+~~~text
+%USERPROFILE%\DarkStudio\projects\<UUID>\project.json
+~~~
 
-O editor de cenas mantém trilhas visuais, narração e música, com Remotion Player e exportação MP4 H.264 em worker separado. Ainda não há waveform, proxies, ripple-edit nem editor profissional completo. Reprodução de alguns codecs depende do WebView2/Chromium, e projetos longos devem ser testados cuidadosamente.
+A biblioteca de mídia fica em outra pasta local, gerenciada pelo serviço. O projeto é salvo automaticamente quando você edita a timeline; cópias anteriores ficam em project.previous.json. A página inicial permite copiar o caminho da pasta de projetos e, para cada projeto, clicar **Copiar instrução Codex**.
 
-## Limitações de segurança e produto
+## Usar Codex pelo ChatGPT Desktop
 
-- O serviço HTTP fica em 127.0.0.1:4317, mas **ainda não exige token de sessão**. Não exponha a porta na rede nem distribua o produto antes da revisão de segurança.
-- Alterar project.json diretamente com Codex deve preservar o schema definido em src/model/project.ts. Para evitar arquivo parcial, o CLI é preferível.
-- A ponte privada exige um repositório GitHub privado autorizado para Codex Cloud. **Não existe acesso automático às conversas do ChatGPT ou aos arquivos Windows**.
-- O workflow Windows CI compila Tauri e faz smoke render curto de MP4. Isso não substitui teste na interface do seu Windows.
-- Direitos e fontes de imagens, dados e afirmações investigativas precisam de verificação humana.
-- Avalie a licença do Remotion antes de comercializar o editor.
+1. No ChatGPT Desktop para Windows, selecione **Codex** e escolha **Local / Este computador**, não Cloud. Abra o repositório de código \`D-E-V1\` como workspace.
+2. Conceda ao Codex acesso à pasta dos projetos locais, caso o ambiente de segurança solicite. Ela fica fora do repositório de código. Sem essa permissão, o Codex não consegue modificar arquivos do Dark Studio.
+3. No Dark Studio, crie o projeto e clique **Copiar instrução Codex**. Cole a instrução na conversa do Codex junto com seu roteiro e as alterações desejadas.
+4. O Codex usa \`npm run project --\` para ler, validar e editar arquivos de projeto. Quando o arquivo mudar, o Dark Studio atualizará a timeline automaticamente (~3,5 segundos) se não houver trabalho manual pendente.
+5. Para solicitar a exportação de vídeo no Codex, use \`npm run project -- render <UUID>\` com o serviço local aberto.
 
-## Comandos de teste
+**Não é necessário instalar ou autenticar GitHub CLI. Não crie um repositório privado de projetos.** O antigo módulo de sincronização GitHub foi retirado do produto.
+
+O Codex local trabalha sobre arquivos da sua máquina, mas o **conteúdo fornecido à IA ainda pode ser processado pelos serviços OpenAI** conforme seu modo de execução, conta e configurações. Local não significa modelo offline.
+
+## Comandos de integração local
+
+~~~powershell
+npm run project -- path
+npm run project -- list
+npm run project -- create "Novo documentário"
+npm run project -- info SEU-UUID
+npm run project -- show SEU-UUID
+npm run project -- validate SEU-UUID
+npm run project -- apply SEU-UUID .\edicoes.json REVISAO
+npm run project -- replace SEU-UUID .\projeto-novo.json REVISAO
+npm run project -- import .\projeto-gerado.json
+npm run project -- render SEU-UUID
+~~~
+
+O comando \`info\` exibe a **revisão SHA-256 atual** do projeto. \`apply\` e \`replace\` podem exigir que a revisão permaneça igual, evitando editar em cima de mudanças concorrentes. \`apply\` valida todas as operações e grava em transação; \`replace\` exige revisão explicitamente. \`render\` manda o projeto para o serviço local e acompanha o MP4, sem GitHub.
+
+Leia o passo a passo, regras para o Codex e exemplos em [CODEX_WORKFLOW.md](CODEX_WORKFLOW.md) e [AGENTS.md](AGENTS.md).
+
+## Recursos implementados
+
+- Biblioteca de projetos locais e autosave em arquivos JSON.
+- Editor de cenas com controles manuais e histórico desfazer/refazer.
+- Importação de imagens/vídeos/narração e timeline de cenas, visual, narração e música.
+- Preview no Remotion Player e exportação MP4 local.
+- Detecção de alterações externas (Codex) e proteção contra sobrescrita por revisão.
+- CLI local de automação: criar, importar, editar, validar e exportar.
+- Sem chat interno e **sem transporte por repositório GitHub de dados do usuário**.
+
+## Limitações
+
+- O serviço local 127.0.0.1:4317 ainda não oferece autenticação forte por sessão; esta versão é experimental e não deve ser exposta na rede.
+- O render depende de Chromium/Remotion; alguns codecs do WebView2 não são suportados. 16 GB RAM exige cautela em vídeos longos.
+- Não há proxies, waveform, ripple-edit, arrastar clipes ou sincronização automática de narração.
+- A edição do JSON pelo Codex altera a **composição/projeto**. Para criar um arquivo MP4, use Exportar MP4 no editor ou o comando CLI \`render\`.
+- O Codex local não necessariamente tem acesso irrestrito ao computador: respeite as permissões/sandbox. Worktrees e Cloud podem ter arquivos separados do workspace local.
+- Resultados CI (TypeScript, testes, build e smoke MP4 Windows) **não** são teste manual no seu computador.
+- Revise fatos, fontes e direitos de mídia antes de publicar o vídeo.
+- Verifique a licença do Remotion antes de comercializar o editor.
+
+## Testar
 
 ~~~powershell
 npm run check
@@ -75,4 +100,4 @@ npm run build
 npm run smoke:render
 ~~~
 
-Veja o roadmap único em [ROADMAP.md](ROADMAP.md).
+Roadmap único: [ROADMAP.md](ROADMAP.md).

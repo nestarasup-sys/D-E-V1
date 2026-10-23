@@ -3,6 +3,7 @@ import {mkdtemp,readFile,rm,writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {ProjectError,ProjectRepository} from './project-store';
+import {applyOperations} from '../../../src/model/operations';
 
 async function withRepo(run: (repo: ProjectRepository)=>Promise<void>) {
   const root=await mkdtemp(join(tmpdir(),'dark-studio-projects-'));
@@ -10,6 +11,21 @@ async function withRepo(run: (repo: ProjectRepository)=>Promise<void>) {
   finally {await rm(root,{recursive:true,force:true});}
 }
 describe('Projetos locais para Codex externo',()=>{
+  it('aplica edição local, cria backup e mantém o mesmo projeto',async()=>withRepo(async repo=>{
+    const original=await repo.create('Documentário original');
+    const sceneId=original.project.scenes[0].id;
+    const next=applyOperations(original.project,[
+      {type:'updateScene',sceneId,changes:{title:'EDIÇÃO PELO CODEX LOCAL'}},
+    ]);
+    const saved=await repo.save(original.project.id,next,original.revision);
+    expect(saved.project.id).toBe(original.project.id);
+    expect(saved.project.scenes[0].title).toBe('EDIÇÃO PELO CODEX LOCAL');
+    const previous=JSON.parse(await readFile(join(repo.root,original.project.id,'project.previous.json'),'utf8')) as {scenes:{title:string}[]};
+    expect(previous.scenes[0].title).not.toBe('EDIÇÃO PELO CODEX LOCAL');
+    await expect(repo.save(original.project.id,next,original.revision))
+      .rejects.toMatchObject({status:409});
+  }));
+
   it('cria, lista e lê projeto sem misturar com outro',async()=>withRepo(async repo=>{
     const a=await repo.create('Caso investigativo A');
     const b=await repo.create('Caso investigativo B');

@@ -1,36 +1,39 @@
-# Dark Studio — Roadmap oficial
+# Dark Studio — Roadmap oficial (único)
 
-> Documento único de planejamento, atualizado em 23 de outubro de 2026. **Somente branch main.**
+Atualizado em 23 de outubro de 2026. **Branch única main**, sem branches paralelas.
 
-## Visão ajustada conforme o criador
+## Arquitetura correta
 
-O Dark Studio é o **editor**, com página inicial de projetos, timeline, biblioteca de mídia e exportação. O Codex/ChatGPT é o **diretor externo**: recebe roteiros e instruções no ChatGPT, e modifica o arquivo de projeto (quando tem acesso explícito ao workspace) ou entrega JSON para importação. **O Dark Studio não tem chat de IA embutido.**
+**Codex Local no ChatGPT Desktop → projeto no Windows → Dark Studio Desktop.**
 
-### PC de referência
+O usuário conversa com o Codex no app ChatGPT Desktop em modo Local e permite que ele manipule seus arquivos de projeto. O Dark Studio abre os mesmos arquivos, atualiza a timeline e exporta MP4. **Nenhum GitHub no caminho dos dados**. O GitHub público D-E-V1 continua apenas para o código-fonte.
 
-Windows 11, Ryzen 5 4600G, AMD RX 7600, 16 GB RAM. Preview 1080p/30 FPS, concurrency 1 no render H.264, proxies planejados. Aceleração RX 7600 ainda não validada.
+Dados por padrão em \`%USERPROFILE%\DarkStudio\`; cenas/projetos JSON, biblioteca de mídia local. O conteúdo que o Codex enviar para processamento por IA não deve ser confundido com projeto sincronizado no GitHub.
 
-## Marcos
+### Hardware de referência
+Windows 11, Ryzen 5 4600G, Radeon RX 7600, 16 GB RAM, 1920 × 1080, 30 FPS. Render Remotion/FFmpeg em processo separado com concorrência 1. Futuros proxies e otimização de memória. Aceleração de hardware da RX 7600 não validada.
 
-| Marco | Estado | Objetivo |
+## Marcos e critérios de aceite
+
+| Marco | Estado | Entrega |
 | --- | --- | --- |
-| v0.1 | Base implementada; sem teste pessoal | Cenas, timeline simples e Remotion |
-| v0.2 | Implementada; teste pessoal pendente | Biblioteca de mídia, multitrilha, export MP4 |
-| v0.2.1 | CI Windows e MP4 smoke aprovados | Compilação Tauri + renderização curta real |
-| v0.3 | Substituída na UX | Propostas multicena em chat embutido descartadas conforme nova preferência |
-| **v0.4** | **Em validação** | Página inicial, projetos em disco, CLI de operações para Codex externo, import/export e detecção de mudanças |
-| **v0.5** | **Implementada, validação com GitHub pessoal pendente** | Ponte de sincronização GitHub privado; opt-in por projeto; validação de privacidade; pull/push JSON; conflitos sem sobrescrever |
-| v0.6 | Planejada | Transcrição/timestamps, waveform, sincronização de cenas; transporte privado de mídia via consentimento futuro |
-| v0.7 | Planejada | Evidências, pesquisa visual e licenças; previews/proxies |
-| v1.0 | Dependente de testes reais | Instalador, segurança local, backups, robustez em vídeos longos |
+| v0.1 | Base implementada, sem teste manual | Cenas, edição manual, preview Remotion |
+| v0.2 | Código implementado, teste manual pendente | Biblioteca local, trilhas visual/narração/música e exportação MP4 |
+| v0.2.1 | CI aprovada | Tauri Windows check e smoke de render MP4 |
+| v0.3 | Painel de chat removido por mudança de requisitos | Esquemas de operação reversível, agora acionados externamente |
+| v0.4 | Implementada, sem validação pessoal | Dashboard de projetos, armazenamento e autosave, detecção de mudanças de disco |
+| **v0.5 (local)** | **Em validação** | Codex externo por CLI local, projeto por arquivo, aplicação com revisão e render via CLI; sem ponte GitHub |
+| v0.6 | Planejada | Transcrição de narração, timestamps, waveform e sincronização automática |
+| v0.7 | Planejada | Biblioteca de evidências, fontes/licenças, motion graphics e performance/proxies |
+| v1.0 | Dependente de testes reais | Instalador Windows com serviço incluído, segurança, backups robustos, vídeos longos |
 
-## Princípios
+## Princípios que não devem ser quebrados
 
-- O Codex só acessa projetos locais se tiver acesso concedido ao filesystem Windows; a instância remota no ChatGPT depende de exportação/importação ou sincronização explicitamente configurada.
-- JSON de projeto segue src/model/project.ts; ações validadas em src/model/operations.ts.
-- Alteração externa detectada no editor sem apagar trabalho manual pendente; HTTP 409 em versão obsoleta.
-- **Nenhum dado investigativo vai ao repositório público de código.** JSON só vai ao repositório privado após conexão autorizada e opt-in explícito por projeto; mídia nunca é sincronizada na v0.5.
-- Antes de declarar uso produtivo, testar o aplicativo no Windows 11 do criador com material real, desempenho e mídia.
-- Remotion/FFmpeg no serviço local; futuramente distribuir o worker com autenticação local e instalador.
-- Não inventar fatos, documentos ou direitos de mídia.
-- Conflitos entre Codex e editor não fazem merge automático. O usuário revisa e resolve separadamente.
+1. Projetos e mídia não são versionados/enviados ao GitHub do código.
+2. Codex Local opera nos arquivos do PC somente dentro das permissões concedidas; não há chat de IA dentro do editor.
+3. Todas as edições automáticas devem respeitar o schema e a revisão existente; conflitos nunca geram sobrescritas silenciosas.
+4. Tempo em frames (30 FPS); media provenance e evidências devem ser verificadas antes da publicação.
+5. Compilação Linux e CI Windows não substituem testes manuais no computador do usuário.
+6. Licenciamento Remotion deve ser confirmado para eventual comercialização.
+
+Veja [CODEX_WORKFLOW.md](CODEX_WORKFLOW.md) para executar o fluxo.

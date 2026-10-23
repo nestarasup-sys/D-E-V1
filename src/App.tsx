@@ -1,6 +1,5 @@
 import {useCallback,useEffect,useRef,useState,type ChangeEvent} from 'react';
 import {Editor} from './Editor';
-import {PrivateSyncPanel} from './components/PrivateSyncPanel';
 import {useEditor} from './model/store';
 import {parseProject} from './model/project';
 import {
@@ -108,6 +107,7 @@ export function App(){
   const [busy,setBusy]=useState(false);
   const [newName,setNewName]=useState('');
   const [error,setError]=useState('');
+  const [notice,setNotice]=useState('');
   const [loaded,setLoaded]=useState(false);
   const importRef=useRef<HTMLInputElement>(null);
 
@@ -184,16 +184,39 @@ export function App(){
     });
   }
 
+  async function copyCodexInstruction(entry:ProjectSummary){
+    const file=(directory||'%USERPROFILE%\\DarkStudio\\projects')+'\\'+entry.id+'\\project.json';
+    const instructions=[
+      'Trabalhe como Codex LOCAL no ChatGPT Desktop (Windows). NÃO use GitHub, cloud sync ou repositórios remotos para os dados deste documentário.',
+      'Projeto Dark Studio: '+entry.name,
+      'ID: '+entry.id,
+      'Arquivo local: '+file,
+      'Você precisa de acesso local autorizado a esta pasta e ao repositório de código D-E-V1.',
+      'Leia src/model/project.ts, src/model/operations.ts e AGENTS.md antes de editar.',
+      'No diretório do código D-E-V1, execute npm run project -- info '+entry.id+' para conhecer a revisão atual.',
+      'Leia o JSON, gere operações estruturadas, salve o arquivo de operações num local temporário e aplique com npm run project -- apply '+entry.id+' <arquivo-operacoes.json> <revisao>.',
+      'Preserve os IDs e as evidências existentes. Não invente fatos, fontes nem links de mídia. Não apague cenas sem instrução.',
+      'Após aplicar, valide com npm run project -- validate '+entry.id+'. O Dark Studio perceberá a alteração local automaticamente.',
+      'Se for solicitado exportar MP4, abra npm run dev:service e use npm run project -- render '+entry.id+'.'
+    ].join('\n');
+    try{
+      if(!navigator.clipboard)throw new Error('Área de transferência indisponível neste ambiente.');
+      await navigator.clipboard.writeText(instructions);
+      setNotice('Instruções locais de '+entry.name+' copiadas para usar no Codex.');
+      setError('');
+    }catch(e){setError('Falha ao copiar: '+asError(e));}
+  }
+
   if(active)return <ProjectSession key={active.project.id} initial={active} onClose={()=>{setActive(null);void refresh();}}/>;
   return <main className="homeScreen">
     <header className="homeHeader">
       <div className="brand"><span className="brandmark">D</span><div><strong>DARK STUDIO</strong><small>ESTÚDIO DE DOCUMENTÁRIOS</small></div></div>
-      <span className="homeVersion">PROJETOS · WINDOWS · v0.5</span>
+      <span className="homeVersion">PROJETOS · WINDOWS · v0.5 LOCAL</span>
     </header>
     <section className="homeHero">
       <p className="homeEyebrow">SEU ESTÚDIO INVESTIGATIVO</p>
       <h1>Seus projetos, em um só lugar.</h1>
-      <p>Crie um documentário, continue uma edição ou abra um projeto gerado pelo Codex externo. Sem chat de IA dentro do editor.</p>
+      <p>Crie um documentário, continue a edição e acompanhe mudanças feitas pelo Codex local no mesmo computador. Nenhum chat ou sincronização com GitHub é necessário.</p>
       <div className="homeCreate">
         <input aria-label="Nome do novo projeto" placeholder="Nome do novo documentário" maxLength={120} value={newName} onChange={e=>setNewName(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')void create();}}/>
         <button className="primary" disabled={busy||!newName.trim()} onClick={()=>void create()}>+ Criar projeto</button>
@@ -204,24 +227,24 @@ export function App(){
     <section className="homeProjects">
       <div className="homeSectionTop"><h2>Projetos recentes</h2><button onClick={()=>void refresh()}>↻ Atualizar</button></div>
       {error && <p role="alert" className="warning">{error}</p>}
+      {notice && <p role="status" className="syncSuccess">{notice}</p>}
       {!loaded && <p>Consultando projetos locais...</p>}
       {loaded && entries.length===0 && <div className="homeEmpty"><strong>Nenhum projeto nesta pasta.</strong><p>Crie o primeiro documentário ou importe um projeto JSON. O Codex local também pode criar arquivos de projeto aqui.</p></div>}
       <div className="projectGrid">{entries.map(entry=><article className="projectTile" key={entry.id}>
         <div className="projectArt"><span>D</span><small>{entry.sceneCount} CENA{entry.sceneCount===1?'':'S'}</small></div>
         <div className="projectInfo"><h3 title={entry.name}>{entry.name}</h3>
         <p>{formatDuration(entry.durationFrames)} · {entry.assetCount} arquivos · {new Date(entry.modifiedAt).toLocaleDateString('pt-BR')}</p>
-        <div className="projectActions"><button className="primary" disabled={busy} onClick={()=>void open(entry.id)}>Abrir editor →</button><button disabled={busy} onClick={()=>void act(async()=>{await duplicateProject(entry.id);})}>Duplicar</button><button disabled={busy} onClick={()=>{if(window.confirm('Arquivar projeto? Ele será movido para _archived, sem apagar a mídia.'))void act(async()=>{await archiveProject(entry.id);});}}>Arquivar</button></div>
+        <div className="projectActions"><button className="primary" disabled={busy} onClick={()=>void open(entry.id)}>Abrir editor →</button><button disabled={busy} onClick={()=>void act(async()=>{await duplicateProject(entry.id);})}>Duplicar</button><button disabled={busy} onClick={()=>void copyCodexInstruction(entry)}>Copiar instrução Codex</button><button disabled={busy} onClick={()=>{if(window.confirm('Arquivar projeto? Ele será movido para _archived, sem apagar a mídia.'))void act(async()=>{await archiveProject(entry.id);});}}>Arquivar</button></div>
         </div>
       </article>)}</div>
-      <PrivateSyncPanel projects={entries} refresh={()=>{void refresh();}}/>
       <div className="workspaceInfo">
-        <strong>Integração com Codex do ChatGPT (fora do editor)</strong>
-        <p>Projetos locais ficam em <code>{directory||'%USERPROFILE%\\DarkStudio\\projects'}</code>. O Codex executado no PC pode modificar o arquivo <code>project.json</code>. O editor detecta mudanças externas quando não há edição manual pendente.</p>
+        <strong>Codex local + Dark Studio: os mesmos arquivos no Windows</strong>
+        <p>Os projetos são armazenados apenas em <code>{directory||'%USERPROFILE%\\DarkStudio\\projects'}</code>. No Codex do aplicativo ChatGPT, selecione a execução <b>Local / Este computador</b> e conceda acesso à pasta necessária. Ele pode criar cenas e alterar o <code>project.json</code> por comandos validados. O editor detecta as mudanças sem passar pelo GitHub.</p>
         <div className="projectActions">
           <button onClick={()=>{if(directory&&navigator.clipboard)void navigator.clipboard.writeText(directory);}}>Copiar pasta de projetos</button>
           <button onClick={migrate}>Migrar projeto antigo</button>
         </div>
-        <p className="homeNote">Codex em nuvem no ChatGPT não acessa automaticamente os arquivos do Windows. Para uso remoto, importe/compartilhe projetos deliberadamente ou configure uma sincronização autorizada. Nada é enviado ao GitHub automaticamente.</p>
+        <p className="homeNote">GitHub é usado somente para o código do Dark Studio; projetos, roteiros e mídia não são publicados. O Codex local precisa de permissão de leitura/gravação para a pasta de projetos. O conteúdo utilizado pela IA pode ser processado pelos serviços do ChatGPT conforme o modo e as configurações da conta.</p>
       </div>
     </section>
   </main>;

@@ -12,3 +12,10 @@ src-tauri/gen/schemas/
 *.webm
 *.tmp
 .DS_Store
+
+# Nunca versionar projetos, roteiros e mídia dos usuários
+projects/
+local-projects/
+media/
+user-data/
+*.operations.json
