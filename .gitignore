@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+src-tauri/target/
+src-tauri/gen/schemas/
+*.log
+*.mp4
+*.mov
+*.wav
+*.webm
+*.tmp
+.DS_Store
