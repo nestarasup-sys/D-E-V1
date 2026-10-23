@@ -166,11 +166,22 @@ export function DirectorPanel({onClose}: {onClose: () => void}) {
           </>}
           {mode==='batch' && batch && <>
             <p>{batch.summary}</p>
-            {batch.updates.map(update=><div className="directorCard" key={update.sceneId}>
-              <label><input type="checkbox" checked={chosenUpdates.includes(update.sceneId)} onChange={()=>setChosenUpdates(b=>toggle(b,update.sceneId))}/>
-                <strong>{project.scenes.find(s=>s.id===update.sceneId)?.title||update.sceneId} → {update.changes.title}</strong></label>
-              <small>{update.reason}</small>
-            </div>)}
+            {batch.updates.map(update=>{
+              const before = project.scenes.find(s=>s.id===update.sceneId);
+              const keys = (['kind','title','subtitle','kicker','durationFrames','accentColor','backgroundColor'] as const)
+                .filter(key=>before?.[key]!==update.changes[key]);
+              const labels:Record<typeof keys[number],string> = {
+                kind:'Tipo',title:'Título',subtitle:'Subtítulo',kicker:'Chamada',
+                durationFrames:'Duração (frames)',accentColor:'Cor destaque',backgroundColor:'Cor fundo',
+              };
+              return <div className="directorCard" key={update.sceneId}>
+                <label><input type="checkbox" checked={chosenUpdates.includes(update.sceneId)} onChange={()=>setChosenUpdates(b=>toggle(b,update.sceneId))}/>
+                  <strong>{before?.title||update.sceneId} → {update.changes.title}</strong></label>
+                <small>{update.reason}</small>
+                {keys.length===0?<small>Nenhuma propriedade visual foi alterada.</small>:
+                  keys.map(key=><small key={key}><b>{labels[key]}:</b> {String(before?.[key]??'')} → {String(update.changes[key])}</small>)}
+              </div>;
+            })}
             <div className="directorControls">
               <button className="primary" onClick={accept} disabled={!chosenUpdates.length}>Aplicar {chosenUpdates.length} alteração(ões)</button>
               <button onClick={()=>setBatch(null)}>Descartar</button>
