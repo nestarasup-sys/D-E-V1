@@ -34,11 +34,14 @@ describe('Diretor de IA — operações não destrutivas', () => {
   it('acrescenta cenas no final na ordem do storyboard', () => {
     let number = 0;
     const project = copy();
-    const ops = storyboardAppendOperations(project, storyboard, [1,0], ()=>String(++number));
+    const ops = storyboardAppendOperations(project, storyboard, [1,0], ()=>`generated-${++number}`);
     const next = applyOperations(project,ops);
     expect(next.scenes.slice(-2).map(s=>s.title)).toEqual(['ABERTURA','DOCUMENTO']);
     expect(next.scenes.slice(0,3)).toEqual(project.scenes);
     expect(next.scenes[3].productionNotes).toContain('Confirmar origem');
+  });
+  it('rejeita IDs colidindo com cenas existentes', () => {
+    expect(()=>storyboardAppendOperations(copy(), storyboard, [0], ()=>'1')).toThrow(/ID de cena/);
   });
   it('não altera clipes já presentes ao anexar cenas', () => {
     const project = copy();

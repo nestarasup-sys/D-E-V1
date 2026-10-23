@@ -56,10 +56,14 @@ export function storyboardAppendOperations(
   }
   if (project.scenes.length + indices.length > 200) throw new Error('Limite de 200 cenas por projeto.');
   let previous = project.scenes[project.scenes.length - 1].id;
+  const usedIds = new Set(project.scenes.map(scene => scene.id));
   return indices.sort((a, b) => a - b).map(i => {
     const beat = proposal.scenes[i];
+    const id = 'scene-' + makeId();
+    if (usedIds.has(id)) throw new Error('ID de cena gerado já existe no projeto.');
+    usedIds.add(id);
     const scene: Scene = {
-      id: 'scene-' + makeId(),
+      id,
       kind: beat.kind,
       title: beat.title,
       subtitle: beat.subtitle,
