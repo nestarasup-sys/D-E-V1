@@ -1,4 +1,6 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
+import {handleMedia} from './media';
+import {handleExport} from './export';
 import { tmpdir } from 'node:os';
 import { Codex } from '@openai/codex-sdk';
 import { z } from 'zod';
@@ -35,11 +37,17 @@ async function readJson(req:IncomingMessage):Promise<unknown>{
   return JSON.parse(body);
 }
 const server=createServer(async(req,res)=>{
+  if(req.headers.host && !/^(127\.0\.0\.1|localhost):4317$/.test(req.headers.host)){json(res,403,{error:'Host não permitido'});return;}
   const origin = req.headers.origin;
   if (origin && !origins.has(origin)){json(res,403,{error:'Origem não autorizada.'});return;}
   if(origin){res.setHeader('Access-Control-Allow-Origin',origin);res.setHeader('Vary','Origin');}
-  if(req.method==='OPTIONS') {res.writeHead(204,{'Access-Control-Allow-Methods':'POST,GET,OPTIONS','Access-Control-Allow-Headers':'Content-Type'});res.end();return;}
-  if(req.method==='GET' && req.url==='/health'){json(res,200,{status:'ready',mode:'external-codex'});return;}
+  if(req.method==='OPTIONS') {res.writeHead(204,{'Access-Control-Allow-Methods':'POST,GET,OPTIONS','Access-Control-Allow-Headers':'Content-Type,X-File-Name'});res.end();return;}
+  if(req.method==='GET' && req.url==='/health'){json(res,200,{status:'ready',mode:'external-codex',media:true,export:true});return;}
+  try {
+    const url=new URL(req.url||'/',`http://${HOST}:${PORT}`);
+    if(await handleMedia(req,res,url))return;
+    if(await handleExport(req,res,url))return;
+  } catch(e) {json(res,500,{error:e instanceof Error?e.message:'Falha interna'});return;}
   if(req.method!=='POST'||req.url!=='/v1/propose'){json(res,404,{error:'Rota não encontrada.'});return;}
   if(!req.headers['content-type']?.startsWith('application/json')){json(res,415,{error:'Envie JSON.'});return;}
   if(busy){json(res,429,{error:'O agente já está processando um pedido.'});return;}

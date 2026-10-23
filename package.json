@@ -1,7 +1,7 @@
 {
   "name": "dark-studio",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
@@ -10,7 +10,8 @@
     "build": "npm run check && vite build",
     "check": "tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.agent.json",
     "test": "vitest run",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "dev:render": "tsx apps/agent/src/render-worker.ts"
   },
   "dependencies": {
     "@openai/codex-sdk": "^0.164.0",
@@ -20,7 +21,9 @@
     "react-dom": "^19.0.0",
     "remotion": "^4.0.360",
     "zod": "^3.24.0",
-    "zustand": "^5.0.0"
+    "zustand": "^5.0.0",
+    "@remotion/bundler": "^4.0.360",
+    "@remotion/renderer": "^4.0.360"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.0.0",

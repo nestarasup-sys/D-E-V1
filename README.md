@@ -1,59 +1,63 @@
-# Dark Studio v0.1 — editor investigativo com IA externa
+# Dark Studio v0.2 — editor investigativo desktop, com agente externo
 
-Aplicativo desktop experimental (Tauri 2 + React + TypeScript + Remotion) com timeline básica e painel para solicitar **propostas de edição** ao Codex, executado em um processo Node local e separado da interface. O Codex **não** recebe acesso de escrita ao projeto: devolve uma proposta JSON, validada e aplicada pelo editor somente após aprovação.
+Editor experimental para documentários em Windows, com **Tauri 2 + React + TypeScript + Remotion + FFmpeg (via Remotion Renderer) + Codex SDK**. A interface e os clipes são editáveis manualmente; o agente Codex roda em um serviço Node separado em loopback e retorna apenas propostas validadas, que você aprova.
 
-## Requisitos (Windows)
+## Requisitos
 
-- Node.js 22 LTS ou superior, npm e Git.
-- Para o aplicativo desktop: Rust via rustup, Microsoft C++ Build Tools (Desktop development with C++) e WebView2, conforme os [pré-requisitos Tauri](https://v2.tauri.app/start/prerequisites/).
-- Para os comandos de IA: acesso ao Codex autenticado no computador (consulte [Codex SDK](https://github.com/openai/codex/tree/main/sdk/typescript)). A execução pode ter custos ou exigir acesso à sua conta.
+- Windows 10/11, Node.js **22+**, Git e npm.
+- Desktop: Rust/rustup, Microsoft C++ Build Tools com **Desktop development with C++** e WebView2. Consulte https://v2.tauri.app/start/prerequisites/.
+- Renderização: Chromium pode ser baixado automaticamente pelo Remotion na primeira exportação. FFmpeg é usado internamente pelo Remotion Renderer; não é necessário instalar o FFmpeg separadamente para o fluxo de exportação deste MVP.
+- Codex SDK requer sessão autenticada/credenciais configuradas no computador para gerar propostas.
 
-## Instalação e execução
+## Rodar localmente
 
 ```powershell
 git clone https://github.com/nestarasup-sys/D-E-V1.git
 cd D-E-V1
 npm install
-npm run dev:desktop
-```
-
-Abra **um segundo terminal** na mesma pasta e execute:
-
-```powershell
 npm run dev:agent
 ```
 
-O editor abre em uma janela Windows via Tauri. No modo de desenvolvimento web, rode `npm run dev` e abra `http://127.0.0.1:1420`. O app continua editável sem serviço de IA. O serviço Codex atende somente em `127.0.0.1:4317`.
+Em outro terminal:
 
-Se a autenticação do Codex não estiver pronta, abra o Codex CLI ou o aplicativo Codex e entre com sua conta. O serviço retorna um erro visível no editor quando não consegue executar a solicitação.
-
-## O que funciona nesta versão
-
-- Criar, selecionar, reorganizar e excluir cenas; editar título, texto, duração, tipo, cores e URL de imagem.
-- Preview animado em 1920×1080/30 FPS com Remotion Player.
-- Timeline visual simples (ainda sem drag-and-drop ou áudio).
-- Desfazer/refazer, persistência no armazenamento local e importação/exportação de projetos JSON.
-- Painel de edição por linguagem natural: envia a cena selecionada ao processo externo Codex, recebe uma **proposta** e só aplica após clique em **Aplicar mudança**.
-- Operações validadas por Zod, com testes.
-
-## Limitações honestas (v0.1)
-
-- **Ainda não** exporta MP4; o pipeline FFmpeg e exportação serão implementados em um marco posterior.
-- **Ainda não** coleta imagens, cria narração, sincroniza áudio, busca notícias ou verifica automaticamente fontes.
-- O agente **não edita múltiplas cenas nem cria vídeos completos** ainda: produz alterações para a cena selecionada.
-- O servidor de desenvolvimento do agente é iniciado em um terminal separado. Ele **não é empacotado** com o instalador Tauri nesta versão.
-- Imagens de fundo são URLs públicas HTTPS; importar arquivos de mídia locais requer implementação adicional e uma biblioteca de assets.
-- Não publique estatísticas de demonstração como fatos reais. Verifique fontes, direitos e licenças das imagens.
-
-## Arquitetura
-
-```text
-src/             Interface React, schema, operações, Zustand e Remotion Player
-apps/agent/src/  Processo Node local; Codex SDK em sandbox somente-leitura
-src-tauri/       Shell desktop Tauri 2, permissões mínimas
+```powershell
+npm run dev:desktop
 ```
 
-O servidor só aceita conexões locais e origens de desenvolvimento/Tauri conhecidas. Isto é um esqueleto inicial, não uma solução completa de segurança para uma distribuição comercial. Antes de empacotar um agente local, implementar autenticação local, limites, atualização segura e tratamento de permissões.
+Para usar só a UI no navegador durante desenvolvimento, substitua o segundo comando por `npm run dev` e abra `http://127.0.0.1:1420`. **Importação de mídia e exportação MP4 exigem que `npm run dev:agent` esteja executando.** O agente não é iniciado automaticamente pelo instalador Tauri.
+
+## Recursos v0.2
+
+1. Importação de PNG/JPEG/WebP, MP4/WebM/MOV, MP3/WAV/M4A/OGG pela interface. Os arquivos são transmitidos em streaming para `~/DarkStudio/media` no Windows, sem incluir binários grandes no JSON ou no repositório. **Limite por arquivo: 512 MB**.
+2. Biblioteca de mídia com identificação e metadados básicos. Arquivos são servidos por uma URL local com Range HTTP (necessário para buscar trechos de áudio/vídeo).
+3. Timeline com trilhas **Cenas, Visual, Narração e Música**. Selecione clipes para ajustar início, duração, trim inicial e volume; clipes podem ser removidos. O projeto usa 30 FPS.
+4. Preview com Remotion e sobreposição de imagens/vídeos. A trilha visual é exibida como fundo dos títulos de cena.
+5. Exportação MP4 H.264 com Remotion Bundler/Renderer em **processo Node separado**, com progresso via painel do editor. Arquivos vão para `%USERPROFILE%/Videos/DarkStudio/`.
+6. Histórico desfazer/refazer, importação/exportação de projeto JSON e migração de projetos `version:1` para `version:2` (inclui `assets` e `clips`).
+7. Serviço Codex externo mantido: altera somente a cena selecionada após sua aprovação. Não possui autonomia para buscar imagens, editar arquivos ou modificar várias cenas.
+
+### Fluxo sugerido de teste
+
+1. Abra `npm run dev:agent` e confirme `http://127.0.0.1:4317/health`.
+2. Abra o editor, clique em **Importar mídia**, escolha uma imagem JPG/PNG ou uma narração MP3.
+3. Na biblioteca, escolha **+ Visual** ou **+ Narração**. Clique no clipe adicionado à timeline e ajuste início e duração no painel direito.
+4. Verifique preview e áudio, depois clique em **Exportar MP4**. O serviço salvará um arquivo em Vídeos/DarkStudio; na primeira exportação pode precisar baixar Chromium.
+
+## Persistência e segurança
+
+- O JSON do projeto é salvo em `localStorage` e pode ser exportado. **Faça backup do JSON e da pasta `~/DarkStudio/media`**; apenas o JSON não carrega os arquivos originais para outro computador. Um projeto antigo v1 é migrado automaticamente ao abrir.
+- O servidor abre só em `127.0.0.1:4317`, restringe Host/Origin, evita caminhos fornecidos pelo cliente ao servir assets, gera IDs UUID, impõe limite de 512 MB e valida projetos com Zod.
+- Media URLs incluem IDs gerados pelo servidor; **não há autenticação por token**. A versão 0.2 é para uso local, não exponha essa porta na rede. Antes de distribuir comercialmente, adicionar tokens de sessão, proteção CSRF, verificação real de assinatura de arquivo, quotas totais, limpeza de cache e instalação segura do worker.
+- O renderizador rejeita URLs externas no campo `scene.imageUrl` para reduzir requisições arbitrárias no processo de exportação. Não interprete as estatísticas de demonstração como fatos verificáveis.
+
+## Limitações
+
+- Ainda não há drag-and-drop de clipes, waveform, ripple-edit ou múltiplos clipes visuais com controle de z-index. A reordenação de cenas é bloqueada quando há clipes para preservar timestamps.
+- O preview de alguns formatos MOV e codecs específicos depende do WebView2/Chromium; a importação do arquivo não garante decodificação. Os clipes importados podem falhar no render se o codec não for compatível.
+- Vídeos inseridos na trilha Visual são reproduzidos **sem áudio**; narração e música estão em trilhas separadas.
+- `durationFrames` de mídia é estimado pelo navegador quando possível. Ajuste o corte manualmente e revise o resultado.
+- Render MP4 usa Remotion e Chromium num processo separado, com FFmpeg integrado. A exportação em Windows precisa de teste manual real: CI valida TypeScript, testes e build frontend, mas não faz render final nem compila instalador Tauri.
+- Arquivos de mídia não são empacotados automaticamente no instalador Tauri; o Node e o agente precisam continuar executando em separado. Não é produto pronto para distribuição.
 
 ## Testes
 
@@ -63,13 +67,6 @@ npm test
 npm run build
 ```
 
-Para testar o serviço sem Codex: `http://127.0.0.1:4317/health` deve retornar `{ "status": "ready", "mode": "external-codex" }`.
+Documentação Remotion: https://www.remotion.dev/docs/renderer/render-media
 
-## Próximos marcos
-
-1. Cache, importação local de vídeos/imagens/narração e biblioteca de evidências.
-2. Timeline multifaixa e sincronização precisa entre vídeo e áudio.
-3. FFmpeg como processo independente e exportação MP4.
-4. Ferramentas de agente multi-cena, propostas em lote, histórico e revisões automáticas.
-
-> Atenção às condições da licença comercial do Remotion antes de comercializar ou distribuir amplamente este editor.
+> Verifique as condições de licença do Remotion para editores/automação antes de distribuir ou comercializar o Dark Studio.
