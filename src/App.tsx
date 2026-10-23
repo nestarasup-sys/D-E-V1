@@ -149,7 +149,7 @@ export function App() {
       </div></div>)}</div>{mediaMessage&&<p className="warning" role="alert">{mediaMessage}</p>}</div>
       </aside>
       <main className="stage"><div className="panelTitle">PRÉ-VISUALIZAÇÃO <span>1920 × 1080 • 30 FPS</span></div>
-        <div className="preview"><Player ref={player} component={Documentary} inputProps={{project}} fps={project.fps} durationInFrames={Math.max(1,total)} compositionWidth={project.width} compositionHeight={project.height} controls clickToPlay spaceKeyToPlay style={{width:'100%',aspectRatio:'16/9'}}/></div>
+        <div className="preview"><Player ref={player} component={Documentary} inputProps={{project}} fps={project.fps} durationInFrames={Math.max(1,total)} compositionWidth={project.width} compositionHeight={project.height} controls clickToPlay style={{width:'100%',aspectRatio:'16/9'}}/></div>
         <div className="stageFooter"><div>● PREVIEW LOCAL <span>Cenas, clipes, narração e música pelo Remotion Player.</span></div><strong>{seconds(total,project.fps)} total</strong></div>
         <div className="timelineTop"><strong>TIMELINE MULTITRILHA</strong><span>{project.clips.length} clipes · ajuste início e duração nas propriedades</span></div>
         <div className="timeline multiTimeline">
