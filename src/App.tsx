@@ -1,197 +1,210 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
-import { Player, type PlayerRef } from '@remotion/player';
-import { Documentary } from './video/Documentary';
-import { DirectorPanel } from './components/DirectorPanel';
-import { useEditor } from './model/store';
-import { projectDuration, sceneStart, parseProject, sceneSchema, type Scene, type Project, type Asset, type Lane, type MediaClip } from './model/project';
-import type { Operation } from './model/operations';
-import { z } from 'zod';
+import {useCallback,useEffect,useRef,useState,type ChangeEvent} from 'react';
+import {Editor} from './Editor';
+import {useEditor} from './model/store';
+import {parseProject} from './model/project';
+import {
+  ApiError, listProjects, getProject, createProject, importProject,
+  saveProject, duplicateProject, archiveProject,
+  type ProjectSummary, type ProjectRecord,
+} from './services/projects';
 
-const endpoint = 'http://127.0.0.1:4317';
-const proposalSchema = z.object({summary:z.string().min(1).max(1000),sceneId:z.string(),changes:sceneSchema.omit({id:true,imageUrl:true}).strict()}).strict();
-type Proposal = z.infer<typeof proposalSchema>;
-const seconds = (frames:number, fps:number) => `${Math.floor(frames/fps/60).toString().padStart(2,'0')}:${Math.floor((frames/fps)%60).toString().padStart(2,'0')}`;
-function saveJson(project:Project) {
-  const blob = new Blob([JSON.stringify(project,null,2)],{type:'application/json'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');a.href = url;a.download = 'dark-studio-project.json';a.click();
-  URL.revokeObjectURL(url);
+const asError=(e:unknown)=>e instanceof Error?e.message:'Erro desconhecido';
+function formatDuration(frames:number) {
+  const minutes=Math.floor(frames/30/60);
+  const seconds=Math.floor(frames/30)%60;
+  return String(minutes)+':'+String(seconds).padStart(2,'0');
 }
-function newScene(after:Scene):Scene {
-  return {...after, id:`scene-${crypto.randomUUID()}`, title:'NOVA CENA', productionNotes:'', subtitle:'Edite este texto no painel à direita.', kicker:'NOVO BLOCO', imageUrl:''};
-}
-export function App() {
-  const {project,selectedSceneId,select,apply,replace,undo,redo,past,future} = useEditor();
-  const player = useRef<PlayerRef>(null);
-  const file = useRef<HTMLInputElement>(null);
-  const [command,setCommand] = useState('Destaque o título e deixe a cena com clima mais investigativo.');
-  const [proposal,setProposal] = useState<Proposal|null>(null);
-  const [agentStatus,setAgentStatus] = useState<'idle'|'loading'|'online'|'offline'>('idle');
-  const [message,setMessage] = useState('');
-  const [imageDraft,setImageDraft] = useState('');
-  const [importing,setImporting] = useState(false);
-  const [exportId,setExportId] = useState<string|null>(null);
-  const [exportState,setExportState] = useState('');
-  const [exportProgress,setExportProgress] = useState(0);
-  const mediaFile = useRef<HTMLInputElement>(null);
-  const [mediaMessage,setMediaMessage] = useState('');
-  const [directorOpen,setDirectorOpen] = useState(false);
-  const {selectedClipId,selectClip}=useEditor();
-  const selectedClip=project.clips.find(c=>c.id===selectedClipId)||null;
-  const clipAsset=selectedClip?project.assets.find(a=>a.id===selectedClip.assetId):null;
-  const selectedIndex = Math.max(0,project.scenes.findIndex(s=>s.id===selectedSceneId));
-  const scene = project.scenes[selectedIndex];
-  useEffect(()=>setImageDraft(scene.imageUrl || ''),[scene.id,scene.imageUrl]);
-  const total = useMemo(()=>projectDuration(project),[project]);
-  useEffect(()=>{
-    if(!exportId)return;
-    let cancelled=false;let timer:ReturnType<typeof setTimeout>;
-    async function poll(){
-      try{
-        const response=await fetch(`${endpoint}/v1/export/${exportId}`);
-        if(!response.ok)throw new Error('Falha ao consultar exportação');
-        const status: {state:string,progress:number,outputPath?:string,error?:string}=await response.json();
-        if(cancelled)return;
-        setExportProgress(status.progress);setExportState(status.state==='completed'?`Pronto: ${status.outputPath}`:status.state==='failed'?`Erro: ${status.error}`:status.state);
-        if(status.state!=='completed'&&status.state!=='failed')timer=setTimeout(poll,1200);
-      }catch(e){if(!cancelled)setExportState(e instanceof Error?e.message:'Falha ao consultar');}
-    }
-    void poll();return()=>{cancelled=true;clearTimeout(timer);};
-  },[exportId]);
-  async function uploadMedia(event:ChangeEvent<HTMLInputElement>){
-    const files=Array.from(event.target.files||[]);event.target.value='';if(!files.length)return;
-    setImporting(true);setMediaMessage('');
+
+function ProjectSession({initial,onClose}: {initial:ProjectRecord;onClose:()=>void}) {
+  const project=useEditor(s=>s.project);
+  const id=initial.project.id;
+  const baseline=useRef(JSON.stringify(initial.project));
+  const revision=useRef(initial.revision);
+  const saving=useRef(false);
+  const conflicted=useRef(false);
+  const [sync,setSync]=useState('Salvo no computador');
+  const [reloadAvailable,setReloadAvailable]=useState(false);
+
+  const save=useCallback(async ():Promise<boolean>=>{
+    if(saving.current||conflicted.current)return false;
+    const current=useEditor.getState().project;
+    const raw=JSON.stringify(current);
+    if(raw===baseline.current)return true;
+    saving.current=true;
+    setSync('Salvando...');
     try{
-      for(const file of files){
-        const response=await fetch(`${endpoint}/v1/media/import`,{method:'POST',headers:{'Content-Type':file.type||'application/octet-stream','X-File-Name':encodeURIComponent(file.name)},body:file});
-        const result: {asset?:Asset,error?:string}=await response.json();
-        if(!response.ok||!result.asset)throw new Error(`${file.name}: ${result.error||'Falha ao importar'}`);
-        const durationFrames=await mediaDuration(result.asset);
-        const asset={...result.asset,...(durationFrames?{durationFrames}:{})};
-        apply([{type:'addAsset',asset}]);
-      }
-      setMediaMessage(`${files.length} arquivo(s) importado(s). Clique em um item para colocá-lo na timeline.`);
-    }catch(e){setMediaMessage(e instanceof Error?e.message:'Falha ao importar');}
-    finally{setImporting(false);}
+      const updated=await saveProject(current,revision.current);
+      baseline.current=JSON.stringify(updated.project);
+      revision.current=updated.revision;
+      setSync('Salvo no computador');
+      return true;
+    }catch(e){
+      if(e instanceof ApiError && e.status===409){
+        conflicted.current=true;
+        setReloadAvailable(true);
+        setSync('Conflito: Codex alterou o arquivo. Exporte seu JSON antes de recarregar.');
+      }else setSync('Erro ao salvar: '+asError(e));
+      return false;
+    }finally{saving.current=false;}
+  },[]);
+
+  useEffect(()=>{
+    if(JSON.stringify(project)===baseline.current||conflicted.current)return;
+    const timer=setTimeout(()=>{void save();},900);
+    return()=>clearTimeout(timer);
+  },[project,save]);
+
+  useEffect(()=>{
+    let cancelled=false;
+    const timer=setInterval(async()=>{
+      if(cancelled||saving.current||conflicted.current)return;
+      if(JSON.stringify(useEditor.getState().project)!==baseline.current)return;
+      try{
+        const latest=await getProject(id);
+        if(cancelled||saving.current||conflicted.current)return;
+        if(JSON.stringify(useEditor.getState().project)!==baseline.current)return;
+        if(latest.revision!==revision.current){
+          revision.current=latest.revision;
+          baseline.current=JSON.stringify(latest.project);
+          useEditor.getState().openProject(latest.project);
+          setSync('Projeto atualizado a partir do disco (edição externa)');
+        }
+      }catch(e){if(!cancelled)setSync('Falha ao verificar arquivo: '+asError(e));}
+    },3500);
+    return()=>{cancelled=true;clearInterval(timer);};
+  },[id]);
+
+  const reload=async()=>{
+    try{
+      const latest=await getProject(id);
+      revision.current=latest.revision;
+      baseline.current=JSON.stringify(latest.project);
+      conflicted.current=false;
+      setReloadAvailable(false);
+      useEditor.getState().openProject(latest.project);
+      setSync('Recarregado do computador');
+    }catch(e){setSync('Falha ao recarregar: '+asError(e));}
+  };
+  const leave=async()=>{
+    if(JSON.stringify(useEditor.getState().project)===baseline.current){onClose();return;}
+    const success=await save();
+    if(success)onClose();
+  };
+  return <Editor onHome={()=>void leave()} syncStatus={sync} onReload={reloadAvailable?()=>void reload():undefined}/>;
+}
+
+export function App(){
+  const [entries,setEntries]=useState<ProjectSummary[]>([]);
+  const [directory,setDirectory]=useState('');
+  const [active,setActive]=useState<ProjectRecord|null>(null);
+  const [busy,setBusy]=useState(false);
+  const [newName,setNewName]=useState('');
+  const [error,setError]=useState('');
+  const [loaded,setLoaded]=useState(false);
+  const importRef=useRef<HTMLInputElement>(null);
+
+  const refresh=useCallback(async()=>{
+    try{
+      const data=await listProjects();
+      setEntries(data.projects);
+      setDirectory(data.directory);
+      setLoaded(true);
+      setError('');
+    }catch(e){setError(asError(e));setLoaded(true);}
+  },[]);
+  useEffect(()=>{
+    if(active)return;
+    void refresh();
+    const interval=setInterval(()=>void refresh(),5000);
+    return()=>clearInterval(interval);
+  },[refresh,active]);
+
+  async function act(job:()=>Promise<void>){
+    setBusy(true);setError('');
+    try{await job();await refresh();}catch(e){setError(asError(e));}
+    finally{setBusy(false);}
   }
-  async function mediaDuration(asset:Asset):Promise<number|undefined>{
-    if(asset.kind==='image')return undefined;
-    return new Promise(resolve=>{
-      const el=document.createElement(asset.kind==='video'?'video':'audio');
-      const timer=setTimeout(()=>{el.removeAttribute('src');resolve(undefined);},7000);
-      el.preload='metadata';
-      el.onloadedmetadata=()=>{clearTimeout(timer);const frames=Number.isFinite(el.duration)?Math.max(1,Math.floor(el.duration*30)):undefined;el.removeAttribute('src');resolve(frames);};
-      el.onerror=()=>{clearTimeout(timer);resolve(undefined);};el.src=asset.url;
+  async function open(id:string){
+    await act(async()=>{
+      const loadedProject=await getProject(id);
+      useEditor.getState().openProject(loadedProject.project);
+      setActive(loadedProject);
     });
   }
-  function insertAsset(asset:Asset,lane:Lane){
-    const start=sceneStart(project,selectedIndex);const available=total-start;
-    const duration=Math.max(1,Math.min(available,asset.durationFrames|| (asset.kind==='audio'?available:scene.durationFrames)));
-    const clip:MediaClip={id:crypto.randomUUID(),assetId:asset.id,lane,startFrame:start,durationFrames:duration,trimStartFrames:0,volume:lane==='music'?0.25:1};
-    try{apply([{type:'addClip',clip}]);selectClip(clip.id);player.current?.seekTo(start);setMediaMessage('Clipe adicionado; selecione-o na timeline para ajustar.');}
-    catch(e){setMediaMessage(e instanceof Error?e.message:'Não foi possível adicionar o clipe');}
+  async function create(){
+    if(!newName.trim())return;
+    await act(async()=>{
+      const created=await createProject(newName);
+      setNewName('');
+      useEditor.getState().openProject(created.project);
+      setActive(created);
+    });
   }
-  function updateClip(changes:Partial<Omit<MediaClip,'id'|'assetId'>>){
-    if(!selectedClip)return;try{apply([{type:'updateClip',clipId:selectedClip.id,changes}]);setMediaMessage('');}
-    catch(e){setMediaMessage(e instanceof Error?e.message:'Propriedades inválidas');}
-  }
-  async function exportVideo(){
-    setExportState('Preparando...');setExportId(null);setExportProgress(0);
-    try{
-      const response=await fetch(`${endpoint}/v1/export`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(project)});
-      const result: {id?:string,error?:string}=await response.json();if(!response.ok||!result.id)throw new Error(result.error||'Falha ao iniciar exportação');
-      setExportId(result.id);
-    }catch(e){setExportState(e instanceof Error?e.message:'Falha ao exportar');}
-  }
-  function update(changes:Partial<Omit<Scene,'id'>>) {
-    try {apply([{type:'updateScene',sceneId:scene.id,changes}]);setProposal(null);setMessage('');}
-    catch (e) {setMessage(e instanceof Error?e.message:String(e));}
-  }
-  function action(ops:Operation[]) {
-    try {apply(ops);setProposal(null);setMessage('');}
-    catch (e) {setMessage(e instanceof Error?e.message:String(e));}
-  }
-  async function importProject(event:ChangeEvent<HTMLInputElement>) {
-    const picked = event.target.files?.[0];if(!picked)return;
-    try {const data=parseProject(JSON.parse(await picked.text())); replace(data);setProposal(null);setMessage('Projeto importado.');}
-    catch (e) {setMessage(`JSON inválido: ${e instanceof Error?e.message:'erro desconhecido'}`);}
+  async function importFile(event:ChangeEvent<HTMLInputElement>){
+    const file=event.target.files?.[0];
     event.target.value='';
+    if(!file)return;
+    await act(async()=>{
+      const project=parseProject(JSON.parse(await file.text()));
+      const created=await importProject(project);
+      useEditor.getState().openProject(created.project);
+      setActive(created);
+    });
   }
-  async function requestAgent() {
-    setAgentStatus('loading');setProposal(null);setMessage('');
-    try {
-      const ctrl=new AbortController();const timeout=setTimeout(()=>ctrl.abort(),120000);
-      let response:Response;
-      try {response=await fetch(`${endpoint}/v1/propose`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({instruction:command,selectedSceneId:scene.id,project}),signal:ctrl.signal});}
-      finally {clearTimeout(timeout);}
-      const payload:unknown=await response.json();
-      if(!response.ok)throw new Error(typeof payload==='object'&&payload!==null&&'error'in payload?String(payload.error):`HTTP ${response.status}`);
-      const parsed=proposalSchema.parse(payload);
-      if(parsed.sceneId!==scene.id)throw new Error('Resposta da IA não corresponde à cena selecionada.');
-      setProposal(parsed);setAgentStatus('online');
-    } catch (e) {setAgentStatus('offline');setMessage(e instanceof Error?e.message:String(e));}
+  function legacy(){
+    try{
+      const raw=localStorage.getItem('dark-studio:project:v2')??localStorage.getItem('dark-studio:project:v1');
+      return raw?parseProject(JSON.parse(raw)):null;
+    }catch{return null;}
   }
-  function jumpTo(index:number) {select(project.scenes[index].id);player.current?.seekTo(sceneStart(project,index));}
-  return <div className="shell">
-    <header className="topbar"><div className="brand"><span className="brandmark">D</span><div><strong>DARK STUDIO</strong><small>INVESTIGATIVE EDITOR 0.3</small></div></div>
-      <div className="projectName"><span className="dot"/>{project.name}</div>
-      <div className="topActions"><button onClick={undo} disabled={!past.length} title="Desfazer">↶ Desfazer</button><button onClick={redo} disabled={!future.length} title="Refazer">↷ Refazer</button><button onClick={()=>file.current?.click()}>Importar JSON</button><button onClick={()=>mediaFile.current?.click()} disabled={importing}>{importing?'Importando...':'Importar mídia'}</button><button className="primary" onClick={()=>setDirectorOpen(true)}>✦ Diretor IA</button><button className="primary" onClick={()=>void exportVideo()}>Exportar MP4</button><button onClick={()=>saveJson(project)}>Salvar JSON ↧</button></div>
-      <input className="hidden" ref={file} type="file" accept="application/json,.json" onChange={importProject}/><input className="hidden" ref={mediaFile} type="file" multiple accept=".png,.jpg,.jpeg,.webp,.mp4,.webm,.mov,.mp3,.wav,.m4a,.ogg" onChange={uploadMedia}/>
+  function migrate(){
+    void act(async()=>{
+      const project=legacy();
+      if(!project)throw new Error('Não encontramos um projeto v0.1/v0.2 salvo neste navegador.');
+      const created=await importProject(project);
+      useEditor.getState().openProject(created.project);
+      setActive(created);
+    });
+  }
+
+  if(active)return <ProjectSession key={active.project.id} initial={active} onClose={()=>{setActive(null);void refresh();}}/>;
+  return <main className="homeScreen">
+    <header className="homeHeader">
+      <div className="brand"><span className="brandmark">D</span><div><strong>DARK STUDIO</strong><small>ESTÚDIO DE DOCUMENTÁRIOS</small></div></div>
+      <span className="homeVersion">PROJETOS · WINDOWS · v0.4</span>
     </header>
-    <div className="workspace">
-      <aside className="library"><div className="panelTitle">BIBLIOTECA DE CENAS <span>{project.scenes.length}</span></div>
-      <p className="help">Selecionar uma cena também posiciona o vídeo na timeline.</p>
-      <div className="scenes">{project.scenes.map((s,i)=><button key={s.id} className={`sceneCard ${selectedSceneId===s.id?'selected':''}`} onClick={()=>jumpTo(i)}>
-        <div className="sceneIndex">{String(i+1).padStart(2,'0')} <span>{seconds(s.durationFrames,project.fps)}</span></div>
-        <strong>{s.title}</strong><small>{s.kind==='stat'?'Gráfico / dado':s.kind==='quote'?'Citação':'Título / abertura'}</small></button>)}</div>
-      <button className="wide dashed" onClick={()=>{const added=newScene(scene);action([{type:'addScene',scene:added,afterId:scene.id}]);select(added.id);}}>＋ Adicionar cena</button>
-      <div className="libraryNote"><b>ARQUIVOS DE MÍDIA · {project.assets.length}</b><p>Importe imagens, vídeo e narração pelo serviço local. Depois adicione-os a uma trilha.</p>
-      <div className="assetList">{project.assets.map(a=><div className="assetRow" key={a.id}><strong title={a.name}>{a.kind==='image'?'▣':a.kind==='video'?'▶':'♫'} {a.name}</strong><div className="assetActions">
-      {a.kind==='audio'?<><button onClick={()=>insertAsset(a,'narration')}>+ Narração</button><button onClick={()=>insertAsset(a,'music')}>+ Música</button></>:<button onClick={()=>insertAsset(a,'visual')}>+ Visual</button>}
-      </div></div>)}</div>{mediaMessage&&<p className="warning" role="alert">{mediaMessage}</p>}</div>
-      </aside>
-      <main className="stage"><div className="panelTitle">PRÉ-VISUALIZAÇÃO <span>1920 × 1080 • 30 FPS</span></div>
-        <div className="preview"><Player ref={player} component={Documentary} inputProps={{project}} fps={project.fps} durationInFrames={Math.max(1,total)} compositionWidth={project.width} compositionHeight={project.height} controls clickToPlay style={{width:'100%',aspectRatio:'16/9'}}/></div>
-        <div className="stageFooter"><div>● PREVIEW LOCAL <span>Cenas, clipes, narração e música pelo Remotion Player.</span></div><strong>{seconds(total,project.fps)} total</strong></div>
-        <div className="timelineTop"><strong>TIMELINE MULTITRILHA</strong><span>{project.clips.length} clipes · ajuste início e duração nas propriedades</span></div>
-        <div className="timeline multiTimeline">
-          <div className="track"><span className="trackLabel">CENAS</span><div className="clips">{project.scenes.map((s,i)=><button key={s.id} onClick={()=>jumpTo(i)} className={`clip ${s.id===scene.id?'active':''}`} style={{flex:s.durationFrames}} title={s.title}><span>{i+1}. {s.title}</span></button>)}</div></div>
-          {(['visual','narration','music'] as const).map(lane=><div className="track" key={lane}><span className="trackLabel">{lane==='visual'?'VISUAL':lane==='narration'?'NARRAÇÃO':'MÚSICA'}</span><div className={`laneRail lane-${lane}`}>
-            {project.clips.filter(c=>c.lane===lane).map(c=>{const a=project.assets.find(item=>item.id===c.assetId);return <button key={c.id} title={a?.name||c.id} className={`mediaClip ${c.id===selectedClipId?'clipSelected':''}`} style={{left:`${c.startFrame/total*100}%`,width:`${c.durationFrames/total*100}%`}} onClick={()=>{selectClip(c.id);player.current?.seekTo(c.startFrame);}}><span>{a?.name||'Arquivo ausente'}</span></button>;})}
-          </div></div>)}
+    <section className="homeHero">
+      <p className="homeEyebrow">SEU ESTÚDIO INVESTIGATIVO</p>
+      <h1>Seus projetos, em um só lugar.</h1>
+      <p>Crie um documentário, continue uma edição ou abra um projeto gerado pelo Codex externo. Sem chat de IA dentro do editor.</p>
+      <div className="homeCreate">
+        <input aria-label="Nome do novo projeto" placeholder="Nome do novo documentário" maxLength={120} value={newName} onChange={e=>setNewName(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')void create();}}/>
+        <button className="primary" disabled={busy||!newName.trim()} onClick={()=>void create()}>+ Criar projeto</button>
+        <button disabled={busy} onClick={()=>importRef.current?.click()}>Importar JSON</button>
+        <input ref={importRef} className="hidden" type="file" accept=".json,application/json" onChange={e=>void importFile(e)}/>
+      </div>
+    </section>
+    <section className="homeProjects">
+      <div className="homeSectionTop"><h2>Projetos recentes</h2><button onClick={()=>void refresh()}>↻ Atualizar</button></div>
+      {error && <p role="alert" className="warning">{error}</p>}
+      {!loaded && <p>Consultando projetos locais...</p>}
+      {loaded && entries.length===0 && <div className="homeEmpty"><strong>Nenhum projeto nesta pasta.</strong><p>Crie o primeiro documentário ou importe um projeto JSON. O Codex local também pode criar arquivos de projeto aqui.</p></div>}
+      <div className="projectGrid">{entries.map(entry=><article className="projectTile" key={entry.id}>
+        <div className="projectArt"><span>D</span><small>{entry.sceneCount} CENA{entry.sceneCount===1?'':'S'}</small></div>
+        <div className="projectInfo"><h3 title={entry.name}>{entry.name}</h3>
+        <p>{formatDuration(entry.durationFrames)} · {entry.assetCount} arquivos · {new Date(entry.modifiedAt).toLocaleDateString('pt-BR')}</p>
+        <div className="projectActions"><button className="primary" disabled={busy} onClick={()=>void open(entry.id)}>Abrir editor →</button><button disabled={busy} onClick={()=>void act(async()=>{await duplicateProject(entry.id);})}>Duplicar</button><button disabled={busy} onClick={()=>{if(window.confirm('Arquivar projeto? Ele será movido para _archived, sem apagar a mídia.'))void act(async()=>{await archiveProject(entry.id);});}}>Arquivar</button></div>
         </div>
-        <div className="timelineHint">Clipes têm posição temporal independente das cenas. Clique para editar início, duração, corte e volume. Reordenação de cenas fica bloqueada enquanto houver mídia para preservar sincronização.</div>
-        {exportState&&<div className="exportStatus" role="status"><strong>EXPORTAÇÃO MP4 · {exportState}</strong><progress max={1} value={exportProgress}/><small>Renderização local em processo separado, com Remotion e FFmpeg. Salvo em Vídeos/DarkStudio.</small></div>}
-      </main>
-      <aside className="inspector"><div className="panelTitle">PROPRIEDADES <span>{selectedClip?'CLIPE':'CENA '+(selectedIndex+1)}</span></div>
-        {selectedClip&&<section className="clipInspector"><div className="clipTitle">{clipAsset?.name||'Mídia não encontrada'}</div>
-          <div className="field"><label>Trilha</label><select value={selectedClip.lane} onChange={e=>updateClip({lane:e.target.value as Lane})}><option value="visual" disabled={clipAsset?.kind==='audio'}>Visual</option><option value="narration" disabled={clipAsset?.kind!=='audio'}>Narração</option><option value="music" disabled={clipAsset?.kind!=='audio'}>Música</option></select></div>
-          <div className="field"><label>Início (segundos)</label><input type="number" min={0} max={total/project.fps} step="0.1" value={Number((selectedClip.startFrame/project.fps).toFixed(2))} onChange={e=>updateClip({startFrame:Math.round(Number(e.target.value)*project.fps)})}/></div>
-          <div className="field"><label>Duração (segundos)</label><input type="number" min={1/project.fps} step="0.1" value={Number((selectedClip.durationFrames/project.fps).toFixed(2))} onChange={e=>updateClip({durationFrames:Math.max(1,Math.round(Number(e.target.value)*project.fps))})}/></div>
-          {clipAsset?.kind!=='image'&&<div className="field"><label>Corte no início do arquivo (segundos)</label><input type="number" min={0} step="0.1" value={Number((selectedClip.trimStartFrames/project.fps).toFixed(2))} onChange={e=>updateClip({trimStartFrames:Math.max(0,Math.round(Number(e.target.value)*project.fps))})}/></div>}
-          {clipAsset?.kind==='audio'&&<div className="field"><label>Volume {Math.round(selectedClip.volume*100)}%</label><input type="range" min={0} max={1} step={0.05} value={selectedClip.volume} onChange={e=>updateClip({volume:Number(e.target.value)})}/></div>}
-          <div className="sceneActions"><button onClick={()=>{apply([{type:'removeClip',clipId:selectedClip.id}]);selectClip(null);}}>Excluir clipe</button><button onClick={()=>selectClip(null)}>Editar cena</button></div>
-        </section>}
-        <div className={selectedClip?'sceneInspectorMuted':''}>
-        <div className="field"><label>Tipo de cena</label><select value={scene.kind} onChange={e=>update({kind:e.target.value as Scene['kind']})}><option value="title">Título</option><option value="stat">Estatística</option><option value="quote">Citação</option></select></div>
-        <div className="field"><label>Chamada superior</label><input value={scene.kicker} maxLength={100} onChange={e=>update({kicker:e.target.value})}/></div>
-        <div className="field"><label>Título principal</label><textarea rows={3} value={scene.title} maxLength={180} onChange={e=>update({title:e.target.value})}/></div>
-        <div className="field"><label>Subtítulo</label><textarea rows={3} value={scene.subtitle} maxLength={400} onChange={e=>update({subtitle:e.target.value})}/></div>
-        <div className="field"><label>Duração ({seconds(scene.durationFrames,30)})</label><input type="range" min="30" max="600" step="15" value={Math.min(scene.durationFrames,600)} onChange={e=>update({durationFrames:Number(e.target.value)})}/></div>
-        <div className="twoCols"><div className="field"><label>Destaque</label><input type="color" value={scene.accentColor} onChange={e=>update({accentColor:e.target.value})}/></div><div className="field"><label>Fundo</label><input type="color" value={scene.backgroundColor} onChange={e=>update({backgroundColor:e.target.value})}/></div></div>
-        <div className="field"><label>Imagem de fundo (URL; para exportar, prefira importar na biblioteca)</label><input placeholder="https://..." value={imageDraft} onChange={e=>setImageDraft(e.target.value)} onBlur={()=>{if(imageDraft!==scene.imageUrl)update({imageUrl:imageDraft});}}/></div>
-        <div className="field"><label>Notas de produção / evidências</label><textarea rows={3} maxLength={500} value={scene.productionNotes||''} onChange={e=>update({productionNotes:e.target.value})} placeholder="Direção visual e evidências a verificar..."/></div>
-        <div className="sceneActions"><button onClick={()=>action([{type:'moveScene',sceneId:scene.id,direction:'left'}])} disabled={selectedIndex===0}>← Mover</button><button onClick={()=>action([{type:'moveScene',sceneId:scene.id,direction:'right'}])} disabled={selectedIndex===project.scenes.length-1}>Mover →</button><button className="danger" disabled={project.scenes.length===1} onClick={()=>action([{type:'removeScene',sceneId:scene.id}])}>Excluir</button></div>
-        </div><div className="agent"><div className="agentHeading"><span>✦ AGENTE DE EDIÇÃO</span><small className={agentStatus==='online'?'online':''}>{agentStatus==='loading'?'TRABALHANDO':agentStatus==='online'?'CONECTADO':'LOCAL · :4317'}</small></div>
-          <p>Peça uma alteração. O Codex opera em um processo externo; nada é aplicado sem sua aprovação.</p>
-          <textarea rows={4} value={command} onChange={e=>setCommand(e.target.value)} placeholder="Ex.: deixe o título mais dramático, sem criar fatos..."/>
-          <button className="primary wide" onClick={requestAgent} disabled={agentStatus==='loading'||!command.trim()}>{agentStatus==='loading'?'Gerando proposta...':'Gerar proposta com Codex →'}</button>
-          {proposal&&<div className="proposal"><b>PROPOSTA DA IA</b><p>{proposal.summary}</p><small>Novo título: {proposal.changes.title}</small><div className="proposalActions"><button className="primary" onClick={()=>{action([{type:'updateScene',sceneId:proposal.sceneId,changes:proposal.changes}]);setProposal(null);}}>Aplicar mudança</button><button onClick={()=>setProposal(null)}>Descartar</button></div></div>}
-          {message&&<p role="alert" className="warning">{message}</p>}
-          <small className="agentFoot">Inicie o serviço com <code>npm run dev:agent</code> e autentique o Codex no computador.</small>
+      </article>)}</div>
+      <div className="workspaceInfo">
+        <strong>Integração com Codex do ChatGPT (fora do editor)</strong>
+        <p>Projetos locais ficam em <code>{directory||'%USERPROFILE%\\DarkStudio\\projects'}</code>. O Codex executado no PC pode modificar o arquivo <code>project.json</code>. O editor detecta mudanças externas quando não há edição manual pendente.</p>
+        <div className="projectActions">
+          <button onClick={()=>{if(directory&&navigator.clipboard)void navigator.clipboard.writeText(directory);}}>Copiar pasta de projetos</button>
+          <button onClick={migrate}>Migrar projeto antigo</button>
         </div>
-      </aside>
-    </div>
-    {directorOpen && <DirectorPanel onClose={()=>setDirectorOpen(false)}/>}
-  </div>;
+        <p className="homeNote">Codex em nuvem no ChatGPT não acessa automaticamente os arquivos do Windows. Para uso remoto, importe/compartilhe projetos deliberadamente ou configure uma sincronização autorizada. Nada é enviado ao GitHub automaticamente.</p>
+      </div>
+    </section>
+  </main>;
 }
