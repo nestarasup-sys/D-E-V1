@@ -11,7 +11,8 @@
     "check": "tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.agent.json",
     "test": "vitest run",
     "tauri": "tauri",
-    "dev:render": "tsx apps/agent/src/render-worker.ts"
+    "dev:render": "tsx apps/agent/src/render-worker.ts",
+    "smoke:render": "tsx scripts/smoke-render.ts"
   },
   "dependencies": {
     "@openai/codex-sdk": "^0.164.0",

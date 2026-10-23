@@ -70,3 +70,16 @@ npm run build
 Documentação Remotion: https://www.remotion.dev/docs/renderer/render-media
 
 > Verifique as condições de licença do Remotion para editores/automação antes de distribuir ou comercializar o Dark Studio.
+
+
+## Verificação automatizada no Windows (CI)
+
+O workflow [Windows desktop and MP4 smoke](.github/workflows/windows-smoke.yml) roda na `main` e pode ser iniciado manualmente em GitHub Actions. Ele faz:
+
+- verificação TypeScript, testes unitários e build frontend;
+- `cargo check` do shell Tauri com toolchain Rust de Windows;
+- renderização de 30 frames com Remotion/Chromium/H.264, conferindo se um MP4 é gerado e tem cabeçalho válido.
+
+Execute localmente `npm run smoke:render` depois de `npm install`, se desejar. O teste não exige mídia, conta Codex ou serviço externo; baixa/configura Chromium quando necessário.
+
+**Limitação:** passar nesse teste não garante a experiência inteira no Windows: não instala o aplicativo, não testa a interface gráfica, não inclui narrações/importação de mídia e não mede estabilidade em projetos longos. Esses testes ainda serão necessários antes de uso em produção.

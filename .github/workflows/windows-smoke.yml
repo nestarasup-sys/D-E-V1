@@ -1,0 +1,29 @@
+name: Windows desktop and MP4 smoke
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  windows-smoke:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install project dependencies
+        run: npm install --no-audit --no-fund
+      - name: Type-check, unit tests and frontend bundle
+        run: |
+          npm run check
+          npm test
+          npm run build
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - name: Check native Tauri application
+        run: cargo check --manifest-path src-tauri/Cargo.toml
+      - name: Render short real MP4
+        run: npm run smoke:render
