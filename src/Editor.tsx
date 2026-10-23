@@ -99,7 +99,7 @@ export function Editor({onHome,syncStatus,onReload}:{onHome:()=>void,syncStatus:
     catch (e) {setMessage(e instanceof Error?e.message:String(e));}
   }
   function action(ops:Operation[]) {
-    try {apply(ops);setProposal(null);setMessage('');}
+    try {apply(ops);setMessage('');}
     catch (e) {setMessage(e instanceof Error?e.message:String(e));}
   }
   function jumpTo(index:number) {select(project.scenes[index].id);player.current?.seekTo(sceneStart(project,index));}

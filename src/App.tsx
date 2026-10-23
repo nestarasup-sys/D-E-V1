@@ -45,7 +45,13 @@ function ProjectSession({initial,onClose}: {initial:ProjectRecord;onClose:()=>vo
         setSync('Conflito: Codex alterou o arquivo. Exporte seu JSON antes de recarregar.');
       }else setSync('Erro ao salvar: '+asError(e));
       return false;
-    }finally{saving.current=false;}
+    }finally{
+      saving.current=false;
+      // Se houve nova digitação enquanto salvava, não deixe a versão nova sem persistir.
+      if(!conflicted.current && JSON.stringify(useEditor.getState().project)!==baseline.current){
+        setTimeout(()=>{void save();},300);
+      }
+    }
   },[]);
 
   useEffect(()=>{
@@ -75,6 +81,7 @@ function ProjectSession({initial,onClose}: {initial:ProjectRecord;onClose:()=>vo
   },[id]);
 
   const reload=async()=>{
+    if(!window.confirm('Recarregar a versão do disco? Alterações locais ainda não salvas serão descartadas. Exporte o JSON antes, se quiser preservá-las.'))return;
     try{
       const latest=await getProject(id);
       revision.current=latest.revision;
