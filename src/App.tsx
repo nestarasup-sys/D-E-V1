@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { Player, type PlayerRef } from '@remotion/player';
 import { Documentary } from './video/Documentary';
 import { useEditor } from './model/store';
@@ -40,7 +40,7 @@ export function App() {
     try {apply(ops);setProposal(null);setMessage('');}
     catch (e) {setMessage(e instanceof Error?e.message:String(e));}
   }
-  async function importProject(event:React.ChangeEvent<HTMLInputElement>) {
+  async function importProject(event:ChangeEvent<HTMLInputElement>) {
     const picked = event.target.files?.[0];if(!picked)return;
     try {const data=projectSchema.parse(JSON.parse(await picked.text())); replace(data);setProposal(null);setMessage('Projeto importado.');}
     catch (e) {setMessage(`JSON inválido: ${e instanceof Error?e.message:'erro desconhecido'}`);}

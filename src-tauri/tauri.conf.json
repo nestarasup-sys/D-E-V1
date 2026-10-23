@@ -4,6 +4,6 @@
   "version": "0.1.0",
   "identifier": "studio.dark.editor",
   "build": {"beforeDevCommand": "npm run dev", "devUrl": "http://127.0.0.1:1420", "beforeBuildCommand": "npm run build", "frontendDist": "../dist"},
-  "app": {"windows": [{"title": "Dark Studio", "width": 1500, "height": 900, "minWidth": 1000, "minHeight": 700}], "security": {"csp": "default-src 'self'; img-src 'self' asset: http: https: data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' http://127.0.0.1:4317"}},
+  "app": {"windows": [{"title": "Dark Studio", "width": 1500, "height": 900, "minWidth": 1000, "minHeight": 700}], "security": {"csp": "default-src 'self'; img-src 'self' asset: http: https: data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' http://127.0.0.1:4317 ws://127.0.0.1:1420"}},
   "bundle": {"active": true, "targets": "all", "icon": []}
 }
