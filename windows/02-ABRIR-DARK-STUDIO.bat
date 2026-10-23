@@ -56,11 +56,12 @@ echo [1/2] Iniciando servidor LOCAL de projetos e midia...
 powershell.exe -NoProfile -Command "try {$r=Invoke-RestMethod 'http://127.0.0.1:4317/health' -TimeoutSec 2; if($r.status -eq 'ready'){exit 0}}catch{}; exit 1" >nul 2>&1
 if errorlevel 1 (
     start "Dark Studio - Servico local" /D "%PROJECT_DIR%" cmd.exe /k "npm run dev:service"
+    powershell.exe -NoProfile -Command "$deadline=(Get-Date).AddSeconds(12); do { try {$r=Invoke-RestMethod 'http://127.0.0.1:4317/health' -TimeoutSec 1; if($r.status -eq 'ready'){exit 0}} catch {}; Start-Sleep -Milliseconds 400 } while ((Get-Date) -lt $deadline); exit 1" >nul 2>&1
     if errorlevel 1 (
-        echo [ERRO] Nao consegui iniciar o servico local.
+        echo [ERRO] O servico local nao ficou pronto em 12 segundos.
+        echo Confira a janela do servico e tente abrir novamente.
         exit /b 1
     )
-    timeout /t 4 /nobreak >nul
 ) else (
     echo [OK] Servico local ja esta ativo na porta 4317.
 )
