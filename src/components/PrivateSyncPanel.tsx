@@ -78,7 +78,7 @@ export function PrivateSyncPanel({projects,refresh}:{projects:ProjectSummary[],r
       {!projects.length&&<p>Nenhum projeto local. Projetos publicados pelo Codex no privado poderão ser recebidos.</p>}
     </div>}
     {status?.lastResult&&<p className="syncHelper">Última execução: {status.lastResult.uploaded} enviados, {status.lastResult.downloaded} recebidos, {status.lastResult.unchanged} inalterados.</p>}
-    {status?.conflicts?.length>0&&<div className="syncConflict"><strong>Conflitos preservados (sem sobrescrita):</strong>
+    {status && status.conflicts.length>0 &&<div className="syncConflict"><strong>Conflitos preservados (sem sobrescrita):</strong>
       {status.conflicts.map(c=><p key={c.id}>{c.name}: {c.reason}</p>)}
     </div>}
     {status?.lastError&&<p className="warning" role="alert">{status.lastError}</p>}

@@ -46,11 +46,13 @@ export class PrivateSyncManager {
     if(this.config.enabled)void this.run().catch(()=>{});
   }
   status(){
-    return {enabled:this.config.enabled,repository:this.config.repository,busy:this.inFlight,
+    return {enabled:this.config.enabled,repository:this.config.repository,sharedProjectIds:this.config.sharedProjectIds,busy:this.inFlight,
       lastRun:this.lastRun,lastError:this.lastError,lastResult:this.lastResult,conflicts:this.conflicts};
   }
   async configure(input:unknown){
-    const parsed=configSchema.parse(input);
+    const raw=configSchema.parse(input);
+    // Trocou de repositório: autorizações de projetos NÃO são transferidas para o novo destino.
+    const parsed=raw.repository===this.config.repository ? raw : {...raw,sharedProjectIds:[]};
     if(this.inFlight)throw new Error('Sincronização em andamento. Não altere configuração durante uma transferência.');
     if(parsed.enabled){
       if(!parsed.repository)throw new Error('Informe o repositório GitHub PRIVADO.');

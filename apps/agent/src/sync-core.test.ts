@@ -37,6 +37,22 @@ async function setup(run:(local:ProjectRepository,remote:FakeRemote,state:SyncSt
   try{await run(local,remote,state,sync);}finally{await rm(root,{recursive:true,force:true});}
 }
 describe('sincronização privada',()=>{
+
+  it('não envia nenhum projeto local quando lista de consentimento está vazia',()=>setup(async(local,remote,state)=>{
+    const p=await local.create('Sigiloso');
+    const result=await syncProjects(local,remote,state,async()=>{},new Set());
+    expect(result.uploaded).toBe(0);
+    await expect(remote.read(p.project.id)).rejects.toThrow('missing');
+  }));
+  it('envia somente projeto explicitamente autorizado',()=>setup(async(local,remote,state)=>{
+    const publicavel=await local.create('Autorizado');
+    const reservado=await local.create('Não autorizado');
+    const result=await syncProjects(local,remote,state,async()=>{},new Set([publicavel.project.id]));
+    expect(result.uploaded).toBe(1);
+    expect((await remote.read(publicavel.project.id)).project.name).toBe('Autorizado');
+    await expect(remote.read(reservado.project.id)).rejects.toThrow('missing');
+  }));
+
   it('publica projetos locais em branco e registra base',()=>setup(async(local,remote,state,sync)=>{
     const p=await local.create('Abertura');
     const result=await sync();
