@@ -33,7 +33,9 @@ export function ProposalReview({projectId,onClose,onChanged}:{projectId:string,o
             <li>Cenas: {p.preview.beforeScenes} → {p.preview.afterScenes} · Clipes: {p.preview.beforeClips} → {p.preview.afterClips}</li>
             {p.preview.addedScenes.map((name,i)=><li key={'add'+i}>Nova cena: {name}</li>)}
             {p.preview.removedScenes.map((name,i)=><li key={'remove'+i}>Excluir cena: {name}</li>)}
-            {p.preview.changedScenes.map(item=><li key={item.id}>Cena alterada: {item.before} → {item.after}</li>)}
+            {p.preview.changedScenes.map(item=><li key={item.id}>Cena alterada: {item.before} → {item.after} (campos: {item.changedFields.join(', ')})</li>)}
+            {p.preview.changedClips.map(item=><li key={item.id}>Clipe {item.id.slice(0,8)}: {item.changedFields.join(', ')}</li>)}
+            <li>Clipes adicionados: {p.preview.addedClips} · removidos: {p.preview.removedClips}</li>
             <li>Legendas: {p.preview.addedCaptions>=0?'+':''}{p.preview.addedCaptions} · Fontes: {p.preview.addedEvidence>=0?'+':''}{p.preview.addedEvidence}</li>
           </ul>}
           <div className="projectActions">

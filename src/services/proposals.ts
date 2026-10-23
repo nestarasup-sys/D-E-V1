@@ -2,7 +2,8 @@ import type {ProjectRecord} from './projects';
 const ROOT='http://127.0.0.1:4317';
 export interface ChangePreview {
   beforeScenes:number;afterScenes:number;beforeClips:number;afterClips:number;
-  addedScenes:string[];removedScenes:string[];changedScenes:{id:string;before:string;after:string}[];
+  addedScenes:string[];removedScenes:string[];changedScenes:{id:string;before:string;after:string;changedFields:string[]}[];
+  changedClips:{id:string;changedFields:string[]}[];addedClips:number;removedClips:number;
   addedAssets:number;removedAssets:number;addedCaptions:number;addedEvidence:number;
 }
 export interface ProposalView {

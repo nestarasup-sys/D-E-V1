@@ -28,6 +28,7 @@ async function main() {
       }],
       clips: [],
       assets: [],
+      captions:[{id:'737383e1-c605-49db-b9aa-3e312a390b61',startFrame:4,endFrame:28,text:'Legenda de teste na timeline'}],
     });
     console.log('Compilando a composicao Remotion...');
     const serveUrl = await bundle({entryPoint: resolve('src/video/index.ts')});

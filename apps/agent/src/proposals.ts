@@ -15,7 +15,8 @@ const storedProposal=z.object({
 export type ProposedChange=z.infer<typeof storedProposal>;
 export interface ChangePreview {
   beforeScenes:number;afterScenes:number;beforeClips:number;afterClips:number;
-  addedScenes:string[];removedScenes:string[];changedScenes:{before:string;after:string;id:string}[];
+  addedScenes:string[];removedScenes:string[];changedScenes:{before:string;after:string;id:string;changedFields:string[]}[];
+  changedClips:{id:string;changedFields:string[]}[];addedClips:number;removedClips:number;
   addedAssets:number;removedAssets:number;addedCaptions:number;addedEvidence:number;
 }
 export function describeChanges(before:Project,after:Project):ChangePreview {
@@ -28,7 +29,19 @@ export function describeChanges(before:Project,after:Project):ChangePreview {
     removedScenes:before.scenes.filter(s=>!b.has(s.id)).map(s=>s.title),
     changedScenes:after.scenes.filter(s=>{
       const old=a.get(s.id);return old&&JSON.stringify(old)!==JSON.stringify(s);
-    }).map(s=>({id:s.id,before:a.get(s.id)!.title,after:s.title})),
+    }).map(s=>{
+      const old=a.get(s.id)!;
+      return {id:s.id,before:old.title,after:s.title,
+        changedFields:Object.keys(s).filter(key=>JSON.stringify(s[key as keyof typeof s])!==JSON.stringify(old[key as keyof typeof s]))};
+    }),
+    changedClips:after.clips.filter(c=>{
+      const old=before.clips.find(x=>x.id===c.id);return old&&JSON.stringify(old)!==JSON.stringify(c);
+    }).map(c=>{
+      const old=before.clips.find(x=>x.id===c.id)!;
+      return {id:c.id,changedFields:Object.keys(c).filter(key=>JSON.stringify(c[key as keyof typeof c])!==JSON.stringify(old[key as keyof typeof c]))};
+    }),
+    addedClips:after.clips.filter(c=>!before.clips.some(x=>x.id===c.id)).length,
+    removedClips:before.clips.filter(c=>!after.clips.some(x=>x.id===c.id)).length,
     addedAssets:after.assets.length-before.assets.length,
     removedAssets:Math.max(0,before.assets.length-after.assets.length),
     addedCaptions:after.captions.length-before.captions.length,

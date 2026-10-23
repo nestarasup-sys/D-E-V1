@@ -17,6 +17,7 @@ describe('propostas do Codex para aprovação humana',()=>{
     const proposed=await p.create(initial.project.id,operations,initial.revision);
     expect((await repo.read(initial.project.id)).project.scenes[0].title).not.toBe('Novo roteiro');
     expect(proposed.preview?.changedScenes).toHaveLength(1);
+    expect(proposed.preview?.changedScenes[0].changedFields).toContain('title');
     expect(await p.list(initial.project.id)).toHaveLength(1);
     const applied=await p.accept(initial.project.id,proposed.id);
     expect(applied.project.scenes[0].title).toBe('Novo roteiro');
