@@ -1,5 +1,7 @@
 # Codex externo ↔ Dark Studio
 
+**Novo na v0.5:** ponte bidirecional opcional com repositório privado. Veja [PRIVATE_SYNC.md](PRIVATE_SYNC.md).
+
 O Codex não precisa de um chat no editor. Ele pode produzir e alterar arquivos compatíveis; o Dark Studio é quem exibe as cenas e renderiza o vídeo.
 
 ## 1. Usando Codex com acesso local no Windows

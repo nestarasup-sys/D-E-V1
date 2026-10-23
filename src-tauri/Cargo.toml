@@ -1,6 +1,6 @@
 [package]
 name = "dark-studio"
-version = "0.4.0"
+version = "0.5.0"
 description = "Dark Studio desktop editor"
 authors = ["Dark Studio"]
 edition = "2021"

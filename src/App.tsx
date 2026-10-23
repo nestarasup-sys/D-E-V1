@@ -1,5 +1,6 @@
 import {useCallback,useEffect,useRef,useState,type ChangeEvent} from 'react';
 import {Editor} from './Editor';
+import {PrivateSyncPanel} from './components/PrivateSyncPanel';
 import {useEditor} from './model/store';
 import {parseProject} from './model/project';
 import {
@@ -187,7 +188,7 @@ export function App(){
   return <main className="homeScreen">
     <header className="homeHeader">
       <div className="brand"><span className="brandmark">D</span><div><strong>DARK STUDIO</strong><small>ESTÚDIO DE DOCUMENTÁRIOS</small></div></div>
-      <span className="homeVersion">PROJETOS · WINDOWS · v0.4</span>
+      <span className="homeVersion">PROJETOS · WINDOWS · v0.5</span>
     </header>
     <section className="homeHero">
       <p className="homeEyebrow">SEU ESTÚDIO INVESTIGATIVO</p>
@@ -212,6 +213,7 @@ export function App(){
         <div className="projectActions"><button className="primary" disabled={busy} onClick={()=>void open(entry.id)}>Abrir editor →</button><button disabled={busy} onClick={()=>void act(async()=>{await duplicateProject(entry.id);})}>Duplicar</button><button disabled={busy} onClick={()=>{if(window.confirm('Arquivar projeto? Ele será movido para _archived, sem apagar a mídia.'))void act(async()=>{await archiveProject(entry.id);});}}>Arquivar</button></div>
         </div>
       </article>)}</div>
+      <PrivateSyncPanel projects={entries} refresh={()=>{void refresh();}}/>
       <div className="workspaceInfo">
         <strong>Integração com Codex do ChatGPT (fora do editor)</strong>
         <p>Projetos locais ficam em <code>{directory||'%USERPROFILE%\\DarkStudio\\projects'}</code>. O Codex executado no PC pode modificar o arquivo <code>project.json</code>. O editor detecta mudanças externas quando não há edição manual pendente.</p>

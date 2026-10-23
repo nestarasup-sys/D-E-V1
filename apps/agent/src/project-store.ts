@@ -72,6 +72,16 @@ export class ProjectRepository {
     const project = projectSchema.parse({...candidate, id:randomUUID()});
     return this.writeNew(project);
   }
+  async adopt(input: unknown): Promise<ProjectRecord> {
+    const project=projectSchema.parse(input);
+    if(!UUID.test(project.id))throw new ProjectError('ID externo inválido.',400);
+    await mkdir(this.root,{recursive:true});
+    try{return await this.writeNew(project);}
+    catch(e){
+      if((e as NodeJS.ErrnoException).code==='EEXIST')throw new ProjectError('Projeto já existe no computador.',409);
+      throw e;
+    }
+  }
   async read(id: string): Promise<ProjectRecord> {
     const file = this.file(id);
     try {
