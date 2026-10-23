@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { Player, type PlayerRef } from '@remotion/player';
 import { Documentary } from './video/Documentary';
+import { DirectorPanel } from './components/DirectorPanel';
 import { useEditor } from './model/store';
 import { projectDuration, sceneStart, parseProject, sceneSchema, type Scene, type Project, type Asset, type Lane, type MediaClip } from './model/project';
 import type { Operation } from './model/operations';
@@ -17,7 +18,7 @@ function saveJson(project:Project) {
   URL.revokeObjectURL(url);
 }
 function newScene(after:Scene):Scene {
-  return {...after, id:`scene-${crypto.randomUUID()}`, title:'NOVA CENA', subtitle:'Edite este texto no painel à direita.', kicker:'NOVO BLOCO', imageUrl:''};
+  return {...after, id:`scene-${crypto.randomUUID()}`, title:'NOVA CENA', productionNotes:'', subtitle:'Edite este texto no painel à direita.', kicker:'NOVO BLOCO', imageUrl:''};
 }
 export function App() {
   const {project,selectedSceneId,select,apply,replace,undo,redo,past,future} = useEditor();
@@ -34,6 +35,7 @@ export function App() {
   const [exportProgress,setExportProgress] = useState(0);
   const mediaFile = useRef<HTMLInputElement>(null);
   const [mediaMessage,setMediaMessage] = useState('');
+  const [directorOpen,setDirectorOpen] = useState(false);
   const {selectedClipId,selectClip}=useEditor();
   const selectedClip=project.clips.find(c=>c.id===selectedClipId)||null;
   const clipAsset=selectedClip?project.assets.find(a=>a.id===selectedClip.assetId):null;
@@ -131,9 +133,9 @@ export function App() {
   }
   function jumpTo(index:number) {select(project.scenes[index].id);player.current?.seekTo(sceneStart(project,index));}
   return <div className="shell">
-    <header className="topbar"><div className="brand"><span className="brandmark">D</span><div><strong>DARK STUDIO</strong><small>INVESTIGATIVE EDITOR 0.2</small></div></div>
+    <header className="topbar"><div className="brand"><span className="brandmark">D</span><div><strong>DARK STUDIO</strong><small>INVESTIGATIVE EDITOR 0.3</small></div></div>
       <div className="projectName"><span className="dot"/>{project.name}</div>
-      <div className="topActions"><button onClick={undo} disabled={!past.length} title="Desfazer">↶ Desfazer</button><button onClick={redo} disabled={!future.length} title="Refazer">↷ Refazer</button><button onClick={()=>file.current?.click()}>Importar JSON</button><button onClick={()=>mediaFile.current?.click()} disabled={importing}>{importing?'Importando...':'Importar mídia'}</button><button className="primary" onClick={()=>void exportVideo()}>Exportar MP4</button><button onClick={()=>saveJson(project)}>Salvar JSON ↧</button></div>
+      <div className="topActions"><button onClick={undo} disabled={!past.length} title="Desfazer">↶ Desfazer</button><button onClick={redo} disabled={!future.length} title="Refazer">↷ Refazer</button><button onClick={()=>file.current?.click()}>Importar JSON</button><button onClick={()=>mediaFile.current?.click()} disabled={importing}>{importing?'Importando...':'Importar mídia'}</button><button className="primary" onClick={()=>setDirectorOpen(true)}>✦ Diretor IA</button><button className="primary" onClick={()=>void exportVideo()}>Exportar MP4</button><button onClick={()=>saveJson(project)}>Salvar JSON ↧</button></div>
       <input className="hidden" ref={file} type="file" accept="application/json,.json" onChange={importProject}/><input className="hidden" ref={mediaFile} type="file" multiple accept=".png,.jpg,.jpeg,.webp,.mp4,.webm,.mov,.mp3,.wav,.m4a,.ogg" onChange={uploadMedia}/>
     </header>
     <div className="workspace">
@@ -178,6 +180,7 @@ export function App() {
         <div className="field"><label>Duração ({seconds(scene.durationFrames,30)})</label><input type="range" min="30" max="600" step="15" value={Math.min(scene.durationFrames,600)} onChange={e=>update({durationFrames:Number(e.target.value)})}/></div>
         <div className="twoCols"><div className="field"><label>Destaque</label><input type="color" value={scene.accentColor} onChange={e=>update({accentColor:e.target.value})}/></div><div className="field"><label>Fundo</label><input type="color" value={scene.backgroundColor} onChange={e=>update({backgroundColor:e.target.value})}/></div></div>
         <div className="field"><label>Imagem de fundo (URL; para exportar, prefira importar na biblioteca)</label><input placeholder="https://..." value={imageDraft} onChange={e=>setImageDraft(e.target.value)} onBlur={()=>{if(imageDraft!==scene.imageUrl)update({imageUrl:imageDraft});}}/></div>
+        <div className="field"><label>Notas de produção / evidências</label><textarea rows={3} maxLength={500} value={scene.productionNotes||''} onChange={e=>update({productionNotes:e.target.value})} placeholder="Direção visual e evidências a verificar..."/></div>
         <div className="sceneActions"><button onClick={()=>action([{type:'moveScene',sceneId:scene.id,direction:'left'}])} disabled={selectedIndex===0}>← Mover</button><button onClick={()=>action([{type:'moveScene',sceneId:scene.id,direction:'right'}])} disabled={selectedIndex===project.scenes.length-1}>Mover →</button><button className="danger" disabled={project.scenes.length===1} onClick={()=>action([{type:'removeScene',sceneId:scene.id}])}>Excluir</button></div>
         </div><div className="agent"><div className="agentHeading"><span>✦ AGENTE DE EDIÇÃO</span><small className={agentStatus==='online'?'online':''}>{agentStatus==='loading'?'TRABALHANDO':agentStatus==='online'?'CONECTADO':'LOCAL · :4317'}</small></div>
           <p>Peça uma alteração. O Codex opera em um processo externo; nada é aplicado sem sua aprovação.</p>
@@ -189,5 +192,6 @@ export function App() {
         </div>
       </aside>
     </div>
+    {directorOpen && <DirectorPanel onClose={()=>setDirectorOpen(false)}/>}
   </div>;
 }

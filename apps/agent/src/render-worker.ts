@@ -23,7 +23,7 @@ try{
   const outputPath=join(outDir,`${label}-${id.slice(0,8)}.mp4`);
   await update('rendering',0);
   let last=-1;
-  await renderMedia({composition,serveUrl,inputProps:props,codec:'h264',outputLocation:outputPath,concurrency:2,onProgress:({progress})=>{
+  await renderMedia({composition,serveUrl,inputProps:props,codec:'h264',outputLocation:outputPath,concurrency:1,onProgress:({progress})=>{
     const percent=Math.floor(progress*100);
     if(percent>last&&percent%2===0){last=percent;void update('rendering',progress).catch(()=>{});}
   }});

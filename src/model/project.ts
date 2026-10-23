@@ -12,6 +12,7 @@ export const sceneSchema = z.object({
   accentColor: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   backgroundColor: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   imageUrl: z.string().url().max(2048).optional().or(z.literal('')),
+  productionNotes: z.string().max(500).optional(),
 }).strict();
 
 export const assetKindSchema = z.enum(['image', 'video', 'audio']);

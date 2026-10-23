@@ -1,5 +1,6 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import {handleMedia} from './media';
+import {proposeDirector} from './director';
 import {handleExport} from './export';
 import { tmpdir } from 'node:os';
 import { Codex } from '@openai/codex-sdk';
@@ -48,6 +49,19 @@ const server=createServer(async(req,res)=>{
     if(await handleMedia(req,res,url))return;
     if(await handleExport(req,res,url))return;
   } catch(e) {json(res,500,{error:e instanceof Error?e.message:'Falha interna'});return;}
+  if(req.method==='POST' && (req.url==='/v1/storyboard' || req.url==='/v1/batch-propose')) {
+    if(!req.headers['content-type']?.startsWith('application/json')){json(res,415,{error:'Envie JSON.'});return;}
+    if(busy){json(res,429,{error:'A IA já está processando uma solicitação.'});return;}
+    busy=true;
+    try{
+      const input=await readJson(req);
+      const proposal=await proposeDirector(codex,req.url,input);
+      json(res,200,proposal);
+    }catch(e){
+      json(res,e instanceof z.ZodError?400:500,{error:e instanceof z.ZodError?'Dados inválidos: '+e.issues[0]?.message:e instanceof Error?e.message:'Falha no diretor de IA'});
+    }finally{busy=false;}
+    return;
+  }
   if(req.method!=='POST'||req.url!=='/v1/propose'){json(res,404,{error:'Rota não encontrada.'});return;}
   if(!req.headers['content-type']?.startsWith('application/json')){json(res,415,{error:'Envie JSON.'});return;}
   if(busy){json(res,429,{error:'O agente já está processando um pedido.'});return;}

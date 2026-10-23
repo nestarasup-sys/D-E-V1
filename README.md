@@ -1,4 +1,4 @@
-# Dark Studio v0.2 — editor investigativo desktop, com agente externo
+# Dark Studio v0.3 — editor investigativo desktop, com Diretor de IA externo
 
 Editor experimental para documentários em Windows, com **Tauri 2 + React + TypeScript + Remotion + FFmpeg (via Remotion Renderer) + Codex SDK**. A interface e os clipes são editáveis manualmente; o agente Codex roda em um serviço Node separado em loopback e retorna apenas propostas validadas, que você aprova.
 
@@ -26,7 +26,7 @@ npm run dev:desktop
 
 Para usar só a UI no navegador durante desenvolvimento, substitua o segundo comando por `npm run dev` e abra `http://127.0.0.1:1420`. **Importação de mídia e exportação MP4 exigem que `npm run dev:agent` esteja executando.** O agente não é iniciado automaticamente pelo instalador Tauri.
 
-## Recursos v0.2
+## Recursos implementados (v0.2 + Diretor IA v0.3)
 
 1. Importação de PNG/JPEG/WebP, MP4/WebM/MOV, MP3/WAV/M4A/OGG pela interface. Os arquivos são transmitidos em streaming para `~/DarkStudio/media` no Windows, sem incluir binários grandes no JSON ou no repositório. **Limite por arquivo: 512 MB**.
 2. Biblioteca de mídia com identificação e metadados básicos. Arquivos são servidos por uma URL local com Range HTTP (necessário para buscar trechos de áudio/vídeo).
@@ -35,6 +35,8 @@ Para usar só a UI no navegador durante desenvolvimento, substitua o segundo com
 5. Exportação MP4 H.264 com Remotion Bundler/Renderer em **processo Node separado**, com progresso via painel do editor. Arquivos vão para `%USERPROFILE%/Videos/DarkStudio/`.
 6. Histórico desfazer/refazer, importação/exportação de projeto JSON e migração de projetos `version:1` para `version:2` (inclui `assets` e `clips`).
 7. Serviço Codex externo mantido: altera somente a cena selecionada após sua aprovação. Não possui autonomia para buscar imagens, editar arquivos ou modificar várias cenas.
+
+8. **Diretor IA v0.3**: botão no topo abre um painel para propor storyboard a partir de roteiro (até 10 cenas) ou alterações em até 8 cenas existentes. Você revisa item a item antes de aplicar; desfazer/refazer mantém o histórico. Direção visual e evidências pendentes são registradas em `productionNotes`. O agente não coleta imagens automaticamente.
 
 ### Fluxo sugerido de teste
 
@@ -50,6 +52,10 @@ Para usar só a UI no navegador durante desenvolvimento, substitua o segundo com
 - Media URLs incluem IDs gerados pelo servidor; **não há autenticação por token**. A versão 0.2 é para uso local, não exponha essa porta na rede. Antes de distribuir comercialmente, adicionar tokens de sessão, proteção CSRF, verificação real de assinatura de arquivo, quotas totais, limpeza de cache e instalação segura do worker.
 - O renderizador rejeita URLs externas no campo `scene.imageUrl` para reduzir requisições arbitrárias no processo de exportação. Não interprete as estatísticas de demonstração como fatos verificáveis.
 
+## Roadmap oficial
+
+O plano vigente, hardware-alvo Windows 11 (Ryzen 5 4600G, RX 7600, 16 GB RAM), entregas, critérios de aceite e riscos ficam **somente em [ROADMAP.md](ROADMAP.md)**. Planos provisórios anteriores estão substituídos.
+
 ## Limitações
 
 - Ainda não há drag-and-drop de clipes, waveform, ripple-edit ou múltiplos clipes visuais com controle de z-index. A reordenação de cenas é bloqueada quando há clipes para preservar timestamps.
@@ -58,6 +64,10 @@ Para usar só a UI no navegador durante desenvolvimento, substitua o segundo com
 - `durationFrames` de mídia é estimado pelo navegador quando possível. Ajuste o corte manualmente e revise o resultado.
 - Render MP4 usa Remotion e Chromium num processo separado, com FFmpeg integrado. A exportação em Windows precisa de teste manual real: CI valida TypeScript, testes e build frontend, mas não faz render final nem compila instalador Tauri.
 - Arquivos de mídia não são empacotados automaticamente no instalador Tauri; o Node e o agente precisam continuar executando em separado. Não é produto pronto para distribuição.
+
+## Como experimentar o Diretor IA
+
+Execute `npm run dev:agent` e `npm run dev:desktop` em terminais diferentes. Clique em **✦ Diretor IA**. Cole um roteiro com pelo menos 80 caracteres e gere uma proposta de storyboard, ou selecione até 8 cenas existentes e descreva a edição desejada. **Nenhuma edição é aplicada antes do seu clique para aprovar.** Requer Codex autenticado no computador; ainda não testado com a conta do usuário.
 
 ## Testes
 
