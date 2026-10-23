@@ -77,7 +77,7 @@ export function App() {
       <div className="libraryNote"><b>FONTES VERIFICÁVEIS</b><p>Esta versão trabalha com cenas. A biblioteca de arquivos, fontes, narração e FFmpeg será acrescentada nas próximas etapas.</p></div>
       </aside>
       <main className="stage"><div className="panelTitle">PRÉ-VISUALIZAÇÃO <span>1920 × 1080 • 30 FPS</span></div>
-        <div className="preview"><Player ref={player} component={Documentary} inputProps={{project}} fps={project.fps} durationInFrames={Math.max(1,total)} compositionWidth={project.width} compositionHeight={project.height} controls clickToPlay spaceKeyToPlay style={{width:'100%',aspectRatio:'16/9'}}/></div>
+        <div className="preview"><Player ref={player} component={Documentary} inputProps={{project}} fps={project.fps} durationInFrames={Math.max(1,total)} compositionWidth={project.width} compositionHeight={project.height} controls clickToPlay style={{width:'100%',aspectRatio:'16/9'}}/></div>
         <div className="stageFooter"><div>● PREVIEW LOCAL <span>As cenas são renderizadas pelo Remotion Player.</span></div><strong>{seconds(total,project.fps)} total</strong></div>
         <div className="timelineTop"><strong>TIMELINE</strong><span>{project.scenes.length} cenas · navegue e reordene abaixo</span></div>
         <div className="timeline"><div className="track"><span className="trackLabel">VISUAL</span><div className="clips">{project.scenes.map((s,i)=><button key={s.id} onClick={()=>jumpTo(i)} className={`clip ${s.id===scene.id?'active':''}`} style={{flex:s.durationFrames}} title={s.title}><span>{i+1}. {s.title}</span></button>)}</div></div>
