@@ -8,7 +8,7 @@ GitHub serve apenas para hospedar o **código-fonte do aplicativo**, sem roteiro
 
 ## Windows: instalar, atualizar e abrir com dois cliques (BAT)
 
-Os atalhos ficam em [windows/01-INSTALAR-ATUALIZAR.bat](windows/01-INSTALAR-ATUALIZAR.bat) e [windows/02-ABRIR-DARK-STUDIO.bat](windows/02-ABRIR-DARK-STUDIO.bat).
+**Os dois BATs estão na raiz do repositório**, junto ao `package.json`: [01-INSTALAR-ATUALIZAR.bat](01-INSTALAR-ATUALIZAR.bat) e [02-ABRIR-DARK-STUDIO.bat](02-ABRIR-DARK-STUDIO.bat). Também mantemos cópias na subpasta `windows` para quem já utilizava os caminhos antigos.
 
 Se você baixou os dois BATs separadamente e os colocou em uma **pasta nova**, mantenha-os juntos:
 
