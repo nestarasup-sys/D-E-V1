@@ -6,7 +6,7 @@ import {ProjectDiagnostics} from './components/ProjectDiagnostics';
 import {useEditor} from './model/store';
 import {parseProject} from './model/project';
 import {
-  ApiError, listProjects, getProject, createProject, importProject,
+  ApiError, listProjects, getProject, createProject, createPilotProject, importProject,
   saveProject, duplicateProject, archiveProject,
   type ProjectSummary, type ProjectRecord,
 } from './services/projects';
@@ -154,6 +154,14 @@ export function App(){
       setActive(created);
     });
   }
+  async function createPilot(){
+    if(!window.confirm('Criar um novo projeto piloto de 30 segundos, com voz sintética instalada no seu Windows, 8 planos animados e legendas locais? O roteiro é apenas demonstrativo.'))return;
+    await act(async()=>{
+      const pilot=await createPilotProject();
+      useEditor.getState().openProject(pilot.project);
+      setActive(pilot);
+    });
+  }
   async function importFile(event:ChangeEvent<HTMLInputElement>){
     const file=event.target.files?.[0];
     event.target.value='';
@@ -227,6 +235,7 @@ export function App(){
         <input aria-label="Nome do novo projeto" placeholder="Nome do novo documentário" maxLength={120} value={newName} onChange={e=>setNewName(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')void create();}}/>
         <button className="primary" disabled={busy||!newName.trim()} onClick={()=>void create()}>+ Criar projeto</button>
         <button disabled={busy} onClick={()=>importRef.current?.click()}>Importar JSON</button>
+        <button disabled={busy} onClick={()=>void createPilot()}>▶ Criar piloto audiovisual 30s</button>
         <input ref={importRef} className="hidden" type="file" accept=".json,application/json" onChange={e=>void importFile(e)}/>
       </div>
     </section>

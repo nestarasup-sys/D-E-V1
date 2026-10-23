@@ -72,6 +72,16 @@ async function main() {
       }
       return;
     }
+    case 'pilot': {
+      let response:Response;
+      try{response=await fetch(api+'/v1/projects/pilot',{method:'POST'});}
+      catch{throw new Error('Serviço local desligado. Abra npm run dev:service antes de gerar o piloto.');}
+      const data=await response.json() as {project?:{id:string},path?:string,error?:string};
+      if(!response.ok||!data.project)throw new Error(data.error||'Falha ao gerar piloto.');
+      console.log('Piloto de 30s com voz local e 8 planos: '+data.path);
+      console.log('ID: '+data.project.id);
+      return;
+    }
     case 'create': {
       const name=args.join(' ').trim();
       if(!name)throw new Error('Informe um nome para o documentário.');

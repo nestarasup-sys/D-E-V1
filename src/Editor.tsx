@@ -5,6 +5,10 @@ import { useEditor } from './model/store';
 import { projectDuration, sceneStart, type Scene, type Project, type Asset, type Lane, type MediaClip } from './model/project';
 import type { Operation } from './model/operations';
 import {parseSrt,exportSrt} from './model/captions';
+import {ShotTimeline} from './components/ShotTimeline';
+import {ShotInspector} from './components/ShotInspector';
+import {CaptionInspector} from './components/CaptionInspector';
+import type {Shot} from './model/shots';
 import {EvidencePanel} from './components/EvidencePanel';
 
 const endpoint = 'http://127.0.0.1:4317';
@@ -22,6 +26,8 @@ export function Editor({onHome,syncStatus,onReload}:{onHome:()=>void,syncStatus:
   const {project,selectedSceneId,select,apply,undo,redo,past,future} = useEditor();
   const player = useRef<PlayerRef>(null);
   const [message,setMessage] = useState('');
+  const [selectedShotId,setSelectedShotId]=useState<string|null>(null);
+  const [selectedCaptionId,setSelectedCaptionId]=useState<string|null>(null);
   const [imageDraft,setImageDraft] = useState('');
   const [importing,setImporting] = useState(false);
   const [exportId,setExportId] = useState<string|null>(null);
@@ -33,6 +39,8 @@ export function Editor({onHome,syncStatus,onReload}:{onHome:()=>void,syncStatus:
   const [mediaMessage,setMediaMessage] = useState('');
   const {selectedClipId,selectClip}=useEditor();
   const selectedClip=project.clips.find(c=>c.id===selectedClipId)||null;
+  const selectedShot=project.shots.find(s=>s.id===selectedShotId)||null;
+  const selectedCaption=project.captions.find(c=>c.id===selectedCaptionId)||null;
   const clipAsset=selectedClip?project.assets.find(a=>a.id===selectedClip.assetId):null;
   const selectedIndex = Math.max(0,project.scenes.findIndex(s=>s.id===selectedSceneId));
   const scene = project.scenes[selectedIndex];
@@ -99,7 +107,7 @@ export function Editor({onHome,syncStatus,onReload}:{onHome:()=>void,syncStatus:
   function insertAsset(asset:Asset,lane:Lane){
     const start=sceneStart(project,selectedIndex);const available=total-start;
     const duration=Math.max(1,Math.min(available,asset.durationFrames|| (asset.kind==='audio'?available:scene.durationFrames)));
-    const clip:MediaClip={id:crypto.randomUUID(),assetId:asset.id,lane,startFrame:start,durationFrames:duration,trimStartFrames:0,volume:lane==='music'?0.25:1};
+    const clip:MediaClip={id:crypto.randomUUID(),assetId:asset.id,lane,startFrame:start,durationFrames:duration,trimStartFrames:0,volume:lane==='music'?0.25:1,volumeKeyframes:[]};
     try{apply([{type:'addClip',clip}]);selectClip(clip.id);player.current?.seekTo(start);setMediaMessage('Clipe adicionado; selecione-o na timeline para ajustar.');}
     catch(e){setMediaMessage(e instanceof Error?e.message:'Não foi possível adicionar o clipe');}
   }
@@ -123,9 +131,38 @@ export function Editor({onHome,syncStatus,onReload}:{onHome:()=>void,syncStatus:
     try {apply(ops);setMessage('');}
     catch (e) {setMessage(e instanceof Error?e.message:String(e));}
   }
+  function updateShot(id:string,changes:Partial<Omit<Shot,'id'>>){
+    try{apply([{type:'updateShot',shotId:id,changes}]);setMessage('');}
+    catch(e){setMessage(e instanceof Error?e.message:'Plano inválido. Verifique início, duração e keyframes.');}
+  }
+  function addShot(){
+    const start=sceneStart(project,selectedIndex);
+    const duration=Math.max(1,Math.min(105,total-start));
+    const shot:Shot={
+      id:crypto.randomUUID(),kind:'graphic',style:'headline',startFrame:start,durationFrames:duration,
+      trimStartFrames:0,zIndex:1,title:'NOVO PLANO',subtitle:'Edite este plano na timeline.',
+      kicker:'DARK STUDIO',accentColor:project.channelKit.accentColor,backgroundColor:'#111e2c',
+      motion:{x:[],y:[],scale:[],rotation:[],opacity:[]},
+    };
+    try{
+      const ops:Operation[]=project.visualMode==='shots'?[]:[{type:'setVisualMode',visualMode:'shots'}];
+      apply([...ops,{type:'addShot',shot}]);
+      setSelectedShotId(shot.id);setSelectedCaptionId(null);setMessage('');
+    }catch(e){setMessage(e instanceof Error?e.message:'Falha ao criar plano');}
+  }
+  function setVolumeFade(kind:'in'|'out'|'reset'){
+    if(!selectedClip)return;
+    const last=selectedClip.durationFrames-1;
+    const fade=Math.min(18,last);
+    const keyframes=kind==='reset'?[]:kind==='in'?
+      [{frame:0,value:0,easing:'ease-out' as const},{frame:fade,value:selectedClip.volume,easing:'linear' as const}]:
+      [{frame:Math.max(0,last-fade),value:selectedClip.volume,easing:'ease-in' as const},
+        {frame:last,value:0,easing:'linear' as const}];
+    updateClip({volumeKeyframes:keyframes});
+  }
   function jumpTo(index:number) {select(project.scenes[index].id);player.current?.seekTo(sceneStart(project,index));}
   return <div className="shell">
-    <header className="topbar"><div className="brand"><span className="brandmark">D</span><div><strong>DARK STUDIO</strong><small>INVESTIGATIVE EDITOR 0.10</small></div></div>
+    <header className="topbar"><div className="brand"><span className="brandmark">D</span><div><strong>DARK STUDIO</strong><small>INVESTIGATIVE EDITOR vNEXT</small></div></div>
       <div className="projectName"><span className="dot"/>{project.name}</div>
       <div className="topActions"><button onClick={onHome}>← Projetos</button><button onClick={undo} disabled={!past.length} title="Desfazer">↶ Desfazer</button><button onClick={redo} disabled={!future.length} title="Refazer">↷ Refazer</button><button onClick={()=>mediaFile.current?.click()} disabled={importing}>{importing?'Importando...':'Importar mídia'}</button><button className="primary" onClick={()=>void exportVideo()}>Exportar MP4</button><button onClick={()=>saveJson(project)}>Exportar JSON ↧</button></div>
       <input className="hidden" ref={captionFile} type="file" accept=".srt,.txt" onChange={e=>void importSubtitles(e)}/>
@@ -138,9 +175,19 @@ export function Editor({onHome,syncStatus,onReload}:{onHome:()=>void,syncStatus:
         <div className="sceneIndex">{String(i+1).padStart(2,'0')} <span>{seconds(s.durationFrames,project.fps)}</span></div>
         <strong>{s.title}</strong><small>{s.kind==='stat'?'Gráfico / dado':s.kind==='quote'?'Citação':'Título / abertura'}</small></button>)}</div>
       <button className="wide dashed" onClick={()=>{const added=newScene(scene);action([{type:'addScene',scene:added,afterId:scene.id}]);select(added.id);}}>＋ Adicionar cena</button>
+      <button className="wide dashed" onClick={addShot}>＋ Adicionar plano na cena</button>
+      {project.visualMode==='shots'&&<button className="wide" onClick={()=>{
+        if(window.confirm('Exibir o modo antigo de cartões? Os planos serão preservados, mas não aparecerão no preview até retornar ao modo Planos.'))action([{type:'setVisualMode',visualMode:'legacy'}]);
+      }}>Visualização antiga de cartões</button>}
+      {project.visualMode==='legacy'&&project.shots.length>0&&<button className="wide" onClick={()=>{
+        action([{type:'setVisualMode',visualMode:'shots'}]);
+      }}>Visualização por planos</button>}
+      {project.chapters.length>0&&<div className="libraryNote"><b>CAPÍTULOS · {project.chapters.length}</b>
+        {project.chapters.map(ch=><p key={ch.id}>{ch.title}</p>)}
+      </div>}
       <div className="libraryNote"><b>ARQUIVOS DE MÍDIA · {project.assets.length}</b><p>Importe imagens, vídeo e narração pelo serviço local. Depois adicione-os a uma trilha.</p>
       <div className="assetList">{project.assets.map(a=><div className="assetRow" key={a.id}><strong title={a.name}>{a.kind==='image'?'▣':a.kind==='video'?'▶':'♫'} {a.name}</strong><div className="assetActions">
-      {a.kind==='audio'?<><button onClick={()=>insertAsset(a,'narration')}>+ Narração</button><button onClick={()=>insertAsset(a,'music')}>+ Música</button></>:<button onClick={()=>insertAsset(a,'visual')}>+ Visual</button>}
+      {a.kind==='audio'?<><button onClick={()=>insertAsset(a,'narration')}>+ Narração</button><button onClick={()=>insertAsset(a,'music')}>+ Música</button><button onClick={()=>insertAsset(a,'sfx')}>+ Efeito</button></>:<button onClick={()=>insertAsset(a,'visual')}>+ Visual</button>}
       </div></div>)}</div>{mediaMessage&&<p className="warning" role="alert">{mediaMessage}</p>}</div>
       <div className="libraryNote"><b>LEGENDAS SINCRONIZADAS · {project.captions.length}</b>
         <p>Importe um SRT com timestamps (gerado por ferramenta local ou pelo Codex) e revise o timing em relação à narração.</p>
@@ -153,28 +200,42 @@ export function Editor({onHome,syncStatus,onReload}:{onHome:()=>void,syncStatus:
         <div className="preview"><Player ref={player} component={Documentary} inputProps={{project}} fps={project.fps} durationInFrames={Math.max(1,total)} compositionWidth={project.width} compositionHeight={project.height} controls clickToPlay style={{width:'100%',aspectRatio:'16/9'}}/></div>
         <div className="projectSync" role="status"><span>{syncStatus}</span>{onReload&&<button onClick={onReload}>Recarregar projeto do disco</button>}</div>
         <div className="stageFooter"><div>● PREVIEW LOCAL <span>Cenas, clipes, narração e música pelo Remotion Player.</span></div><strong>{seconds(total,project.fps)} total</strong></div>
+        {project.visualMode==='shots'&&<ShotTimeline shots={project.shots} totalFrames={total}
+          selectedId={selectedShotId} onSelect={id=>{setSelectedShotId(id);setSelectedCaptionId(null);selectClip(null);}}
+          onEdit={updateShot}/>}
         <div className="timelineTop"><strong>TIMELINE MULTITRILHA</strong><span>{project.clips.length} clipes · ajuste início e duração nas propriedades</span></div>
         <div className="timeline multiTimeline">
           <div className="track"><span className="trackLabel">CENAS</span><div className="clips">{project.scenes.map((s,i)=><button key={s.id} onClick={()=>jumpTo(i)} className={`clip ${s.id===scene.id?'active':''}`} style={{flex:s.durationFrames}} title={s.title}><span>{i+1}. {s.title}</span></button>)}</div></div>
-          {(['visual','narration','music'] as const).map(lane=><div className="track" key={lane}><span className="trackLabel">{lane==='visual'?'VISUAL':lane==='narration'?'NARRAÇÃO':'MÚSICA'}</span><div className={`laneRail lane-${lane}`}>
+          {(['visual','narration','music','sfx'] as const).map(lane=><div className="track" key={lane}><span className="trackLabel">{lane==='visual'?'VISUAL':lane==='narration'?'NARRAÇÃO':lane==='sfx'?'EFEITOS':'MÚSICA'}</span><div className={`laneRail lane-${lane}`}>
             {project.clips.filter(c=>c.lane===lane).map(c=>{const a=project.assets.find(item=>item.id===c.assetId);return <button key={c.id} title={a?.name||c.id} className={`mediaClip ${c.id===selectedClipId?'clipSelected':''}`} style={{left:`${c.startFrame/total*100}%`,width:`${c.durationFrames/total*100}%`}} onClick={()=>{selectClip(c.id);player.current?.seekTo(c.startFrame);}}><span>{a?.name||'Arquivo ausente'}</span></button>;})}
           </div></div>)}
         </div>
         {project.captions.length>0&&<div className="track captionTrack"><span className="trackLabel">LEGENDAS</span><div className="laneRail">
           {project.captions.map(c=><button key={c.id} className="captionTick"
             title={c.text} style={{left:(c.startFrame/total*100)+'%',width:((c.endFrame-c.startFrame)/total*100)+'%'}}
-            onClick={()=>player.current?.seekTo(c.startFrame)}>{c.text}</button>)}
+            onClick={()=>{setSelectedCaptionId(c.id);setSelectedShotId(null);selectClip(null);player.current?.seekTo(c.startFrame);}}>{c.text}</button>)}
         </div></div>}
         <div className="timelineHint">Clipes têm posição temporal independente das cenas. Clique para editar início, duração, corte e volume. Reordenação de cenas fica bloqueada enquanto houver mídia para preservar sincronização.</div>
         {exportState&&<div className="exportStatus" role="status"><strong>EXPORTAÇÃO MP4 · {exportState}</strong><progress max={1} value={exportProgress}/><small>Renderização local em processo separado, com Remotion e FFmpeg. Salvo em Vídeos/DarkStudio.</small></div>}
       </main>
-      <aside className="inspector"><div className="panelTitle">PROPRIEDADES <span>{selectedClip?'CLIPE':'CENA '+(selectedIndex+1)}</span></div>
+      <aside className="inspector">
+        {selectedShot&&<ShotInspector shot={selectedShot} assets={project.assets}
+          onEdit={changes=>updateShot(selectedShot.id,changes)}
+          onRemove={()=>{action([{type:'removeShot',shotId:selectedShot.id}]);setSelectedShotId(null);}}/>}
+        {selectedCaption&&<CaptionInspector caption={selectedCaption}
+          onEdit={changes=>action([{type:'updateCaption',captionId:selectedCaption.id,changes}])}
+          onClose={()=>setSelectedCaptionId(null)}/>}
+        <div className="panelTitle">PROPRIEDADES <span>{selectedClip?'CLIPE':'CENA '+(selectedIndex+1)}</span></div>
         {selectedClip&&<section className="clipInspector"><div className="clipTitle">{clipAsset?.name||'Mídia não encontrada'}</div>
           <div className="field"><label>Trilha</label><select value={selectedClip.lane} onChange={e=>updateClip({lane:e.target.value as Lane})}><option value="visual" disabled={clipAsset?.kind==='audio'}>Visual</option><option value="narration" disabled={clipAsset?.kind!=='audio'}>Narração</option><option value="music" disabled={clipAsset?.kind!=='audio'}>Música</option></select></div>
           <div className="field"><label>Início (segundos)</label><input type="number" min={0} max={total/project.fps} step="0.1" value={Number((selectedClip.startFrame/project.fps).toFixed(2))} onChange={e=>updateClip({startFrame:Math.round(Number(e.target.value)*project.fps)})}/></div>
           <div className="field"><label>Duração (segundos)</label><input type="number" min={1/project.fps} step="0.1" value={Number((selectedClip.durationFrames/project.fps).toFixed(2))} onChange={e=>updateClip({durationFrames:Math.max(1,Math.round(Number(e.target.value)*project.fps))})}/></div>
           {clipAsset?.kind!=='image'&&<div className="field"><label>Corte no início do arquivo (segundos)</label><input type="number" min={0} step="0.1" value={Number((selectedClip.trimStartFrames/project.fps).toFixed(2))} onChange={e=>updateClip({trimStartFrames:Math.max(0,Math.round(Number(e.target.value)*project.fps))})}/></div>}
           {clipAsset?.kind==='audio'&&<div className="field"><label>Volume {Math.round(selectedClip.volume*100)}%</label><input type="range" min={0} max={1} step={0.05} value={selectedClip.volume} onChange={e=>updateClip({volume:Number(e.target.value)})}/></div>}
+          {clipAsset?.kind==='audio'&&<div className="field"><label>Curva de volume · {selectedClip.volumeKeyframes.length} keyframes</label>
+            <div className="projectActions"><button onClick={()=>setVolumeFade('in')}>Fade in</button>
+              <button onClick={()=>setVolumeFade('out')}>Fade out</button><button onClick={()=>setVolumeFade('reset')}>Sem fade</button></div>
+          </div>}
           <div className="sceneActions"><button onClick={()=>{apply([{type:'removeClip',clipId:selectedClip.id}]);selectClip(null);}}>Excluir clipe</button><button onClick={()=>selectClip(null)}>Editar cena</button></div>
         </section>}
         <div className={selectedClip?'sceneInspectorMuted':''}>

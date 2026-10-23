@@ -92,3 +92,25 @@ font-size:10px;text-align:left;padding:7px;background:#654c2d;color:#fff4d6;bord
 .diagnosticRow strong{min-width:64px;font-size:10px;color:#aabed4}
 .diagnostic-warning strong{color:#edbc79}.diagnostic-error strong{color:#fa999f}.diagnostic-info strong{color:#8cbfe8}
 .diagnosticRow span{line-height:1.5;overflow-wrap:anywhere}
+
+/* vNext: shot-based montage editing (same frame coordinates as the exported video) */
+.shotTimeline{margin-top:24px;padding:14px 0 8px;border-top:1px solid #3b465b}
+.shotTimelineHeading{display:flex;justify-content:space-between;align-items:baseline;gap:13px;color:#ecd099}
+.shotTimelineHeading strong{font-size:11px;letter-spacing:1.2px}
+.shotTimelineHeading small{font-size:10px;color:#93a8c2;line-height:1.5}
+.shotRuler{height:23px;position:relative;margin-left:70px;color:#839bb4;font-size:10px}
+.shotRuler span{position:absolute;top:6px;transform:translateX(-50%)}
+.shotRail{height:72px;margin-left:70px;border:1px dashed #40526a;border-radius:5px;position:relative;background:#151e2b;touch-action:none;user-select:none}
+.shotBlock{height:65px;top:3px;position:absolute;border:1px solid;display:flex;padding:0;align-items:stretch;overflow:hidden;cursor:grab;color:#f6f1e5;min-width:5px}
+.shotBlockActive{outline:2px solid #fff0b7;outline-offset:1px;z-index:2}
+.shotBlock:active{cursor:grabbing}
+.shotHandle{flex:0 0 8px;background:#ffffff45;cursor:ew-resize;position:relative;z-index:1}
+.shotLabel{flex:1;align-self:center;text-overflow:ellipsis;overflow:hidden;white-space:nowrap;font-size:10px;padding:3px}
+.shotInspector{padding:13px 0;border-bottom:1px solid #46546a;margin-bottom:17px}
+.shotMotion{border-top:1px solid #34455c;margin-top:15px;padding-top:13px}
+.kfRow{display:grid;grid-template-columns:1fr 1fr 1.4fr 30px;gap:7px;align-items:end;margin:10px 0}
+.kfRow label{font-size:10px;color:#b6c5d9}
+.kfRow input,.kfRow select{font-size:11px;margin-top:4px;padding:6px}
+.kfRow button{padding:7px;height:32px}
+.captionInspector{padding:13px 0;border-bottom:1px solid #46546a;margin-bottom:17px}
+.lane-sfx .mediaClip{background:#6d5b2e;border-color:#ceaf5e}

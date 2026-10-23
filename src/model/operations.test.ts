@@ -5,7 +5,7 @@ const copy=()=>structuredClone(starterProject);
 const asset={id:'de95201a-6d63-438e-94e5-b862bc77f61e',name:'voice.mp3',kind:'audio' as const,mime:'audio/mpeg',url:'http://127.0.0.1:4317/media/de95201a-6d63-438e-94e5-b862bc77f61e',durationFrames:400};
 const clip={id:'737383e1-c605-49db-b9aa-3e312a390b61',assetId:asset.id,lane:'narration' as const,startFrame:30,durationFrames:300,trimStartFrames:0,volume:0.8};
 describe('projeto multitrilha',()=>{
-  it('migra projetos v1 preservando cenas',()=>{const {assets:_,clips:__,captions:___,evidence:____,...base}=copy();const p=parseProject({...base,version:1});expect(p.version).toBe(2);expect(p.assets).toEqual([]);});
+  it('migra projetos v1 preservando cenas',()=>{const {assets:_,clips:__,captions:___,evidence:____,visualMode:_____,chapters:______,shots:_______,channelKit:________,...base}=copy();const p=parseProject({...base,version:1});expect(p.version).toBe(2);expect(p.assets).toEqual([]);});
   it('permite importar mídia e colocar clipe em narração',()=>{const p=applyOperations(copy(),[{type:'addAsset',asset},{type:'addClip',clip}]);expect(p.clips).toHaveLength(1);expect(p.assets).toHaveLength(1);});
   it('impede clipes fora da duração',()=>{expect(()=>applyOperations(copy(),[{type:'addAsset',asset},{type:'addClip',clip:{...clip,startFrame:projectDuration(copy())-10}}])).toThrow();});
   it('impede áudio colocado na faixa visual',()=>{expect(()=>applyOperations(copy(),[{type:'addAsset',asset},{type:'addClip',clip:{...clip,lane:'visual'}}])).toThrow();});

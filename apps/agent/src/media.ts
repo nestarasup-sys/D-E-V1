@@ -22,6 +22,25 @@ let mediaIndex:Record<string,Stored>|null=null;
 async function index(){if(mediaIndex)return mediaIndex;await mkdir(MEDIA_DIR,{recursive:true});try{mediaIndex=JSON.parse(await readFile(INDEX,'utf8')) as Record<string,Stored>;}catch{mediaIndex={};}return mediaIndex;}
 async function persist(){const tmp=INDEX+'.tmp';await writeFile(tmp,JSON.stringify(mediaIndex,null,2),'utf8');await rename(tmp,INDEX);}
 function nameFromHeader(v:string|undefined){if(!v)return null;try{return decodeURIComponent(v);}catch{return null;}}
+/** Mídia sintetizada LOCALMENTE pelo Dark Studio; a voz não é publicada em GitHub. */
+export async function importGeneratedWave(wav:Buffer):Promise<{id:string,name:string,kind:'audio',mime:string,url:string,durationFrames:number}>{
+  if(wav.length<44||wav.length>30*1024*1024)throw new Error('WAV sintetizado inválido.');
+  const id=randomUUID(),name='piloto-narracao-local.wav';
+  const entry:Stored={id,name,kind:'audio',mime:'audio/wav',ext:'.wav',bytes:wav.length,
+    url:'http://127.0.0.1:4317/media/'+id};
+  await mkdir(MEDIA_DIR,{recursive:true});
+  const path=join(MEDIA_DIR,id+'.wav');
+  try{
+    await writeFile(path,wav,{flag:'wx'});
+    (await index())[id]=entry;
+    await persist();
+  }catch(e){
+    delete (await index())[id];
+    await unlink(path).catch(()=>{});
+    throw e;
+  }
+  return {id,name,kind:'audio',mime:entry.mime,url:entry.url,durationFrames:900};
+}
 export async function mediaExistsFor(id:string):Promise<boolean>{
   const entry=(await index())[id];
   if(!entry)return false;

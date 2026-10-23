@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import {shotSchema,chapterSchema,channelKitSchema,keyframeSchema,validateMotion} from './shots';
 
 export const FPS = 30;
 export const sceneKindSchema = z.enum(['title', 'stat', 'quote']);
@@ -24,7 +25,7 @@ export const assetSchema = z.object({
   url: z.string().max(512).url(),
   durationFrames: z.number().int().positive().max(30 * 60 * 60).optional(),
 }).strict().refine(a => a.url === `http://127.0.0.1:4317/media/${a.id}`, 'URL de mídia inválida');
-export const laneSchema = z.enum(['visual', 'narration', 'music']);
+export const laneSchema = z.enum(['visual', 'narration', 'music', 'sfx']);
 export const clipSchema = z.object({
   id: z.string().uuid(),
   assetId: z.string().uuid(),
@@ -33,6 +34,7 @@ export const clipSchema = z.object({
   durationFrames: z.number().int().positive(),
   trimStartFrames: z.number().int().min(0).default(0),
   volume: z.number().min(0).max(1).default(1),
+  volumeKeyframes:z.array(keyframeSchema).max(40).default([]),
 }).strict();
 
 export const legacyProjectSchema = z.object({
@@ -67,8 +69,13 @@ export const projectSchema = z.object({
   clips: z.array(clipSchema).max(4000),
   captions:z.array(captionSchema).max(3000).default([]),
   evidence:z.array(evidenceSchema).max(2000).default([]),
+  visualMode:z.enum(['legacy','shots']).default('legacy'),
+  chapters:z.array(chapterSchema).max(100).default([]),
+  shots:z.array(shotSchema).max(4000).default([]),
+  channelKit:channelKitSchema,
 }).strict().superRefine((p, ctx) => {
   if (new Set(p.scenes.map(s => s.id)).size !== p.scenes.length) ctx.addIssue({code:'custom', message:'IDs de cenas duplicados'});
+  if(new Set(p.shots.map(s=>s.id)).size!==p.shots.length)ctx.addIssue({code:'custom',message:'IDs de planos duplicados'});
   if (new Set(p.assets.map(a => a.id)).size !== p.assets.length) ctx.addIssue({code:'custom', message:'IDs de assets duplicados'});
   if (new Set(p.clips.map(c => c.id)).size !== p.clips.length) ctx.addIssue({code:'custom', message:'IDs de clipes duplicados'});
   if(new Set(p.captions.map(c=>c.id)).size!==p.captions.length)ctx.addIssue({code:'custom',message:'IDs de legendas duplicados'});
@@ -78,13 +85,37 @@ export const projectSchema = z.object({
     if(e.sceneId&&!knownScenes.has(e.sceneId))ctx.addIssue({code:'custom',path:['evidence',i,'sceneId'],message:'Evidência ligada a cena inexistente'});
   });
   const assetById = new Map(p.assets.map(a => [a.id, a]));
+  if(new Set(p.chapters.map(c=>c.id)).size!==p.chapters.length)ctx.addIssue({code:'custom',message:'Capítulos duplicados'});
+  let previousChapter=-1;
+  p.chapters.forEach((chapter,i)=>{
+    const sceneIdx=p.scenes.findIndex(s=>s.id===chapter.firstSceneId);
+    if(sceneIdx<=previousChapter)ctx.addIssue({code:'custom',path:['chapters',i],message:'Capítulos precisam começar em cenas distintas e em ordem'});
+    previousChapter=sceneIdx;
+  });
   const total = p.scenes.reduce((n, s) => n + s.durationFrames, 0);
+  p.shots.forEach((shot,i)=>{
+    if(shot.startFrame+shot.durationFrames>total)ctx.addIssue({code:'custom',path:['shots',i],message:'Plano ultrapassa a duração do episódio'});
+    validateMotion(shot.motion,shot.durationFrames,ctx,['shots',i,'motion']);
+    if(shot.kind!=='graphic'){
+      const asset=shot.assetId?assetById.get(shot.assetId):undefined;
+      if(!asset||asset.kind!==shot.kind)ctx.addIssue({code:'custom',path:['shots',i,'assetId'],message:'Plano exige imagem ou vídeo importado no computador'});
+      if(asset?.durationFrames&&shot.kind==='video'&&shot.trimStartFrames+shot.durationFrames>asset.durationFrames)
+        ctx.addIssue({code:'custom',path:['shots',i],message:'Plano ultrapassa a duração do arquivo de vídeo'});
+    }
+  });
   const ordered=[...p.captions].sort((a,b)=>a.startFrame-b.startFrame);
   ordered.forEach((c,i)=>{
     if(c.endFrame<=c.startFrame || c.endFrame>total)ctx.addIssue({code:'custom',message:'Legenda fora do tempo do projeto'});
     if(i && c.startFrame<ordered[i-1].endFrame)ctx.addIssue({code:'custom',message:'Legendas não podem se sobrepor'});
   });
   p.clips.forEach((c, i) => {
+    let previous=-1;
+    c.volumeKeyframes.forEach((kf,k)=>{
+      if(kf.frame<=previous||kf.frame>=c.durationFrames||kf.value<0||kf.value>1)ctx.addIssue({
+        code:'custom',path:['clips',i,'volumeKeyframes',k],message:'Keyframe de volume fora da duração ou intervalo 0–1',
+      });
+      previous=kf.frame;
+    });
     const a = assetById.get(c.assetId);
     if (!a) ctx.addIssue({code:'custom', path:['clips',i,'assetId'], message:'Arquivo de mídia não cadastrado'});
     else if ((c.lane === 'visual') !== (a.kind !== 'audio')) ctx.addIssue({code:'custom', path:['clips',i,'lane'], message:'Tipo de mídia incompatível com trilha'});
@@ -110,7 +141,8 @@ export function parseProject(input: unknown): Project {
 
 export const starterProject: Project = {
   version: 2, id: 'dark-studio-demo', name: 'Investigação sem rosto', fps: 30, width: 1920, height: 1080,
-  assets: [], clips: [], captions: [], evidence: [],
+  assets: [], clips: [], captions: [], evidence: [], visualMode:'legacy',chapters:[],shots:[],
+  channelKit:{brandName:'DARK STUDIO',font:'sans',accentColor:'#e2ad56',captionStyle:'boxed'},
   scenes: [
     {id:'scene-1',kind:'title',title:'QUEM CONTROLA A INFORMAÇÃO?',subtitle:'Uma investigação sobre dados, poder e influência',kicker:'CAPÍTULO 01',durationFrames:180,accentColor:'#f1bd67',backgroundColor:'#0a111e',imageUrl:''},
     {id:'scene-2',kind:'stat',title:'247%',subtitle:'Exemplo de estatística visual — substitua por dados verificados',kicker:'DADOS & CONTEXTO',durationFrames:150,accentColor:'#f1bd67',backgroundColor:'#141e30',imageUrl:''},

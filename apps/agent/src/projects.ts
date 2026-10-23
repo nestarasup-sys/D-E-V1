@@ -3,6 +3,10 @@ import {z} from 'zod';
 import {ProjectError, ProjectRepository} from './project-store';
 import {ProposalRepository} from './proposals';
 import {json,readJson} from './http';
+import {synthesizePilotVoice} from './pilot-audio';
+import {importGeneratedWave} from './media';
+import {buildPilotProject} from '../../../src/model/pilot';
+import {randomUUID} from 'node:crypto';
 import {mediaExistsFor} from './media';
 import {diagnoseProject} from './diagnostics';
 
@@ -24,6 +28,16 @@ export async function handleProjects(req: IncomingMessage,res: ServerResponse,ur
       const parsed=z.object({name:z.string().trim().min(1).max(120)}).strict().parse(await readJson(req,2000));
       json(res,201,await projects.create(parsed.name));
     } catch(e){failure(res,e);}
+    return true;
+  }
+  if(url.pathname==='/v1/projects/pilot'&&req.method==='POST'){
+    try{
+      // Não cria um projeto silencioso: voz precisa funcionar antes de registrar o piloto.
+      const voice=await synthesizePilotVoice();
+      const asset=await importGeneratedWave(voice.wav);
+      const draft=buildPilotProject({newId:randomUUID,voiceAsset:asset,speechFrames:voice.speechFrames});
+      json(res,201,await projects.adopt(draft));
+    }catch(e){failure(res,e);}
     return true;
   }
   if (url.pathname==='/v1/projects/import' && req.method==='POST') {

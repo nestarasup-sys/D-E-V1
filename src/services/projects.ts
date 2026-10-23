@@ -70,3 +70,7 @@ export async function restoreProject(id:string,revision:string,expectedRevision:
     method:'POST',headers:{...jsonHeaders,'If-Match':expectedRevision},body:JSON.stringify({revision}),
   }));
 }
+
+export async function createPilotProject():Promise<ProjectRecord>{
+  return record(await request('/v1/projects/pilot',{method:'POST'}));
+}
