@@ -49,7 +49,7 @@ Estas operações editam a composição do vídeo, não executam diretamente uma
 
 Se você estiver usando **Codex na nuvem pelo ChatGPT**, o processo remoto não enxerga automaticamente C:\Users\...\DarkStudio. Duas opções explícitas:
 
-- Compartilhe apenas um JSON do projeto (sem mídia sensível) com o Codex, receba o JSON atualizado e use "Importar JSON" na página inicial.
+- Compartilhe apenas um JSON do projeto (sem mídia sensível) com o Codex, receba o JSON atualizado e use "Importar JSON" na página inicial. Se o ID estiver preservado, o Dark Studio identifica o projeto existente, pede confirmação e o atualiza com backup; se for um ID novo, cria outro projeto.
 - Use um diretório de trabalho sincronizado por conta própria, com controle de acesso e versionamento. Nesse caso configure a variável DARK_STUDIO_PROJECTS_DIR antes de abrir o serviço, apontando para a pasta local sincronizada. **Não faça isso usando um repositório público para investigações confidenciais**.
 
 Exemplo para uma sessão de PowerShell (opcional, somente se configurou sincronização):

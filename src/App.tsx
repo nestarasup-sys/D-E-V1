@@ -153,6 +153,15 @@ export function App(){
     if(!file)return;
     await act(async()=>{
       const project=parseProject(JSON.parse(await file.text()));
+      const existing=entries.find(p=>p.id===project.id);
+      if(existing){
+        if(!window.confirm('O JSON tem o mesmo ID de '+existing.name+'. Atualizar este projeto? O Dark Studio fará backup da versão anterior.'))return;
+        const current=await getProject(project.id);
+        const saved=await saveProject(project,current.revision);
+        useEditor.getState().openProject(saved.project);
+        setActive(saved);
+        return;
+      }
       const created=await importProject(project);
       useEditor.getState().openProject(created.project);
       setActive(created);

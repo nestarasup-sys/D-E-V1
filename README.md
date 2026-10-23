@@ -39,6 +39,7 @@ Para testar somente a interface, rode npm run dev no segundo terminal e abra htt
 ## Projetos e salvamento
 
 - O serviço local gerencia projetos e mídia; o editor salva alterações automaticamente (debounce de 900 ms).
+- Ao importar um JSON cujo ID já existe na página inicial, o editor pede confirmação para **atualizar o projeto existente**, fazendo backup do anterior. Um JSON com ID novo vira projeto novo.
 - Ao tentar salvar uma revisão obsoleta, o serviço devolve HTTP 409. O editor não sobrescreve automaticamente a alteração externa e oferece "Recarregar projeto do disco". **Exporte o JSON local antes de recarregar** se desejar preservar alterações feitas na interface.
 - O projeto anterior da v0.1/v0.2 ainda pode estar salvo no navegador. Use "Migrar projeto antigo" no dashboard ou importe um JSON exportado.
 - Arquivar move a pasta do projeto para _archived; não apaga os arquivos da biblioteca de mídia.
