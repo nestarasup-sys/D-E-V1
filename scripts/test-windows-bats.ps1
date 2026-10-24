@@ -87,6 +87,8 @@ try {
 
   Write-Host '[CI BAT] Verificando bloqueio de alteracao local...'
   Set-Content -Path (Join-Path $clone 'codex-notes.txt') -Value 'NAO APAGAR' -Encoding ASCII
+  $dirty=(& git -C $clone status --porcelain --untracked-files=all) -join [Environment]::NewLine
+  if(-not $dirty.Contains('codex-notes.txt')){throw 'A fixture nao esta suja antes do teste.'}
   Set-Content -Path (Join-Path $src 'edition.txt') -Value 'rev-3' -Encoding ASCII
   Invoke-Git $src @('add','edition.txt')
   Invoke-Git $src @('commit','-m','rev 3')

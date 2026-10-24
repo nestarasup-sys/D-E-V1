@@ -77,8 +77,17 @@ echo Repositorio: %REMOTE_REPO%
 echo Branch de atualizacao: %BRANCH%
 echo.
 rem Inclui modificacoes, staged e arquivos novos nao ignorados.
+rem Usa arquivo temporario para nao depender de FOR /F sobre comando aninhado do CMD.
 rem Nao destrua trabalho ainda nao commitado do Codex.
-for /f "delims=" %%L in ('git status --porcelain --untracked-files=normal 2^>nul') do goto :DIRTY
+set "STATUS_FILE=%TEMP%\dark-studio-git-status-%RANDOM%-%RANDOM%.txt"
+git status --porcelain --untracked-files=all > "%STATUS_FILE%"
+if errorlevel 1 (
+  if exist "%STATUS_FILE%" del /q "%STATUS_FILE%" >nul 2>&1
+  echo [ERRO] Nao consegui verificar o estado do Git. Nada sera atualizado.
+  exit /b 1
+)
+for %%F in ("%STATUS_FILE%") do if %%~zF GTR 0 goto :DIRTY
+del /q "%STATUS_FILE%" >nul 2>&1
 
 echo [2/3] Buscando a versao atual do GitHub...
 git fetch origin "refs/heads/%BRANCH%:refs/remotes/origin/%BRANCH%"
@@ -147,6 +156,7 @@ echo Feche as janelas antigas do editor ANTES de iniciar a versao nova.
 exit /b 0
 
 :DIRTY
+if defined STATUS_FILE if exist "%STATUS_FILE%" del /q "%STATUS_FILE%" >nul 2>&1
 echo [BLOQUEADO] Existem mudancas locais ou arquivos novos no clone:
 git status --short
 echo.
