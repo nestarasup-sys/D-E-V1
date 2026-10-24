@@ -3,7 +3,7 @@ import type {ChannelKit} from '../model/shots';
 export function ChannelKitPanel({kit,onChange}:{kit:ChannelKit;onChange:(changes:Partial<ChannelKit>)=>void}){
   return <section className="channelKitPanel">
     <div className="panelTitle">IDENTIDADE DO CANAL</div>
-    <p className="help">Paleta, tipografia e legendas reutilizadas em todos os planos gráficos deste episódio.</p>
+    <p className="help">A marca, a tipografia e o estilo de legenda valem para o episódio. A cor do canal orienta novos planos; cores de planos existentes continuam ajustáveis individualmente.</p>
     <div className="field"><label>Nome / marca</label>
       <input maxLength={90} value={kit.brandName} onChange={e=>onChange({brandName:e.target.value})}/></div>
     <div className="twoCols">

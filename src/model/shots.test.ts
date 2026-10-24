@@ -46,7 +46,7 @@ describe('modelo de episódios com planos e compatibilidade',()=>{
   it('rejeita corte maior que a duração do episódio e keyframes fora da área',()=>{
     const project=buildPilotProject({newId:idFactory()});
     const shot=project.shots[0];
-    expect(()=>applyOperations(project,[{type:'updateShot',shotId:shot.id,changes:{startFrame:800}}])).toThrow();
+    expect(()=>applyOperations(project,[{type:'updateShot',shotId:shot.id,changes:{startFrame:850}}])).toThrow();
     expect(()=>applyOperations(project,[{type:'updateShot',shotId:shot.id,changes:{
       motion:{...shot.motion,x:[{frame:shot.durationFrames,value:6,easing:'linear'}]},
     }}])).toThrow();
