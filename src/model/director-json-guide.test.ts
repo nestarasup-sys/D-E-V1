@@ -43,6 +43,29 @@ describe('Guia Diretor por JSON v0.14 (documentação viva)',()=>{
     for(const kind of layerObjectSchema.shape.sceneType.removeDefault().options)expect(guide).toContain('`'+kind+'`');
     for(const type of SFX_TYPES)expect(guide).toContain('`'+type+'`');
   });
+
+  it('mantém documentado o tutorial visual do dashboard e do editor',()=>{
+    const dashboard=read('src/App.tsx');
+    const editor=read('src/Editor.tsx');
+    const homeLabels=[
+      'Importar JSON','Criar piloto audiovisual 30s','Duplicar','Arquivar',
+      'Migrar projeto antigo','Revisar Codex','Versões','Diagnóstico','Produção',
+    ];
+    const editorLabels=[
+      'Desfazer','Refazer','Importar mídia','Exportar JSON','Exportar MP4',
+      'Importar SRT','Exportar SRT','Fade in','Fade out','Sem fade',
+      'Quadro-chave de volume','Recarregar projeto do disco',
+    ];
+    for(const label of homeLabels){
+      expect(dashboard,'botão ausente no dashboard: '+label).toContain(label);
+      expect(guide,'função ausente no tutorial: '+label).toContain('`'+label+'`');
+    }
+    for(const label of editorLabels){
+      expect(editor,'controle ausente no editor: '+label).toContain(label);
+      expect(guide,'função ausente no tutorial: '+label).toContain('`'+label+'`');
+    }
+  });
+
   it('compila o exemplo completo de 12 s sem mover voz, legendas, fontes ou cenas',()=>{
     const project=projectSchema.parse({
       ...structuredClone(starterProject),

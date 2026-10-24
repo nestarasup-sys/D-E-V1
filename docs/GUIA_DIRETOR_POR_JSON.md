@@ -833,6 +833,51 @@ Também há botão de exportação no editor. O serviço cria um job local com e
 - Mantenha checkpoint/histórico dos arquivos anteriores e anote pendências.
 - **Não declare o vídeo "pronto" apenas porque o JSON é válido, a cobertura é 100% ou um MP4 de 30 s foi renderizado.**
 
+
+### 14.7 Tutorial prático: usar a interface do Dark Studio v0.14
+
+Esta seção complementa a direção declarativa das seções 4–13 com um **passo a passo dos controles que existem no aplicativo**. O fluxo da interface não substitui o `direction.json`: o botão **Importar JSON** da tela inicial importa um **projeto completo**, não uma direção parcial. Para aplicar `direction.json`, use `direct` e revise a proposta (seções 5 e 14.1).
+
+#### A. Dashboard: criar, preservar e localizar projetos
+
+1. Abra `02-ABRIR-DARK-STUDIO.bat` na raiz do repositório (depois de instalar com `01-INSTALAR-ATUALIZAR.bat`) e confira se a tela mostra um serviço local **compatível**. Se não mostrar, use `service-info` e o diagnóstico da seção 17; não prossiga supondo que `/health ready` basta.
+2. Digite o nome e escolha **Criar projeto**. Para testar animação e narração do Windows sem usar um episódio real, existe o botão `Criar piloto audiovisual 30s`: é **piloto demonstrativo** e usa a voz SAPI instalada, não pesquisa/locução final aprovada.
+3. Use `Importar JSON` somente com um `project.json` completo e compatível (schema v2). O botão não interpreta diretamente `direction.json` ou um array de operações.
+4. No cartão de cada projeto, use **Abrir editor**, `Duplicar` (antes de ensaios arriscados), `Copiar instrução Codex` (gera a instrução com o contexto local), `Versões` (histórico/restauração), `Revisar Codex` (propostas pendentes), `Diagnóstico` (validações), `Produção` (checkpoints/exportações) ou `Arquivar`. Arquivar move o projeto para a área local `_archived`; **não é upload nem exclusão da mídia**. Antes de restaurar uma versão, leia o que será substituído.
+5. O comando visual `Migrar projeto antigo` existe para migração de projetos legados. Faça backup/duplique o projeto antes de migrar. Use **Atualizar** para reler a lista se o Codex criou um projeto no disco.
+
+**Onde estão os dados:** os projetos e as mídias ficam no Windows, fora do repositório. O dashboard informa a pasta e oferece **Copiar pasta de projetos**. Projetos inválidos são sinalizados em vez de apagados silenciosamente. Ao usar o Codex, forneça permissão local somente ao diretório necessário.
+
+#### B. Editor: trabalhar com cenas, planos e camadas
+
+1. Entre por **Abrir editor**. No topo, `Desfazer` e `Refazer` ajudam nas edições recentes da sessão; **não são substitutos** dos snapshots de `Versões`. `Exportar JSON` baixa uma cópia do **projeto inteiro** e `Exportar MP4` renderiza o vídeo, não o JSON.
+2. Na **Biblioteca de Cenas**, selecione um cartão para posicionar a prévia, use **Adicionar cena** ou **Adicionar plano na cena**. Nas propriedades da cena, edite tipo (`title`, `stat`, `quote`), título, chamada, subtítulo, cores, duração, imagem de fundo e notas de produção. Os botões para mover/remover cena respeitam bloqueios de sincronização descritos na seção 13.
+3. Use a **Visualização por planos** para editar `shots[]`. Alternar para **Visualização antiga de cartões** oculta os planos na prévia, mas não apaga `shots[]`; volte ao modo de planos quando necessário. A prévia é o Remotion Player local a 1920×1080 e 30 FPS.
+4. Selecione um plano na timeline: o inspetor ajusta início/duração, título, visual gráfico ou mídia importada, corte inicial de vídeo, cores, estilo investigativo e animação do plano inteiro. Os atalhos visuais **Zoom suave**, **Panorâmica**, **Fade-in** e **Sem movimento** alteram as curvas do plano; quadros-chave permitem personalizar posição, escala, rotação e opacidade.
+5. Abra **50 COMPOSIÇÕES · GALERIA** para escolher um `presetId`. Depois personalize em **OBJETOS E CAMADAS**: adicionar, selecionar, duplicar, excluir e configurar elementos; escolha tipo, texto, personagem/expressão, objeto, cenário, gráfico, coordenadas, tamanho, cor, comportamento e keyframes. Na **TIMELINE DE ELEMENTOS**, confira o intervalo de cada layer dentro do plano e sua relação com legendas. Há limite de **48 camadas por plano**. Aplicar outra composição pode substituir a montagem anterior do plano: duplique/salve antes.
+6. Para vincular a entrada de uma camada à fala, em **Sincronizar entrada com legenda** selecione uma legenda existente. Essa ligação usa o tempo cadastrado no SRT/JSON, **não** transcrição automática.
+
+#### C. Biblioteca e timeline multitrilha: mídia e volume
+
+1. Clique `Importar mídia` e escolha imagens, vídeos ou áudios autorizados. Arquivos suportados na seleção da v0.14 incluem PNG/JPEG/WebP, MP4/WebM/MOV e MP3/WAV/M4A/OGG. A importação depende do serviço local; confira o resultado na biblioteca.
+2. Para uma mídia visual, escolha **+ Visual**; para áudio, escolha **+ Narração**, **+ Música** ou **+ Efeito**. A **TIMELINE MULTITRILHA** exibe separadamente cenas, visual, narração, música, efeitos e legendas.
+3. Clique em um clipe para ajustar **trilha, início, duração e corte inicial** nas propriedades. O corte inicial não aparece para imagem estática. Para áudio, ajuste volume entre 0 e 100%.
+4. No editor de volume, experimente `Fade in`, `Fade out` ou `Sem fade`. O botão `Quadro-chave de volume` cria pontos com frame, valor e curva (`linear`, `ease-in`, `ease-out` ou `ease-in-out`); o máximo é **40 keyframes de volume por clipe**. Ouça o resultado: fades e efeitos visuais não garantem mixagem correta.
+5. O editor não oferece waveform completo nem alinhamento fonético automático. Os tempos são baseados em **frames absolutos** para clipes e legendas; os keyframes de volume são relativos ao clipe. Não arraste a narração para corrigir uma proposta visual sem conferir a sincronização.
+
+#### D. Legendas: importar, editar e exportar SRT
+
+1. Na biblioteca, use `Importar SRT` para carregar um arquivo com timestamps reais. Se já houver legendas, o editor pede confirmação antes de substituí-las; revise o texto e o sincronismo na trilha **LEGENDAS**.
+2. Clique em uma legenda na trilha para abrir o inspetor e ajustar texto/tempos. A edição pode invalidar `words[]` para não manter uma palavra ativa no instante errado. O destaque por palavra só funciona com alinhamento previamente obtido de um áudio real (seção 11.6).
+3. Use `Exportar SRT` para salvar o texto cronometrado. Exportar SRT não exporta áudio e não gera timestamps novos por reconhecimento de fala.
+
+#### E. Revisão final sem perder trabalho
+
+1. Se o Codex criou uma proposta, volte ao dashboard e abra `Revisar Codex`. Compare-a com o projeto salvo antes de aceitar; alterações não aprovadas **não** aparecem como planos definitivos no editor.
+2. Use `Diagnóstico` e `Produção` para conferir fontes, mídia ausente, checkpoints e status de exportação. Se o Codex gravou dados diretamente na pasta, a tela pode oferecer `Recarregar projeto do disco`; confirme de qual versão está carregando para não confundir alterações locais com propostas.
+3. Exporte primeiro `Exportar JSON` como cópia verificável do projeto quando fizer sentido e depois `Exportar MP4`. Aguarde o estado real do job e examine imagem, legendas e áudio do arquivo resultante. O teste de um clipe curto não valida automaticamente um episódio longo.
+4. Para direção declarativa reproduzível e auditoria, continue seguindo o fluxo **`info` → `direct` → `Revisar Codex` → `direction-report`/`doctor` → exportação**. O editor não tem chat de IA embutido nem botão para aplicar diretamente `direction.json`.
+
 ## 15. Referência completa dos comandos locais
 
 Execute na **pasta do repositório**, em PowerShell/CMD. `UUID` deve ser substituído pelo ID real e `REV` pelo SHA-256 exibido em `info`. O usuário pode pedir que o Codex Local execute tudo; não precisa digitar.
@@ -949,7 +994,7 @@ Não há pontuação mágica de qualidade, mas uma IA deve conferir:
 - [ ] Cada `layer` tem `name/kind/x/y/width/height`; nenhum JS executável?
 - [ ] Frames de layer e keyframes cabem dentro dos intervalos?
 - [ ] Imagens/vídeos vêm da biblioteca local; sem URLs temporárias?
-- [ ] Valores factuais e documentos têm fontes cadastras, recortes e revisão humana?
+- [ ] Valores factuais e documentos têm fontes cadastradas, recortes e revisão humana?
 - [ ] Cenas reconstruídas/ilustrativas não aparecem como evidência real?
 - [ ] O plano respeita identidade, legibilidade, margens e área de legendas?
 - [ ] O Codex criou **proposta revisável**, em vez de fazer `replace` direto?
@@ -1037,12 +1082,12 @@ Uma funcionalidade futura não deve aparecer aqui como implementada **antes** de
 | --- | --- | --- |
 | **0.12** | Retrospectivo | `direction.json`, 7 estilos investigativos, fontes, revisão e `direct` |
 | **0.13** | Retrospectivo | Serviço versionado, propostas visíveis, checkpoints, estados de render |
-| **0.14** | **Versão inicial deste guia** | 50 presets, cenas por layers, personagens, objetos, animações, SFX e palavras destacadas |
+| **0.14** | **Guia revisado e ampliado** | 50 presets, cenas por layers, personagens, objetos, animações, SFX, palavras destacadas e tutorial completo da interface (dashboard, edição, áudio, legendas e exportação) |
 | **0.15+** | **A atualizar junto com o código** | Nunca presumir capacidades futuras antes de implementação/testes |
 
 ### 19.3 Teste de documentação ligado ao código
 
-O arquivo [`src/model/director-json-guide.test.ts`](../src/model/director-json-guide.test.ts) testa automaticamente o exemplo canônico e a cobertura dos IDs/enums existentes. **O teste alerta quando o catálogo cresce sem o guia acompanhar**; ele **não reescreve automaticamente** documentação, nem comprova qualidade audiovisual. Atualize guia + exemplo + teste no mesmo commit. Se um enum mudar, atualize o teste para comparar com a fonte real em vez de enfraquecer a validação para “sempre verde”.
+O arquivo [`src/model/director-json-guide.test.ts`](../src/model/director-json-guide.test.ts) testa automaticamente o exemplo canônico, a cobertura dos IDs/enums existentes e os controles essenciais de dashboard/editor documentados nesta seção 14.7. **O teste alerta quando o catálogo cresce sem o guia acompanhar**; ele **não reescreve automaticamente** documentação, nem comprova qualidade audiovisual. Atualize guia + exemplo + teste no mesmo commit. Se um enum mudar, atualize o teste para comparar com a fonte real em vez de enfraquecer a validação para “sempre verde”.
 
 ### 19.4 Leituras complementares mantidas no repositório
 
