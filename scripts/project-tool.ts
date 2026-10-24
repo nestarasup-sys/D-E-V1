@@ -23,7 +23,8 @@ import {ProposalRepository} from '../apps/agent/src/proposals';
 import {ProductionCoordinator} from '../apps/agent/src/production';
 import {assertServiceCompatibility} from '../src/model/service-contract';
 import {diagnoseProject,runtimeDiagnostics} from '../apps/agent/src/diagnostics';
-import {mediaExistsFor} from '../apps/agent/src/media';
+import {mediaExistsFor,importGeneratedWave} from '../apps/agent/src/media';
+import {makeSfxWave,SFX_TYPES,type SfxType} from '../apps/agent/src/sfx';
 import {applyOperations} from '../src/model/operations';
 import {parseProject} from '../src/model/project';
 
@@ -146,6 +147,37 @@ async function main() {
         action==='status'?await production.assess(id):null;
       if(!state)throw new Error('Ações de produção: status | checkpoint | continue');
       console.log(JSON.stringify(state,null,2));
+      return;
+    }
+    case 'sfx': {
+      if(!args[0]||args[0]==='list'){
+        console.log(JSON.stringify({offline:true,types:SFX_TYPES},null,2));return;
+      }
+      const kind=requireArgument(args[0],'tipo de efeito') as SfxType;
+      if(!SFX_TYPES.includes(kind))throw new Error('Efeito desconhecido: '+kind);
+      const id=requireArgument(args[1],'UUID do projeto');
+      const expected=requireArgument(args[2],'revisão atual');
+      const frame=Number(requireArgument(args[3],'frame inicial'));
+      const volume=args[4]===undefined?.18:Number(args[4]);
+      const saved=await repository.read(id);
+      if(saved.revision!==expected)throw new Error('O projeto mudou; consulte info novamente.');
+      if(!Number.isInteger(frame)||frame<0||frame>=saved.project.scenes.reduce((n,s)=>n+s.durationFrames,0))
+        throw new Error('Frame inicial fora do episódio.');
+      if(!Number.isFinite(volume)||volume<0||volume>1)throw new Error('Volume de 0 a 1.');
+      const {wav,durationFrames}=makeSfxWave(kind);
+      const asset=await importGeneratedWave(wav,{name:'dark-studio-'+kind+'.wav',durationFrames});
+      const maxDuration=saved.project.scenes.reduce((n,s)=>n+s.durationFrames,0)-frame;
+      const clip={
+        id:randomUUID(),assetId:asset.id,lane:'sfx' as const,
+        startFrame:frame,durationFrames:Math.min(durationFrames,maxDuration),
+        trimStartFrames:0,volume,volumeKeyframes:[],
+      };
+      const proposal=await proposalStore.create(id,[
+        {type:'addAsset',asset},
+        {type:'addClip',clip},
+      ],expected);
+      console.log('Efeito local sintetizado. Proposta pendente: '+proposal.id);
+      console.log('Abra Revisar Codex no Dark Studio; não apliquei automaticamente.');
       return;
     }
     case 'presets': {
@@ -306,7 +338,7 @@ async function main() {
       return;
     }
     default:
-      throw new Error('Comandos locais: presets [categoria] | composition-example <preset> <destino.json> | service-info | production <id> [status|checkpoint|continue] | direction-template <id> <destino> | direct <id> <direcao.json> <revisao> | auto-direct <id> <revisao> | direction-report <id> | path | list | create "Título" | info <id> | show <id> | validate <id> | import <json> | apply <id> <ops.json> [revisao] | replace <id> <json> <revisao> | render <id>');
+      throw new Error('Comandos locais: sfx [list|<tipo> <UUID> <revisao> <frame> [volume]] | presets [categoria] | composition-example <preset> <destino.json> | service-info | production <id> [status|checkpoint|continue] | direction-template <id> <destino> | direct <id> <direcao.json> <revisao> | auto-direct <id> <revisao> | direction-report <id> | path | list | create "Título" | info <id> | show <id> | validate <id> | import <json> | apply <id> <ops.json> [revisao] | replace <id> <json> <revisao> | render <id>');
   }
 }
 main().catch(error=>{

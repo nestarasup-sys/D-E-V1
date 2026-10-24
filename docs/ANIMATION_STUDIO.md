@@ -108,3 +108,22 @@ Esses comandos devem ser executados pelo próprio **Codex Local** no Windows (n�
 - **Evite \`reset --hard\` e \`clean\`** quando o Codex já tiver modificado o clone local: preserve qualquer commit local antes de atualizar \`main\`.
 
 Leia \`docs/CODEX_DIRECTOR.md\` e \`docs/VISUAL_IDENTITY.md\` para regras editoriais e atribuição.
+
+
+## Sonoplastia simples, gerada localmente
+
+A v0.14 também oferece **nove efeitos sintéticos** sem download de música ou gravações de terceiros: soft-whoosh, page-turn, document-click, ambient-pulse, positive-chime, keyboard-tap, transition-sweep, notification-soft e impact-low. São sons experimentais e discretos, não foley fotorrealista.
+
+O Codex Local pode descobrir e propor um efeito à trilha \`sfx\` do episódio com:
+\`\`\`powershell
+npm run project -- sfx list
+npm run project -- sfx soft-whoosh UUID-DO-PROJETO REVISAO-SHA 150 0.18
+\`\`\`
+O WAV é criado apenas em \`%USERPROFILE%\DarkStudio\media\`, adicionado à biblioteca e submetido como **proposta** (não é aplicado sem revisão). A duração é medida em frames e a trilha usa o mixer Remotion existente. A frequência/volume não fazem o áudio soar como produção profissional automaticamente: ouça e ajuste, e nunca preencha a trilha inteira com sons por padrão.
+
+
+## Destaque de palavras durante a narração
+
+Legendas podem opcionalmente conter \`words: [{text,startFrame,endFrame}]\`, com frames absolutos do projeto, não relativos à legenda. O renderizador destaca visualmente a palavra ativa; quando não há timings reais, mantém a legenda normal. O schema rejeita palavras fora dos limites ou sobrepostas. Se o usuário editar o texto/tempo da legenda, o editor limpa \`words[]\` para não manter dados de alinhamento incorretos.
+
+A v0.14 **não tem transcrição forçada embutida**. O Codex precisa produzir timestamps de um alinhador local apropriado com áudio real, testá-los e usar as operações de legenda existentes. Não insira tempos simulados fingindo sincronismo fonético.

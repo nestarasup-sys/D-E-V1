@@ -76,3 +76,10 @@ Em \`evidence[]\`, o Codex pode preencher \`sourceExcerpt\`, \`publicationDate\`
 - Desempenho e testes: no máximo 48 camadas por plano; evitar filtros 3D e DOM gigante. Rodar \`npm run check\`, \`npm test\`, \`npm run smoke:motion\` e \`npm run smoke:pilot\`. O render de produção tem concurrency 1.
 - \`npm run preview:frames -- UUID 0,75,150\` permite auditar visual rapidamente com PNGs em cache local por SHA do projeto. Não confundir com render integral e áudio.
 - Não criar branch; código somente na \`main\` com fast-forward. Nunca subir mídia, WAV, project.json, thumbnail do usuário ou renders para o repositório. Preservar patches locais do Codex, inclusive commits não enviados.
+
+
+### SFX e palavra ativa v0.14
+
+- \`npm run project -- sfx list\` retorna nove efeitos sintetizados localmente; \`sfx <tipo> <UUID> <REVISAO> <frame> <volume>\` cria WAV apenas no computador e proposta de \`addAsset\` + \`addClip\`. Não aplicar ou mixar sem prévia auditiva.
+- \`captions[].words\` aceita \`[{text,startFrame,endFrame}]\` em frames ABSOLUTOS do projeto; o editor destaca a palavra ativa, mas nenhum alinhador fonético automático está incorporado. Nunca inferir esses valores apenas pelo texto; usar ferramenta de alinhamento real e verificar.
+- Alterar manualmente texto/tempos de uma legenda invalida seus \`words[]\`; regenerar a sincronização a partir do áudio, não copiá-la cegamente.

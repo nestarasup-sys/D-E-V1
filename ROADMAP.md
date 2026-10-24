@@ -101,8 +101,8 @@ Relatório recebido: projeto local de ~4m50, cinco capítulos, 60 legendas, 60 p
 
 **Pendências reais (não concluir só pela CI):**
 1. Testar galeria, arraste, cortes e reprodução no Ryzen 5 4600G/RX 7600/16 GB, junto aos episódios antigos e à proposta da casa própria. Comparar prévia e MP4.
-2. Implementar waveform, scrubbing de áudio, alinhamento de fala real/por palavra, timing fonético de personagens e edição de legendas por palavra.
-3. Criar sonoplastia local reutilizável e mixagem contextual com licenças registradas; imagens reais/stock só após origem, licença e cópia local autorizadas.
+2. Suporte a timings opcionais por palavra e realce ativo implementado; FALTAM waveform, scrubbing de áudio, alinhador fonético real embutido, lip-sync dos personagens e editor de tempos de cada palavra.
+3. Sonoplastia procedural local BÁSICA implementada: nove efeitos WAV, proposta de inserção e volume; falta biblioteca profissional, mixagem inteligente contextual e licenciamento de sons reais. Imagens reais/stock só após origem, licença e cópia local autorizadas.
 4. Evoluir depth/parallax para fotos segmentadas (sem falsificar documentos), cache de segmentos, proxies, re-render parcial e benchmarks de episódios de 5–30 minutos.
 5. QA visual com OCR/comparação perceptual e reconhecimento de cortes/textos, editor de thumbnails e pipeline de publicação para YouTube. Sem atestado automático de veracidade.
 

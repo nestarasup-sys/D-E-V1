@@ -68,3 +68,12 @@ npm run project -- render UUID-DO-PROJETO
 - \`direct\` preserva a composição visual anterior no histórico local. As propostas são revisáveis, mas não fazem merge automático quando duas pessoas editam a mesma revisão.
 - O serviço é experimental em \`127.0.0.1\`. Não expor na rede.
 - Render 1080p de episódio longo e preview com centenas de planos ainda exigem testes reais e otimização.
+
+
+## Motion Studio v0.14
+
+Use \`npm run project -- presets\` para listar todas as 50 novas composições, ou \`npm run project -- composition-example person-family <destino.json>\` para receber um blueprint editável. Os beats podem declarar \`presetId\` **OU** \`layers[]\` autorais, com texto, personagem, objeto, cena, gráfico e animação (o segundo tem precedência). Nenhum JS executável precisa ser gerado.
+
+\`npm run project -- sfx list\` lista sons básicos locais; a inserção de um efeito em um projeto também passa pela fila de propostas. Para legenda com palavras realçadas, forneça \`words[]\` somente depois de obter alinhamento do WAV real. Não confunda timestamps hipotéticos com sincronização validada.
+
+Faça \`npm run preview:frames -- UUID 0,150,300\` para gerar amostras em cache local; isso NÃO testa áudio, mas ajuda detectar problemas antes de exportar cinco minutos.

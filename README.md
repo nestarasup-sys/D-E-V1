@@ -215,3 +215,12 @@ Na interface: selecione um plano, abra **50 COMPOSIÇÕES · GALERIA**, aplique 
 Testes: \`npm run smoke:motion\` renderiza seis modelos a 640x360 num MP4 curto; \`npm run smoke:pilot\` continua cobrindo voz/legendas do Windows. O Codex pode gerar **amostras em cache local** com \`npm run preview:frames -- UUID 0,75,150\`. Esses resultados não garantem 1080p de cinco minutos no seu PC nem substituem revisão editorial.
 
 Sem captura automática de atores reais, licenciamento de B-roll, alinhamento fonético por palavra, geração de imagem com IA ou render segmentado nesta fase. Esses passos estão no [ROADMAP.md](ROADMAP.md).
+
+
+### Sonoplastia procedural e destaques por palavra
+
+O Codex Local pode executar \`npm run project -- sfx list\` ou \`npm run project -- sfx soft-whoosh UUID REVISAO FRAME 0.18\` para gerar um WAV simples sem direitos de terceiros e preparar uma proposta de efeito na pista SFX. O áudio, a mídia e a proposta ficam somente no Windows. Não é uma biblioteca de gravações profissionais.
+
+O schema \`captions[].words[]\` opcional permite destacar palavras no vídeo por timestamp ABSOLUTO em frames, desde que o Codex obtenha dados de alinhamento de áudio real. Sem \`words[]\`, legendas continuam comuns. O Dark Studio não inventa os timestamps da voz; alterar o texto ou início/fim de uma legenda elimina o alinhamento prévio para evitar sincronismo enganoso.
+
+**Aceitação ainda pendente**: testar audivelmente os efeitos e o sincronismo de palavra em um episódio real e comparar preview/MP4 no PC do usuário. Consulte [docs/ANIMATION_STUDIO.md](docs/ANIMATION_STUDIO.md).

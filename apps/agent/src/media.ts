@@ -23,9 +23,15 @@ async function index(){if(mediaIndex)return mediaIndex;await mkdir(MEDIA_DIR,{re
 async function persist(){const tmp=INDEX+'.tmp';await writeFile(tmp,JSON.stringify(mediaIndex,null,2),'utf8');await rename(tmp,INDEX);}
 function nameFromHeader(v:string|undefined){if(!v)return null;try{return decodeURIComponent(v);}catch{return null;}}
 /** Mídia sintetizada LOCALMENTE pelo Dark Studio; a voz não é publicada em GitHub. */
-export async function importGeneratedWave(wav:Buffer):Promise<{id:string,name:string,kind:'audio',mime:string,url:string,durationFrames:number}>{
+export async function importGeneratedWave(wav:Buffer,options?:{
+  name?:string;durationFrames?:number;
+}):Promise<{id:string,name:string,kind:'audio',mime:string,url:string,durationFrames:number}>{
   if(wav.length<44||wav.length>30*1024*1024)throw new Error('WAV sintetizado inválido.');
-  const id=randomUUID(),name='piloto-narracao-local.wav';
+  const id=randomUUID(),name=options?.name??'piloto-narracao-local.wav';
+  if(!/^[^\\/\u0000-\u001f]{1,200}\.wav$/i.test(name))throw new Error('Nome de WAV local inválido.');
+  const durationFrames=options?.durationFrames??900;
+  if(!Number.isInteger(durationFrames)||durationFrames<1||durationFrames>54000)
+    throw new Error('Duração de mídia gerada inválida.');
   const entry:Stored={id,name,kind:'audio',mime:'audio/wav',ext:'.wav',bytes:wav.length,
     url:'http://127.0.0.1:4317/media/'+id};
   await mkdir(MEDIA_DIR,{recursive:true});
@@ -39,7 +45,7 @@ export async function importGeneratedWave(wav:Buffer):Promise<{id:string,name:st
     await unlink(path).catch(()=>{});
     throw e;
   }
-  return {id,name,kind:'audio',mime:entry.mime,url:entry.url,durationFrames:900};
+  return {id,name,kind:'audio',mime:entry.mime,url:entry.url,durationFrames};
 }
 export async function mediaExistsFor(id:string):Promise<boolean>{
   const entry=(await index())[id];

@@ -1,5 +1,5 @@
 import {AbsoluteFill,Audio,Img,interpolate,OffthreadVideo,Sequence,useCurrentFrame} from 'remotion';
-import type {Project,Scene,MediaClip,Asset} from '../model/project';
+import type {Project,Scene,MediaClip,Asset,Caption} from '../model/project';
 import {evaluateKeyframes} from '../model/shots';
 import {ShotVisual} from './ShotVisual';
 
@@ -32,6 +32,19 @@ function ClipAudio({clip,asset}:{clip:MediaClip;asset:Asset}){
   const volume=evaluateKeyframes(clip.volumeKeyframes,frame,clip.volume);
   return <Audio src={asset.url} startFrom={clip.trimStartFrames} volume={volume}/>;
 }
+function ActiveCaption({caption}:{caption:Caption}){
+  const absolute=caption.startFrame+useCurrentFrame();
+  if(!caption.words.length)return <>{caption.text}</>;
+  return <>{caption.words.map((word,i)=>{
+    const active=absolute>=word.startFrame&&absolute<word.endFrame;
+    return <span key={i} style={{
+      color:active?'#f5cb7b':'#ffffff',
+      background:active?'#2a3a4dcc':'transparent',
+      borderRadius:5,padding:active?'1px 4px':undefined,
+      textShadow:active?'0 2px 8px #000':'inherit',
+    }}>{word.text}{i<caption.words.length-1?' ':''}</span>;
+  })}</>;
+}
 export function Documentary({project}:{project:Project}) {
   let offset=0;
   const assets=new Map(project.assets.map(a=>[a.id,a]));
@@ -50,7 +63,7 @@ export function Documentary({project}:{project:Project}) {
       <AbsoluteFill style={{justifyContent:'flex-end',alignItems:'center',paddingBottom:80,pointerEvents:'none'}}>
         <div style={{fontFamily:'Arial, sans-serif',whiteSpace:'pre-line',fontSize:44,fontWeight:700,
           textAlign:'center',maxWidth:'88%',color:'#fff',textShadow:'0 3px 12px #000,0 1px 3px #000',
-          background:project.channelKit.captionStyle==='minimal'?'transparent':'rgba(0,0,0,.56)',padding:'14px 27px',borderRadius:10}}>{c.text}</div>
+          background:project.channelKit.captionStyle==='minimal'?'transparent':'rgba(0,0,0,.56)',padding:'14px 27px',borderRadius:10}}><ActiveCaption caption={c}/></div>
       </AbsoluteFill>
     </Sequence>)}
     {project.clips.filter(c=>c.lane!=='visual').map(clip=>{const asset=assets.get(clip.assetId);return asset?<Sequence key={clip.id} from={clip.startFrame} durationInFrames={clip.durationFrames}><ClipAudio clip={clip} asset={asset}/></Sequence>:null;})}

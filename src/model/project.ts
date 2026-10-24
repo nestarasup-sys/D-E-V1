@@ -44,12 +44,19 @@ export const legacyProjectSchema = z.object({
   scenes: z.array(sceneSchema).min(1).max(200),
 }).strict();
 
+/** Word timings are absolute project frames; never inferred from text alone. */
+export const captionWordSchema=z.object({
+  text:z.string().trim().min(1).max(80),
+  startFrame:z.number().int().min(0),
+  endFrame:z.number().int().positive(),
+}).strict();
 /** Legendas cronometradas (importadas de SRT ou geradas por ferramenta local). */
 export const captionSchema=z.object({
   id:z.string().uuid(),
   startFrame:z.number().int().min(0),
   endFrame:z.number().int().positive(),
   text:z.string().trim().min(1).max(600),
+  words:z.array(captionWordSchema).max(120).default([]),
 }).strict();
 export const evidenceSchema=z.object({
   id:z.string().uuid(),
@@ -143,6 +150,15 @@ export const projectSchema = z.object({
   });
   const ordered=[...p.captions].sort((a,b)=>a.startFrame-b.startFrame);
   ordered.forEach((c,i)=>{
+    let last=c.startFrame-1;
+    for(const word of c.words){
+      if(word.startFrame< c.startFrame||word.startFrame<=last||
+         word.endFrame<=word.startFrame||word.endFrame>c.endFrame){
+        ctx.addIssue({code:'custom',path:['captions',i,'words'],
+          message:'Palavra fora da legenda ou com tempos sobrepostos'});
+      }
+      last=word.endFrame-1;
+    }
     if(c.endFrame<=c.startFrame || c.endFrame>total)ctx.addIssue({code:'custom',message:'Legenda fora do tempo do projeto'});
     if(i && c.startFrame<ordered[i-1].endFrame)ctx.addIssue({code:'custom',message:'Legendas não podem se sobrepor'});
   });
