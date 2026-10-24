@@ -107,20 +107,35 @@ function EvidenceChain({shot,frame}:{shot:Shot;frame:number}){
 function Chart({shot,frame}:{shot:Shot;frame:number}){
   const {points,unit}=shot.investigation;
   const growth=interpolate(frame,[5,45],[0,1],{extrapolateRight:'clamp'});
-  const max=Math.max(1,...points.map(p=>Math.abs(p.value)));
+  // Barras divergentes de verdade: valores negativos ficam abaixo do eixo zero.
+  // Nunca representar o valor absoluto de um número negativo como aumento.
+  const high=Math.max(0,...points.map(p=>p.value));
+  const low=Math.min(0,...points.map(p=>p.value));
+  const range=Math.max(1,high-low);
+  const plotHeight=270,zeroY=plotHeight*high/range;
   return <Frame shot={shot}>
     <div style={{...graphicTitle,fontSize:90}}>{shot.title}</div>
     <div style={{fontSize:36,color:'#bccfe1',margin:'15px 0 45px'}}>{shot.subtitle}</div>
     {points.length===0?<div style={{border:'3px dashed #8b96a0',padding:70,fontSize:43,color:'#e4be8d'}}>
       DADOS NÃO ANEXADOS — GRÁFICO ILUSTRATIVO
-    </div>:<div style={{height:455,display:'flex',gap:28,alignItems:'end',padding:'20px 0 0'}}>
-      {points.map((point,i)=><div key={i} style={{flex:1,height:'100%',display:'flex',
-        flexDirection:'column',justifyContent:'end',alignItems:'center',gap:16}}>
-        <div style={{fontSize:35,fontWeight:800,color:'#f5f7fa'}}>{point.value.toLocaleString('pt-BR')}{unit?' '+unit:''}</div>
-        <div style={{height:Math.max(5,Math.abs(point.value)/max*280*growth),width:'88%',
-          background:i===points.length-1?shot.accentColor:'#7792a4',borderRadius:'8px 8px 0 0'}}/>
-        <div style={{fontSize:26,color:'#dee7ef',minHeight:55,textAlign:'center'}}>{point.label}</div>
-      </div>)}
+    </div>:<div style={{height:445,display:'flex',gap:18,alignItems:'stretch'}}>
+      {points.map((point,i)=>{
+        const size=Math.abs(point.value)/range*plotHeight*growth;
+        const y=point.value>=0?zeroY-size:zeroY;
+        return <div key={i} style={{flex:1,minWidth:0,display:'flex',flexDirection:'column',alignItems:'center'}}>
+          <div style={{fontSize:31,fontWeight:800,color:'#f5f7fa',height:61,textAlign:'center'}}>
+            {point.value.toLocaleString('pt-BR')}{unit?' '+unit:''}
+          </div>
+          <div style={{height:plotHeight,width:'100%',position:'relative',
+            background:'linear-gradient(180deg,#ffffff06,transparent)',borderLeft:'1px solid #ffffff15'}}>
+            <div style={{position:'absolute',top:zeroY,left:0,right:0,height:3,background:'#e4eef8aa'}}/>
+            <div style={{position:'absolute',top:y,left:'13%',width:'74%',height:Math.max(3,size),
+              background:i===points.length-1?shot.accentColor:'#7792a4',borderRadius:4}}/>
+          </div>
+          <div style={{fontSize:25,color:'#dee7ef',marginTop:16,maxWidth:'96%',textAlign:'center',
+            overflowWrap:'anywhere'}}>{point.label}</div>
+        </div>;
+      })}
     </div>}
   </Frame>;
 }

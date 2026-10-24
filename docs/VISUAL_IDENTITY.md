@@ -63,3 +63,12 @@ A meta é **Codex montar quase todo o material técnico**, não delegar automati
 O restante é sua revisão: **verdade e contexto**, fonte, corte final, direitos de imagem, impacto emocional, som e publicação.
 
 Leia [CODEX_DIRECTOR.md](CODEX_DIRECTOR.md) para passos reproduzíveis no chat do Codex e [INVESTIGATION_BRIEF.example.json](INVESTIGATION_BRIEF.example.json) para um exemplo.
+
+
+## Referências de produção documental (não copiar layouts ou ativos)
+
+- **BIGSTAR / A+E, Witness to Murder: Digital Evidence:** um pacote gráfico consistente para episódios, com mapas e infográficos integrados à narrativa, não efeitos independentes. https://bgstr.com/work/project/witness-to-murder/
+- **Holey & Moley / BBC, Backlash:** artefatos digitais, telas e informações dispostos em composições legíveis, com parallax 2D sutil e linguagem forense com cuidado editorial. https://holeyandmoley.com/portfolio/backlash-the-murder-of-george-floyd/
+- **Oklahoma City National Memorial / The Search for Justice:** documentos e manchetes dispostos em camadas de profundidade para orientar o olhar. https://christopherrichmond.squarespace.com/news/the-search-for-justice-966hr
+
+Referências são inspiração de princípios, NÃO licença para reutilizar screenshots, fotos, marcas, estilo exclusivo ou arquivos desses projetos.

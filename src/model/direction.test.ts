@@ -48,6 +48,7 @@ describe('diretor de montagem investigativa offline e responsável',()=>{
     expect(compiled.preview.shots.every(s=>s.investigation.representation==='illustration')).toBe(true);
     expect(compiled.preview.shots.every(s=>s.investigation.sourceEvidenceId===undefined)).toBe(true);
     expect(compiled.report.coveragePercent).toBe(100);
+    expect(compiled.preview.shots.every(s=>s.title.length<=60)).toBe(true);
     expect(projectDuration(compiled.preview)).toBe(900);
   });
   it('bloqueia roteiro visual com buraco e áudio intocado',()=>{

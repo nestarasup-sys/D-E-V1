@@ -115,6 +115,13 @@ export function compileDirection(project:Project,raw:unknown,newId:()=>string):{
 }
 
 /** Fallback totalmente local e determinístico, baseado no texto que já está no projeto. */
+function readableTitle(text:string):string {
+  const cleaned=text.replace(/\s+/g,' ').trim();
+  if(cleaned.length<=60)return cleaned;
+  const fragment=cleaned.slice(0,57);
+  const cut=fragment.lastIndexOf(' ');
+  return fragment.slice(0,cut>26?cut:57).trim()+'…';
+}
 export function makeAutomaticDirection(project:Project):Direction{
   const beats:DirectionBeat[]=[];
   let frame=0,shotNumber=0;
@@ -127,12 +134,12 @@ export function makeAutomaticDirection(project:Project):Direction{
       const length=base+(i<extra?1:0);
       const overlapping=project.captions.find(c=>c.startFrame<frame+length&&c.endFrame>frame);
       const text=overlapping?.text.trim()||scene.title;
-      const title=text.slice(0,Math.min(100,text.length))||'INVESTIGAÇÃO';
+      const title=readableTitle(text)||'INVESTIGAÇÃO';
       const style=basicStyle[shotNumber%basicStyle.length];
       beats.push({
         startFrame:frame,durationFrames:length,
         purpose:rotation[shotNumber%rotation.length],style,
-        title,subtitle:overlapping?'':'Visual editorial ilustrativo — confira fontes.',
+        title,subtitle:overlapping?readableTitle(scene.title):'Visual editorial ilustrativo — confira fontes.',
         kicker:scene.kicker,
         motionPreset:shotNumber%4===0?'subtle-zoom':shotNumber%4===1?'pan-left':shotNumber%4===2?'pan-right':'still',
         zIndex:0,

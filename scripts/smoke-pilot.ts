@@ -24,7 +24,13 @@ async function main(){
   const assetId=randomUUID();
   const asset={id:assetId,kind:'audio' as const,mime:'audio/wav',name:'narracao-piloto.wav',
     url:'http://127.0.0.1:4317/media/'+assetId,durationFrames:PILOT_FRAMES};
-  const project=projectSchema.parse(buildPilotProject({newId:randomUUID,voiceAsset:asset,speechFrames:voice.speechFrames}));
+  const syntheticSourceId=randomUUID();
+  const project=projectSchema.parse({
+    ...buildPilotProject({newId:randomUUID,voiceAsset:asset,speechFrames:voice.speechFrames}),
+    evidence:[{id:syntheticSourceId,claim:'Valores sintéticos para testar barras negativas',
+      sourceTitle:'Amostra sintética de laboratório — não publicar',
+      sourceUrl:'',notes:'Exemplo técnico, não é dado factual',reviewStatus:'pending'}],
+  });
   if(project.shots.length!==8||project.clips.length!==1||project.captions.length!==8)
     throw new Error('Piloto incompleto: esperado 8 planos, 8 legendas e 1 narração.');
   // Segunda gramática visual: arquivo investigativo, documentos ilustrativos,
@@ -39,7 +45,9 @@ async function main(){
       investigation:{representation:'illustration',
         excerpt:'Exemplo ilustrativo — nenhum documento real é simulado como prova.',
         highlight:'Exemplo ilustrativo',
-        locationLabels:['ORIGEM','REVISÃO','PUBLICAÇÃO']},
+        locationLabels:['ORIGEM','REVISÃO','PUBLICAÇÃO'],
+        ...(i===2?{sourceEvidenceId:syntheticSourceId,unit:'un. de teste',
+          points:[{label:'Cenário ilustrativo A',value:-2},{label:'Cenário ilustrativo B',value:3}]}:{})},
     })),
   },randomUUID);
   const directed=director.preview;
