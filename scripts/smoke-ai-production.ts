@@ -1,6 +1,6 @@
 /** End-to-end Windows SAPI test: ChatGPT JSON -> real WAV -> frames -> editable project. */
 import {spawn} from 'node:child_process';
-import {mkdtemp,rm} from 'node:fs/promises';
+import {mkdtemp,rm,stat,open} from 'node:fs/promises';
 import {join,resolve} from 'node:path';
 import {tmpdir} from 'node:os';
 import {assertServiceCompatibility} from '../src/model/service-contract';
@@ -95,7 +95,29 @@ try{
     throw Error('Regeneração destruiu objetos editáveis.');
   if(regenerated.clips.some(c=>project.clips.some(old=>old.assetId===c.assetId)))
     throw Error('Regeneração manteve o WAV antigo na timeline.');
-  console.log('AI PRODUCTION SMOKE OK: JSON, voz WAV real, sincronização, fallback B-roll e revoz.');
+  const render=await call('/v1/export',post(regenerated));
+  const jobId=String(render.id||'');
+  if(!/^[a-f0-9-]{36}$/i.test(jobId))throw Error('Render de produção IA não iniciou.');
+  let mp4=false;
+  for(let attempt=0;attempt<180;attempt++){
+    const status=await call('/v1/export/'+jobId);
+    if(status.state==='failed'||status.state==='interrupted')
+      throw Error('MP4 da produção IA falhou: '+String(status.error));
+    if(status.state==='completed'){
+      const path=String(status.outputPath||'');
+      const size=(await stat(path)).size;
+      const fd=await open(path,'r');let signature='';
+      try{const start=Buffer.alloc(32);await fd.read(start,0,32,0);
+        signature=start.toString('latin1');}finally{await fd.close();}
+      if(size<1024||!signature.includes('ftyp'))
+        throw Error('Exportação MP4 da produção IA sem contêiner real.');
+      mp4=true;break;
+    }
+    await new Promise(r=>setTimeout(r,1000));
+  }
+  if(!mp4)throw Error('Render de produção IA não concluiu dentro do teste.');
+  console.log('AI PRODUCTION SMOKE OK: JSON, voz SAPI, palavras, SFX, música, resync e MP4 real.');
+
 }finally{
   worker.kill();
   await new Promise<void>(resolveWait=>{

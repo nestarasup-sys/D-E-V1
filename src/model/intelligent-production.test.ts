@@ -32,6 +32,19 @@ describe('Dark Studio v0.17 — offline OCR, font rights and ZIP streaming',()=>
     expect(()=>checkPortability(allowed)).not.toThrow();
     expect(fontFamilyFor(allowed.assets[0])).toBe('DSFont-'+id);
   });
+  it('blocks exporting automatically discovered stock footage until rights review',()=>{
+    const id=randomUUID();
+    const project=projectSchema.parse({...structuredClone(starterProject),
+      assets:[{id,name:'pexels-video.mp4',kind:'video',mime:'video/mp4',
+        url:'http://127.0.0.1:4317/media/'+id,
+        rights:{status:'unknown',sourceUrl:'https://www.pexels.com/video/test-123/',
+          creator:'Fotógrafo',licenseName:'Pexels License — revisão editorial pendente'}}]});
+    expect(()=>checkPortability(project)).toThrow(/aguarda revisão/);
+    const reviewed=projectSchema.parse({...project,assets:project.assets.map(a=>({
+      ...a,rights:{...a.rights,status:'cleared'}}))});
+    expect(()=>checkPortability(reviewed)).not.toThrow();
+    expect(()=>checkPortability(project,'import')).not.toThrow();
+  });
   it('writes and verifies ZIP v2 directly on disk without in-memory package',()=>withTempArchive(async root=>{
     const project=projectSchema.parse({...structuredClone(starterProject),id:randomUUID()});
     const path=join(root,'out.darkstudio'),staging=join(root,'unpacked');

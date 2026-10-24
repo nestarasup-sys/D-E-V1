@@ -43,7 +43,7 @@ async function hashFile(path:string):Promise<string>{
   for await(const part of createReadStream(path))h.update(part as Buffer);
   return h.digest('hex');
 }
-export function checkPortability(project:Project):void{
+export function checkPortability(project:Project,mode:'export'|'import'='export'):void{
   const ids=new Set(project.assets.map(a=>a.id));
   for(const scene of project.scenes){
     if(!scene.imageUrl)continue;
@@ -52,6 +52,10 @@ export function checkPortability(project:Project):void{
       'Imagem de cena externa: importe o arquivo na biblioteca antes de exportar .darkstudio.');
   }
   for(const asset of project.assets){
+    if(mode==='export'&&asset.kind==='video'&&
+      /pexels\.com\/video\//i.test(asset.rights.sourceUrl)&&
+      asset.rights.status!=='cleared')
+      throw new Error('Filmagem Pexels "'+asset.name+'" aguarda revisão de direitos antes de entrar no .darkstudio.');
     if(asset.kind==='font'&&(!asset.rights.redistributionAllowed||
       !asset.rights.licenseName.trim()))
       throw new Error('Fonte "'+asset.name+'" sem autorização de redistribuição e identificação da licença.');
@@ -170,7 +174,7 @@ export async function unpackStreamingArchive(archivePath:string,staging:string):
         throw new Error('Mídia ausente, adulterada ou divergente: '+entry.name);
       seen.add(entry.filename);paths.set(entry.assetId,current.path);
     }
-    checkPortability(project); // font rights must be explicitly declared
+    checkPortability(project,'import'); // Older packages remain readable; never auto-clear rights
     return {project,assets:manifest.assets,staging,paths};
   }finally{zip.close();}
 }
