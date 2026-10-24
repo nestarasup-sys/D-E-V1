@@ -275,7 +275,7 @@ export function App(){
           {(entry.pendingProposals??0)>0&&<p className="homeNote" role="status">
             {entry.pendingProposals} proposta(s) local(is) aguardando revisão ou descarte.
             O projeto salvo permanece inalterado até sua aprovação.
-          </p>
+          </p>}
         <div className="projectActions"><button className="primary" disabled={busy} onClick={()=>void open(entry.id)}>Abrir editor →</button><button disabled={busy} onClick={()=>void act(async()=>{await duplicateProject(entry.id);})}>Duplicar</button><button disabled={busy} onClick={()=>void copyCodexInstruction(entry)}>Copiar instrução Codex</button><button disabled={busy} onClick={()=>setHistoryId(entry.id)}>Versões</button><button disabled={busy} onClick={()=>setProposalsId(entry.id)}>Revisar Codex</button><button disabled={busy} onClick={()=>setDiagnosticsId(entry.id)}>Diagnóstico</button><button disabled={busy} onClick={()=>{if(window.confirm('Arquivar projeto? Ele será movido para _archived, sem apagar a mídia.'))void act(async()=>{await archiveProject(entry.id);});}}>Arquivar</button></div>
         </div>
       </article>)}</div>
