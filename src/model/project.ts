@@ -107,6 +107,7 @@ export const projectSchema = z.object({
       durationFrames:z.number().int().min(15).max(1800),
       narrationFrames:z.number().int().positive().max(1800),
       captionId:z.string().uuid(),clipId:z.string().uuid(),
+      wordAlignment:z.enum(['aligned','unavailable']).optional(),
     }).strict()).min(1).max(200),
   }).strict().optional(),
 }).strict().superRefine((p, ctx) => {

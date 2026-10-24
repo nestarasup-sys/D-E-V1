@@ -171,7 +171,7 @@ export async function handleBroll(req:IncomingMessage,res:ServerResponse,url:URL
           const video=playable(raw),entry=candidate(video);
           const rank=scoreBroll({
             query:input.query,page:entry.page,seconds:entry.durationSeconds,
-            width:entry.width,height:entry.height,creator:entry.creator,
+            width:entry.width,height:entry.height,creator:video.user?.name??'',
             source:'pexels',licenseUrl:entry.licenseUrl,
           },input.expectedSeconds);
           return [{entry,rank}];

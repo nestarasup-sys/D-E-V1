@@ -224,7 +224,7 @@ export function layerAtCaption(layer:SceneLayer,shotStart:number,captions:readon
 }[]):number {
   if(!layer.cueCaptionId)return layer.startFrame;
   const caption=captions.find(c=>c.id===layer.cueCaptionId);
-  if(!caption)return Number.POSITIVE_INFINITY;
+  if(!caption)return layer.cueWord?Number.POSITIVE_INFINITY:layer.startFrame;
   if(layer.cueWord){
     const frame=matchSpokenWord(caption.words??[],layer.cueWord,layer.cueOccurrence);
     // Never fabricate the acoustic cue; hide it if this word was not aligned.
