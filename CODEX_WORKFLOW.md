@@ -97,3 +97,26 @@ npm run project -- direct UUID-DO-PROJETO "$env:TEMP\dark-studio-direction.json"
 ~~~
 
 Ou `npm run project -- auto-direct UUID-DO-PROJETO REVISAO_SHA` para um passe ilustrativo de ritmo, sem inventar fotos/dados. **Revisar Codex** aprova os planos no editor; o áudio e as legendas continuam onde estavam. Após aprovar: `npm run project -- direction-report UUID` e `npm run project -- doctor UUID`. Nunca declarar fatos como verificados automaticamente.
+
+
+## v0.14 — Codex como diretor de animação (50 presets + cenas novas)
+
+Antes de criar os planos, leia \`docs/ANIMATION_STUDIO.md\`, \`docs/VISUAL_IDENTITY.md\`, \`src/model/layers.ts\`, \`src/model/presets.ts\` e \`src/model/direction.ts\`.
+
+Com o seu acesso local, peça ao Codex para executar:
+\`\`\`powershell
+npm run project -- presets
+npm run project -- composition-example person-family "$env:TEMP\personagens.json"
+npm run project -- info UUID
+npm run project -- direction-template UUID "$env:TEMP\storyboard.json"
+\`\`\`
+O Codex então edita os beats; use \`presetId\` para uma das 50 composições ou \`layers[]\` para objetos/gestos/animadores originais. Nenhuma linha JavaScript arbitrária pode entrar nos beats. \`cueCaptionId\` é ID da legenda no projeto, nunca palavra inferida automaticamente. Um gráfico com números precisa citar evidência cadastrada, mantendo revisão humana pendente.
+
+\`\`\`powershell
+npm run project -- direct UUID "$env:TEMP\storyboard.json" REVISAO_SHA
+npm run project -- direction-report UUID
+npm run project -- doctor UUID
+npm run preview:frames -- UUID 0,75,150
+\`\`\`
+
+\`direct\` cria **proposta**, não sobrescreve o projeto, e os comandos \`direction-report\`/\`doctor\` devem ser repetidos sobre a versão aprovada. O usuário abre **Revisar Codex** e valida o resultado no Dark Studio. Fatos, licenças e origem dos números permanecem sob supervisão humana. Imagens do projeto nunca devem ser publicadas no GitHub.

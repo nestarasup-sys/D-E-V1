@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "title": "Storyboard de composição — exemplo ilustrativo 12 segundos",
+  "beats": [
+    {
+      "startFrame": 0,
+      "durationFrames": 60,
+      "purpose": "hook",
+      "title": "Uma pessoa e um sonho",
+      "presetId": "person-worker",
+      "motionPreset": "subtle-zoom"
+    },
+    {
+      "startFrame": 60,
+      "durationFrames": 60,
+      "purpose": "context",
+      "title": "Dentro da cidade",
+      "presetId": "world-city",
+      "motionPreset": "pan-left"
+    },
+    {
+      "startFrame": 120,
+      "durationFrames": 60,
+      "purpose": "data",
+      "title": "O que os dados poderiam mostrar",
+      "presetId": "data-bars",
+      "motionPreset": "still"
+    },
+    {
+      "startFrame": 180,
+      "durationFrames": 60,
+      "purpose": "context",
+      "title": "A investigação",
+      "presetId": "story-wall",
+      "motionPreset": "still"
+    },
+    {
+      "startFrame": 240,
+      "durationFrames": 60,
+      "purpose": "context",
+      "title": "Por dentro de um conceito",
+      "presetId": "explain-cutaway",
+      "motionPreset": "subtle-zoom"
+    },
+    {
+      "startFrame": 300,
+      "durationFrames": 60,
+      "purpose": "conclusion",
+      "title": "Próximo capítulo",
+      "presetId": "youtube-intro",
+      "motionPreset": "emphasis"
+    }
+  ]
+}

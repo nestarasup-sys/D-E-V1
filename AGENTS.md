@@ -64,3 +64,15 @@
 ### Campos jornalísticos opcionais
 
 Em \`evidence[]\`, o Codex pode preencher \`sourceExcerpt\`, \`publicationDate\` e \`accessedAt\` (\`YYYY-MM-DD\`), \`region\`, \`unit\` e \`rights\`. Deixe em branco/ausente se não verificar; não invente datas ou autorização de imagem. \`reviewStatus\` permanece \`pending\` até revisão humana. Projetos v2 anteriores continuam válidos sem esses campos.
+
+
+## Motion Studio v0.14 — elementos combináveis e Codex first
+
+- Ver \`docs/ANIMATION_STUDIO.md\`: são **50 presets** e um scene graph nativo (\`src/model/layers.ts\`, \`src/model/presets.ts\`). Preservar compatibilidade \`version:2\`; \`shots[].layers\` tem default \`[]\`.
+- Direção do Codex: \`direction.beats[].presetId\` para uma receita ou \`direction.beats[].layers\` para uma composição autoral sem JS arbitrário. O compilador gera UUIDs, valida durações/assetIds/evidências e preserva áudio, captions e cenas existentes.
+- A mesma composição \`Documentary\` renderiza os \`AnimatedLayer\` com personagens SVG, gráficos e texto nos mesmos frames usados no Player e MP4.
+- Ao alterar duração de um plano, retimar \`motion\` e \`layers\`. Cada elemento tem \`startFrame\`/ \`durationFrames\` relativo ao plano, comportamentos, keyframes e opcional \`cueCaptionId\`; o vínculo usa timestamps REAIS já fornecidos no projeto, não força transcrição.
+- Segurança jornalística: qualquer \`chart.values\` precisa de \`sourceEvidenceId\` presente no projeto; revisão humana continua indispensável. Cenas procedurais são ilustrações, nunca filmagens reais. Camada \`image\` só referencia asset local importado.
+- Desempenho e testes: no máximo 48 camadas por plano; evitar filtros 3D e DOM gigante. Rodar \`npm run check\`, \`npm test\`, \`npm run smoke:motion\` e \`npm run smoke:pilot\`. O render de produção tem concurrency 1.
+- \`npm run preview:frames -- UUID 0,75,150\` permite auditar visual rapidamente com PNGs em cache local por SHA do projeto. Não confundir com render integral e áudio.
+- Não criar branch; código somente na \`main\` com fast-forward. Nunca subir mídia, WAV, project.json, thumbnail do usuário ou renders para o repositório. Preservar patches locais do Codex, inclusive commits não enviados.

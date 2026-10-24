@@ -236,7 +236,7 @@ export function App(){
   return <main className="homeScreen">
     <header className="homeHeader">
       <div className="brand"><span className="brandmark">D</span><div><strong>DARK STUDIO</strong><small>ESTÚDIO DE DOCUMENTÁRIOS</small></div></div>
-      <span className="homeVersion">PROJETOS · WINDOWS · v0.13
+      <span className="homeVersion">PROJETOS · WINDOWS · v0.14
         {service?' · SERVIÇO COMPATÍVEL '+service.appVersion:' · VERIFIQUE O SERVIÇO'}
       </span>
     </header>

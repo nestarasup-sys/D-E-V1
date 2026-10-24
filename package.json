@@ -1,7 +1,7 @@
 {
   "name": "dark-studio",
   "private": true,
-  "version": "0.13.0",
+  "version": "0.14.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
@@ -16,7 +16,9 @@
     "dev:service": "tsx apps/agent/src/index.ts",
     "project": "tsx scripts/project-tool.ts",
     "smoke:pilot": "tsx scripts/smoke-pilot.ts",
-    "smoke:service": "tsx scripts/smoke-service.ts"
+    "smoke:service": "tsx scripts/smoke-service.ts",
+    "smoke:motion": "tsx scripts/smoke-motion.ts",
+    "preview:frames": "tsx scripts/preview-frames.ts"
   },
   "dependencies": {
     "@remotion/player": "^4.0.360",

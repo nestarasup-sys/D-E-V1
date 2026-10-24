@@ -17,7 +17,9 @@ const limits:{[K in keyof LayerMotion]:[number,number]}={
   x:[-1920,1920],y:[-1080,1080],scale:[.1,5],rotation:[-360,360],opacity:[0,1],
 };
 const create=(kind:SceneLayer['kind'],duration:number,assetId?:string):SceneLayer=>layerSchema.parse({
-  id:crypto.randomUUID(),kind,name:'Novo '+types[kind],x:480,y:400,
+  id:crypto.randomUUID(),kind,name:'Novo '+types[kind],
+  x:kind==='scene'?0:480,y:kind==='scene'?0:400,
+  zIndex:kind==='scene'?-5:1,
   width:kind==='text'?900:kind==='scene'?1920:330,
   height:kind==='text'?170:kind==='scene'?1080:330,
   startFrame:0,durationFrames:duration,text:kind==='text'?'TEXTO EDITÁVEL':'',

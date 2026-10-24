@@ -16,6 +16,8 @@ import {readFile,writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {randomUUID} from 'node:crypto';
 import {compileDirection,makeAutomaticDirection,reviewVisualDirection} from '../src/model/direction';
+import {PRESET_CATALOG,PRESET_COUNT,PRESET_CATEGORIES,instantiatePreset} from '../src/model/presets';
+import {layerKinds,layerBehaviors} from '../src/model/layers';
 import {ProjectRepository} from '../apps/agent/src/project-store';
 import {ProposalRepository} from '../apps/agent/src/proposals';
 import {ProductionCoordinator} from '../apps/agent/src/production';
@@ -144,6 +146,31 @@ async function main() {
         action==='status'?await production.assess(id):null;
       if(!state)throw new Error('Ações de produção: status | checkpoint | continue');
       console.log(JSON.stringify(state,null,2));
+      return;
+    }
+    case 'presets': {
+      const category=args.join(' ').toLocaleLowerCase('pt-BR');
+      const filtered=category?PRESET_CATALOG.filter(p=>
+        p.category.toLocaleLowerCase('pt-BR').includes(category)||
+        p.id.includes(category)):PRESET_CATALOG;
+      console.log(JSON.stringify({count:filtered.length,total:PRESET_COUNT,
+        categories:PRESET_CATEGORIES,presets:filtered.map(p=>({
+          id:p.id,title:p.title,category:p.category,recipe:p.recipe,
+          description:p.description,
+        })),layerKinds,animationBehaviors:layerBehaviors},null,2));
+      return;
+    }
+    case 'composition-example': {
+      const presetId=requireArgument(args[0],'ID da composição');
+      const destination=resolve(requireArgument(args[1],'destino JSON local'));
+      const layers=instantiatePreset(presetId,{title:'EXEMPLO EDITÁVEL',durationFrames:150},randomUUID)
+        .map(({id:_id,...layer})=>layer);
+      await writeFile(destination,JSON.stringify({
+        note:'Demonstração. Copie estas camadas para direction.beats[i].layers (sem presetId).',
+        durationFrames:150,
+        layers,
+      },null,2)+'\n',{flag:'wx'});
+      console.log('Blueprint totalmente editável salvo em '+destination);
       return;
     }
     case 'direction-template': {
@@ -279,7 +306,7 @@ async function main() {
       return;
     }
     default:
-      throw new Error('Comandos locais: service-info | production <id> [status|checkpoint|continue] | direction-template <id> <destino> | direct <id> <direcao.json> <revisao> | auto-direct <id> <revisao> | direction-report <id> | path | list | create "Título" | info <id> | show <id> | validate <id> | import <json> | apply <id> <ops.json> [revisao] | replace <id> <json> <revisao> | render <id>');
+      throw new Error('Comandos locais: presets [categoria] | composition-example <preset> <destino.json> | service-info | production <id> [status|checkpoint|continue] | direction-template <id> <destino> | direct <id> <direcao.json> <revisao> | auto-direct <id> <revisao> | direction-report <id> | path | list | create "Título" | info <id> | show <id> | validate <id> | import <json> | apply <id> <ops.json> [revisao] | replace <id> <json> <revisao> | render <id>');
   }
 }
 main().catch(error=>{

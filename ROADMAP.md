@@ -87,3 +87,23 @@ Relatório recebido: projeto local de ~4m50, cinco capítulos, 60 legendas, 60 p
 5. **P1 — prova jornalística e QA: implementação parcial.** O esquema de evidência agora aceita trecho, data da fonte/acesso, região, unidade e direitos; a interface permite editar e o diagnóstico sinaliza gráficos com metadados incompletos. Ainda faltam comparador fonte/alegação lado a lado, verificação visual automática de contrastes/safe areas, prévias sonoras representativas e escuta integral. Não alegar 95% automático até comprovar esse fluxo num episódio real.
 
 **Gate de aprovação:** CI TypeScript + unit + Windows smoke, depois testar sincronismo, serviços e episódio real no Windows com projetos reais; a CI não tem acesso a \`%USERPROFILE%\\DarkStudio\` do usuário.
+
+
+## v0.14 — Estúdio de composições e personagens (vertical slice)
+
+**Implementado no código (CI + aceite manual ainda são gates distintos):**
+- 50 presets em seis bibliotecas editoriais, todos serializáveis como camadas vetoriais editáveis; podem ser aplicados pela galeria.
+- Personagens 2D estilizados com gestos/expressões, ambientes gráficos 2D, biblioteca SVG de objetos, desenhos e efeitos procedurais por frames.
+- Modelo de camadas \`shots[].layers[]\` com keyframes de posição, escala, rotação e opacidade, curva easing, tempo local e cue sincronizado com legenda. Camadas e duração editáveis no inspetor e timeline.
+- Codex pode produzir cenas inéditas com \`direction.beats[].layers\` ou \`presetId\` sem gerar JavaScript de execução. Compatibilidade com Project v2 e fluxo de propostas existente.
+- \`smoke:motion\` e \`preview:frames\` para testes de render representativo e cache de imagens locais por revisão.
+- Auditorias básicas de camada gráfica com dado não verificado, muitos objetos e elementos potencialmente cortados. Diagnóstico automático não garante legibilidade real, pronunciamento, licenciamento nem áudio integral.
+
+**Pendências reais (não concluir só pela CI):**
+1. Testar galeria, arraste, cortes e reprodução no Ryzen 5 4600G/RX 7600/16 GB, junto aos episódios antigos e à proposta da casa própria. Comparar prévia e MP4.
+2. Implementar waveform, scrubbing de áudio, alinhamento de fala real/por palavra, timing fonético de personagens e edição de legendas por palavra.
+3. Criar sonoplastia local reutilizável e mixagem contextual com licenças registradas; imagens reais/stock só após origem, licença e cópia local autorizadas.
+4. Evoluir depth/parallax para fotos segmentadas (sem falsificar documentos), cache de segmentos, proxies, re-render parcial e benchmarks de episódios de 5–30 minutos.
+5. QA visual com OCR/comparação perceptual e reconhecimento de cortes/textos, editor de thumbnails e pipeline de publicação para YouTube. Sem atestado automático de veracidade.
+
+A v0.14 não é uma ferramenta final de animação 3D/fotorrealismo. O Codex continua responsável por roteirizar, pesquisar e dirigir; o Dark Studio interpreta o plano visual determinístico e você revisa e aprova.

@@ -1,4 +1,4 @@
-# Dark Studio v0.13 (serviço compatível) — Editor desktop com Codex local
+# Dark Studio v0.14 — Motion Studio por camadas + Codex Local
 
 O **Dark Studio** é um editor de documentários para Windows 11. A interface usa Tauri 2 + React + TypeScript, o preview utiliza Remotion e a exportação MP4 acontece via Remotion Renderer/FFmpeg em processo separado.
 
@@ -200,3 +200,18 @@ O registro de renders agora permanece em \`%USERPROFILE%\\DarkStudio\\jobs\`. O 
 ### Metadados de evidência para investigações
 
 Cada fonte pode registrar, sem obrigar antigos arquivos a mudar: trecho que sustenta a alegação, data de publicação, data da consulta, região/população, unidade usada em números e situação de direitos/licenciamento. A tela **Fontes e evidências** agora edita esses campos, sempre com revisão humana explícita. Um gráfico sem trecho, data ou região de referência recebe alerta editorial; um campo preenchido **não significa prova verificada**.
+
+
+## v0.14 · Motion Studio com 50 composições + camadas do Codex
+
+Além dos sete modelos investigativos, **50 novas composições ilustrativas** estão disponíveis em seis bibliotecas: personagens (10), cenários (8), dados (10), narrativa (8), explicações (8) e YouTube/identidade (6).
+
+O novo modelo de \`shots[].layers[]\` inclui personagens vetoriais 2D, cenários, objetos, texto cinético, formas, gráficos, conexões, partículas e imagens locais. Cada camada é independente, tem início/duração, cor, x/y, escala, rotação, opacidade, comportamentos animados e keyframes. Pode sincronizar a entrada com o início de uma legenda existente usando \`cueCaptionId\` e offset. Os projetos v2 antigos continuam legíveis via defaults.
+
+Na interface: selecione um plano, abra **50 COMPOSIÇÕES · GALERIA**, aplique uma receita e use **OBJETOS E CAMADAS** e a **TIMELINE DE ELEMENTOS** para personalizar. O Codex Local pode pedir \`npm run project -- presets\`, escolher \`presetId\` em \`direction.json\` ou criar suas próprias \`layers[]\` (nenhum código arbitrário do Codex é executado no render).
+
+**Guia:** [docs/ANIMATION_STUDIO.md](docs/ANIMATION_STUDIO.md) · [Storyboard de seis bibliotecas](docs/MOTION_STORYBOARD.example.json).
+
+Testes: \`npm run smoke:motion\` renderiza seis modelos a 640x360 num MP4 curto; \`npm run smoke:pilot\` continua cobrindo voz/legendas do Windows. O Codex pode gerar **amostras em cache local** com \`npm run preview:frames -- UUID 0,75,150\`. Esses resultados não garantem 1080p de cinco minutos no seu PC nem substituem revisão editorial.
+
+Sem captura automática de atores reais, licenciamento de B-roll, alinhamento fonético por palavra, geração de imagem com IA ou render segmentado nesta fase. Esses passos estão no [ROADMAP.md](ROADMAP.md).
