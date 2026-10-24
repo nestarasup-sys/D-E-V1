@@ -9,7 +9,7 @@ import {ShotTimeline} from './components/ShotTimeline';
 import {ShotInspector} from './components/ShotInspector';
 import {CaptionInspector} from './components/CaptionInspector';
 import {ChannelKitPanel} from './components/ChannelKitPanel';
-import type {Shot} from './model/shots';
+import {investigationSchema,type Shot} from './model/shots';
 import {EvidencePanel} from './components/EvidencePanel';
 
 const endpoint = 'http://127.0.0.1:4317';
@@ -143,7 +143,7 @@ export function Editor({onHome,syncStatus,onReload}:{onHome:()=>void,syncStatus:
       id:crypto.randomUUID(),kind:'graphic',style:'headline',startFrame:start,durationFrames:duration,
       trimStartFrames:0,zIndex:1,title:'NOVO PLANO',subtitle:'Edite este plano na timeline.',
       kicker:'DARK STUDIO',accentColor:project.channelKit.accentColor,backgroundColor:'#111e2c',
-      motion:{x:[],y:[],scale:[],rotation:[],opacity:[]},
+      motion:{x:[],y:[],scale:[],rotation:[],opacity:[]},investigation:investigationSchema.parse({}),
     };
     try{
       const ops:Operation[]=project.visualMode==='shots'?[]:[{type:'setVisualMode',visualMode:'shots'}];

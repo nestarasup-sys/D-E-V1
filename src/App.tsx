@@ -208,11 +208,11 @@ export function App(){
       'ID: '+entry.id,
       'Arquivo local: '+file,
       'Você precisa de acesso local autorizado a esta pasta e ao repositório de código D-E-V1.',
-      'Leia src/model/project.ts, src/model/shots.ts, src/model/operations.ts e AGENTS.md antes de editar.',
+      'Leia AGENTS.md, docs/VISUAL_IDENTITY.md e docs/CODEX_DIRECTOR.md. Use a linguagem arquivo investigativo + gráficos editoriais.',
       'No diretório do código D-E-V1, execute npm run project -- info '+entry.id+' para conhecer a revisão atual.',
-      'Leia o JSON, gere operações estruturadas e prepare para minha aprovação com npm run project -- propose '+entry.id+' <arquivo-operacoes.json> <revisao>. Não aplique antes da revisão no Dark Studio.',
-      'Para montagem dinâmica use operações addShot/updateShot (início, duração, movimento, easing e camadas), sem deslocar narração ou legendas. Preserve as cenas, IDs e fontes existentes. Não invente fatos ou mídias.',
-      'Após aplicar, valide com npm run project -- validate '+entry.id+'. O Dark Studio perceberá a alteração local automaticamente.',
+      'Para dirigir TODO o episódio: execute npm run project -- direction-template '+entry.id+' <arquivo-direcao.json>, complete o storyboard a partir de roteiro, narração e fontes e faça npm run project -- direct '+entry.id+' <arquivo-direcao.json> <revisao>. Se for apenas um primeiro passe ilustrativo, use npm run project -- auto-direct '+entry.id+' <revisao>. Não aprove nem aplique sem minha revisão no Dark Studio.',
+      'Planeje mudanças visuais em geral a cada 2–5 segundos, varie dossiê/documento/gráfico/comparação/mapa esquemático, e sincronize revelações com a voz. Preserve narração, legendas, mídia, IDs e projetos anteriores; não invente números, provas, fotos, manchetes nem licenças. Mantenha as fontes pendentes até conferência humana.',
+      'Depois de aprovar a proposta no editor, execute npm run project -- direction-report '+entry.id+' e npm run project -- doctor '+entry.id+'. Mostre o que precisa de revisão editorial antes do MP4.',
       'Se for solicitado exportar MP4, abra npm run dev:service e use npm run project -- render '+entry.id+'.'
     ].join('\n');
     try{
@@ -227,12 +227,12 @@ export function App(){
   return <main className="homeScreen">
     <header className="homeHeader">
       <div className="brand"><span className="brandmark">D</span><div><strong>DARK STUDIO</strong><small>ESTÚDIO DE DOCUMENTÁRIOS</small></div></div>
-      <span className="homeVersion">PROJETOS · WINDOWS · v0.11 PILOTO</span>
+      <span className="homeVersion">PROJETOS · WINDOWS · v0.12 DIREÇÃO</span>
     </header>
     <section className="homeHero">
       <p className="homeEyebrow">SEU ESTÚDIO INVESTIGATIVO</p>
       <h1>Seus projetos, em um só lugar.</h1>
-      <p>Crie um documentário, continue a edição e acompanhe mudanças feitas pelo Codex local no mesmo computador. Nenhum chat ou sincronização com GitHub é necessário.</p>
+      <p>Crie um episódio, peça ao Codex local uma direção investigativa completa e revise os planos, movimentos, fontes e a narração no mesmo computador. Nenhum chat ou sincronização com GitHub é necessário.</p>
       <div className="homeCreate">
         <input aria-label="Nome do novo projeto" placeholder="Nome do novo documentário" maxLength={120} value={newName} onChange={e=>setNewName(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')void create();}}/>
         <button className="primary" disabled={busy||!newName.trim()} onClick={()=>void create()}>+ Criar projeto</button>

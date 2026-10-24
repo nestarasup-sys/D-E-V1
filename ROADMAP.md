@@ -64,3 +64,13 @@ Leia [docs/VIDEO_ARCHITECTURE.md](docs/VIDEO_ARCHITECTURE.md) e [docs/PILOT_30S.
 5. **P2 — pipeline YouTube e distribuição**: arquivo de créditos/fonte/licença, biblioteca de assets reutilizáveis, editor de thumbnail, exportações 1080p/4K quando sustentáveis, capítulos e metadata para upload; Tauri com serviço embutido e instalador assinado.
 
 **Não declarar estas cinco prioridades concluídas só porque a fatia piloto compila.**
+
+## v0.12 — Automatização da direção investigativa (corte implementado no código, validação real pendente)
+
+- Compila storyboard JSON de episódios para `replaceShots` em uma operação revisável, sem mover ou substituir áudio, legenda ou evidências.
+- Fallback `auto-direct` fatia cenas e aproveita texto das legendas para gerar planos ilustrativos em cadência variável, normalmente 2–5 s; NÃO inventa informações.
+- Templates editoriais vetoriais para dossiê, documento reconstruído, cadeia de evidências, gráfico, comparação, diagrama espacial e identificação; com motion/keyframes e fontes de evidência vinculadas.
+- O usuário ajusta composição, conteúdo, dados, fontes, tempos e movimento no inspetor visual.
+- Diagnóstico inclui buracos de cobertura, longos períodos estáticos, excesso de repetição, gráfico vazio e prova sem verificação humana; relatório de direção disponível na CLI.
+- Preservação: `Project v2` continua válido; `shot.investigation` possui default para planos antigos. Projeto/voz/mídia não trafegam pelo GitHub.
+- **Ainda falta** escuta/avaliação de um episódio real e do layout completo no Windows do usuário. Também faltam coleta/licenciamento de B-roll automático, síntese/transcrição confiável, parallax em múltiplas camadas, mapas geográficos, thumbnails e render 4K sustentável. Nenhuma dessas etapas foi declarada concluída.

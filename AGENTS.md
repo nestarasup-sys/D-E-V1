@@ -40,3 +40,13 @@
 - O piloto (`npm run project -- pilot`) requer serviço local e voz SAPI do Windows; gera WAV e JSON apenas em `%USERPROFILE%\DarkStudio`, sem GitHub nem mídia no repositório.
 - A mesma composição `Documentary` serve para Player e render MP4; não criar dois motores separados. Alterações de keyframes precisam de testes determinísticos.
 - Verificar `npm run smoke:pilot` (Windows) e `npm run smoke:render` (legacy) antes de declarar o piloto automatizado validado. Testes reais do usuário continuam necessários para validar UI, desempenho e escuta.
+
+## Direção visual e autonomia do Codex (v0.12)
+
+- Leia `docs/VISUAL_IDENTITY.md` e `docs/CODEX_DIRECTOR.md`. O Codex é diretor técnico/editorial no chat externo; o Dark Studio não recebe IA incorporada.
+- Para episódios grandes, prefira `npm run project -- direction-template <id> <saida.json>` e `npm run project -- direct <id> <direcao.json> <revision>` em vez de dezenas de `addShot`. O resultado é proposta, não alteração imediata. `auto-direct` é fallback ilustrativo baseado nas cenas e captions existentes, NÃO pesquisa factual.
+- `src/model/direction.ts` exige cobertura integral do tempo em frames e preserva `clips` (voz, música, SFX), `captions`, `evidence`, `assets` e `scenes`.
+- Estilos investigativos em `src/video/InvestigationVisual.tsx` são SVG/HTML editáveis: dossier, document, evidence, chart, map, comparison, lower-third. Mapa é ESQUEMA sem geolocalização; arte reconstruída deve aparecer como ilustrativa.
+- Gráficos com valores no `direction.json` exigem `investigation.sourceEvidenceId` existente. Uma fonte cadastrada não equivale a fonte verificada: mantenha `pending`; o editor exige revisão humana.
+- Para mídia real, importar arquivo autorizado na biblioteca do Windows. Não apresentar imagens geradas, fotografias ilustrativas nem pseudo-documentos como registro factual. Não publicar roteiros, mídias ou projetos de usuários no GitHub.
+- Para QA: `direction-report` e `doctor` devem apontar lacunas, ritmo, fontes pendentes, mapa esquemático e áudio/legenda ausentes; ouvir render e comparar preview com MP4 antes de declarar pronto.

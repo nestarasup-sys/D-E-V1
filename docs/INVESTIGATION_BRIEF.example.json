@@ -1,0 +1,116 @@
+{
+  "version": 1,
+  "title": "A investigação começa — exemplo inteiramente ilustrativo",
+  "brand": {
+    "brandName": "ARQUIVO ABERTO",
+    "accentColor": "#f0bb66",
+    "font": "sans",
+    "captionStyle": "boxed"
+  },
+  "beats": [
+    {
+      "startFrame": 0,
+      "durationFrames": 105,
+      "purpose": "hook",
+      "style": "dossier",
+      "title": "O QUE ACONTECEU?",
+      "subtitle": "Comece com a pergunta, não com uma acusação.",
+      "motionPreset": "subtle-zoom",
+      "investigation": {
+        "representation": "illustration",
+        "excerpt": "Organize o material original antes de concluir."
+      }
+    },
+    {
+      "startFrame": 105,
+      "durationFrames": 105,
+      "purpose": "context",
+      "style": "headline",
+      "title": "CONTEXTO",
+      "subtitle": "O que sabemos até aqui?",
+      "motionPreset": "pan-left"
+    },
+    {
+      "startFrame": 210,
+      "durationFrames": 105,
+      "purpose": "proof",
+      "style": "document",
+      "title": "O DOCUMENTO",
+      "subtitle": "Trecho reconstruído e identificado.",
+      "motionPreset": "subtle-zoom",
+      "investigation": {
+        "representation": "reconstruction",
+        "excerpt": "EXEMPLO ILUSTRATIVO — substitua por transcrição fiel, com fonte e licença.",
+        "highlight": "substitua por transcrição fiel"
+      }
+    },
+    {
+      "startFrame": 315,
+      "durationFrames": 120,
+      "purpose": "contrast",
+      "style": "comparison",
+      "title": "DUAS VERSÕES",
+      "subtitle": "Compare o mesmo período e a mesma unidade.",
+      "motionPreset": "still",
+      "investigation": {
+        "representation": "illustration",
+        "leftLabel": "VERSÃO A",
+        "leftValue": "Pergunta",
+        "rightLabel": "VERSÃO B",
+        "rightValue": "Confirmação pendente"
+      }
+    },
+    {
+      "startFrame": 435,
+      "durationFrames": 105,
+      "purpose": "data",
+      "style": "chart",
+      "title": "O QUE DIZEM OS DADOS?",
+      "subtitle": "Sem valores até haver fonte cadastrada.",
+      "motionPreset": "emphasis",
+      "investigation": {
+        "representation": "illustration"
+      }
+    },
+    {
+      "startFrame": 540,
+      "durationFrames": 120,
+      "purpose": "location",
+      "style": "map",
+      "title": "PONTOS DE CONTATO",
+      "subtitle": "Esquema ilustrativo de relações, não mapa real.",
+      "motionPreset": "pan-right",
+      "investigation": {
+        "representation": "illustration",
+        "locationLabels": [
+          "ARQUIVO",
+          "ANÁLISE",
+          "REVISÃO"
+        ]
+      }
+    },
+    {
+      "startFrame": 660,
+      "durationFrames": 105,
+      "purpose": "transition",
+      "style": "lower-third",
+      "title": "O QUE FALTA CONFIRMAR",
+      "subtitle": "Mostre a lacuna factual ao público.",
+      "motionPreset": "still"
+    },
+    {
+      "startFrame": 765,
+      "durationFrames": 135,
+      "purpose": "conclusion",
+      "style": "evidence",
+      "title": "A FONTE DECIDE",
+      "subtitle": "Não publicar a conclusão sem verificação.",
+      "motionPreset": "subtle-zoom",
+      "investigation": {
+        "representation": "illustration",
+        "excerpt": "Pista ilustrativa",
+        "highlight": "Verificar fonte"
+      }
+    }
+  ]
+}

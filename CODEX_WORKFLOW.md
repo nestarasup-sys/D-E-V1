@@ -83,3 +83,17 @@ Diga ao Codex: **"Faça uma proposta, não aplique; vou revisar no editor."**
 Na tela inicial, abra **Revisar Codex**. O botão **Aprovar** salva a alteração e cria um snapshot anterior. **Descartar** remove só a proposta. A revisão da proposta é verificada novamente na hora da aplicação.
 
 Para diagnóstico \`npm run project -- doctor UUID-DO-PROJETO\`. Para recuperação \`npm run project -- history UUID\` seguido de \`restore UUID SNAPSHOT REVISAO_ATUAL\`. Para legenda SRT, peça ao Codex um arquivo com timestamps precisos e depois importe na biblioteca do editor. Para evidências, a IA pode cadastrar *pendente*, mas só uma conferência humana pode mudar o status.
+
+## Direção investigativa do episódio inteiro (v0.12)
+
+Veja o procedimento passo a passo em [docs/CODEX_DIRECTOR.md](docs/CODEX_DIRECTOR.md). O Codex fica **neste chat externo**, com a pasta de projetos autorizada.
+
+No workspace local `D-E-V1`:
+~~~powershell
+npm run project -- info UUID-DO-PROJETO
+npm run project -- direction-template UUID-DO-PROJETO "$env:TEMP\dark-studio-direction.json"
+# Codex edita o storyboard como diretor visual, consulta as fontes e a voz reais.
+npm run project -- direct UUID-DO-PROJETO "$env:TEMP\dark-studio-direction.json" REVISAO_SHA
+~~~
+
+Ou `npm run project -- auto-direct UUID-DO-PROJETO REVISAO_SHA` para um passe ilustrativo de ritmo, sem inventar fotos/dados. **Revisar Codex** aprova os planos no editor; o áudio e as legendas continuam onde estavam. Após aprovar: `npm run project -- direction-report UUID` e `npm run project -- doctor UUID`. Nunca declarar fatos como verificados automaticamente.

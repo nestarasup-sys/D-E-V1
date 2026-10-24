@@ -1,5 +1,5 @@
 import {projectSchema,type Asset,type Project} from './project';
-import {type Shot,type Motion} from './shots';
+import {type Shot,type Motion,investigationSchema} from './shots';
 
 export const PILOT_FPS=30;
 export const PILOT_FRAMES=900;
@@ -52,7 +52,7 @@ export function buildPilotProject(options:{
     startFrame:beat.start,durationFrames:beat.end-beat.start,
     zIndex:0,title:beat.title,subtitle:beat.subtitle,kicker:'ARQUIVO ABERTO  /  '+String(i+1).padStart(2,'0'),
     backgroundColor:backgrounds[i],accentColor:colors[i],trimStartFrames:0,
-    motion:easingMotion(beat.end-beat.start,i),
+    motion:easingMotion(beat.end-beat.start,i),investigation:investigationSchema.parse({}),
   }));
   const captions=pilotBeats.map((beat,i)=>{
     const length=options.speechFrames?.[i]??beat.end-beat.start-8;

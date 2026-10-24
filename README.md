@@ -1,4 +1,4 @@
-# Dark Studio v0.11 (piloto de montagem) — Editor desktop com Codex local
+# Dark Studio v0.12 (direção investigativa) — Editor desktop com Codex local
 
 O **Dark Studio** é um editor de documentários para Windows 11. A interface usa Tauri 2 + React + TypeScript, o preview utiliza Remotion e a exportação MP4 acontece via Remotion Renderer/FFmpeg em processo separado.
 
@@ -164,3 +164,13 @@ npm run project -- doctor SEU-UUID
 
 O relatório também mostra o sistema, memória RAM livre e versão Node. Não substitui uma validação de fatos nem garante que todos os codecs do arquivo exportem corretamente.
 
+
+## v0.12 · Direção investigativa pelo Codex (o editor continua local)
+
+O Dark Studio tem composições nativas editáveis de **dossiê, documento destacado, cadeia de evidências, gráfico com valores cadastrados, comparação, mapa esquemático e identificação (lower third)**. Textos, números, tempos, cor, fontes de dados, movimentos e quadros-chave continuam no JSON do projeto e no inspetor do editor — não são fundos JPEG achatados.
+
+O Codex pelo **chat do ChatGPT Desktop em modo Local** pode analisar o roteiro e criar o storyboard do episódio. A automação não precisa de chat dentro do editor. Use `npm run project -- direction-template <UUID> <direcao.json>` para gerar um primeiro esboço, `npm run project -- direct <UUID> <direcao.json> <revisao>` para criar uma **proposta completa, sem aplicar**, ou `npm run project -- auto-direct <UUID> <revisao>` para um primeiro passe automático e declaradamente ilustrativo. No Dark Studio, clique **Revisar Codex** para aprovar. A narração e as legendas não são deslocadas na troca visual. Confira as fontes e licenças antes de publicar.
+
+**Comece por:** [Bíblia visual e fundamentos pesquisados](docs/VISUAL_IDENTITY.md), [Como comandar pelo chat do Codex](docs/CODEX_DIRECTOR.md) e [Exemplo seguro de direção](docs/INVESTIGATION_BRIEF.example.json).
+
+Nenhuma mídia real é buscada, licenciada ou enviada ao GitHub automaticamente. O programa pode montar gráficos e fundos vetoriais por código, mas não deve inventar fatos: valores de gráficos com dados precisam estar ligados a uma evidência cadastrada. Mesmo fontes marcadas como conferidas exigem revisão humana antes de publicar.

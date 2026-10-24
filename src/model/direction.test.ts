@@ -1,7 +1,8 @@
 import {describe,it,expect} from 'vitest';
 import {randomUUID} from 'node:crypto';
 import {buildPilotProject,pilotBeats} from './pilot';
-import {compileDirection,makeAutomaticDirection,reviewVisualDirection} from './direction';
+import {compileDirection,makeAutomaticDirection,reviewVisualDirection,directionSchema,type Direction} from './direction';
+import {investigationSchema} from './shots';
 import {parseProject,projectDuration} from './project';
 import {applyOperations} from './operations';
 
@@ -12,15 +13,15 @@ function fixture(){
     url:'http://127.0.0.1:4317/media/'+assetId,durationFrames:900};
   return buildPilotProject({newId:uuid,voiceAsset:asset,speechFrames:pilotBeats.map(b=>b.end-b.start-8)});
 }
-function doc(project=fixture()){
-  return {version:1 as const,title:project.name,beats:[
+function doc(project=fixture()):Direction{
+  return directionSchema.parse({version:1 as const,title:project.name,beats:[
     {startFrame:0,durationFrames:150,purpose:'hook' as const,title:'PERGUNTA',motionPreset:'subtle-zoom' as const},
     {startFrame:150,durationFrames:150,purpose:'proof' as const,title:'DOCUMENTO',motionPreset:'pan-left' as const},
     {startFrame:300,durationFrames:150,purpose:'data' as const,title:'GRÁFICO',motionPreset:'emphasis' as const},
     {startFrame:450,durationFrames:150,purpose:'contrast' as const,title:'CONTRASTE',motionPreset:'still' as const},
     {startFrame:600,durationFrames:150,purpose:'location' as const,title:'LOCALIZAÇÃO',motionPreset:'pan-right' as const},
     {startFrame:750,durationFrames:150,purpose:'conclusion' as const,title:'FECHAMENTO',motionPreset:'subtle-zoom' as const},
-  ]};
+  ]});
 }
 describe('diretor de montagem investigativa offline e responsável',()=>{
   it('planeja 30s em múltiplas composições, preservando voz, legenda, mídia e fonte',()=>{
@@ -60,13 +61,11 @@ describe('diretor de montagem investigativa offline e responsável',()=>{
   it('não permite apresentar valores ou trechos como fonte sem cadastro',()=>{
     const project=fixture();
     const badData=doc(project);
-    badData.beats[2] = {...badData.beats[2],investigation:{
-      points:[{label:'Exemplo',value:10}],unit:'°C',
-    }} as typeof badData.beats[number];
+    badData.beats[2] = {...badData.beats[2],investigation:investigationSchema.parse({points:[{label:'Exemplo',value:10}],unit:'°C'})};
     expect(()=>compileDirection(project,badData,uuid)).toThrow(/sourceEvidenceId/);
     const sourceExcerpt=doc(project);
     sourceExcerpt.beats[1]={...sourceExcerpt.beats[1],
-      investigation:{representation:'source-excerpt',excerpt:'Texto supostamente oficial'}} as typeof sourceExcerpt.beats[number];
+      investigation:investigationSchema.parse({representation:'source-excerpt',excerpt:'Texto supostamente oficial'})};
     expect(()=>compileDirection(project,sourceExcerpt,uuid)).toThrow(/evidenceId/);
   });
   it('referência pendente é marcada; verificada só quando editor confirma',()=>{
@@ -77,9 +76,7 @@ describe('diretor de montagem investigativa offline e responsável',()=>{
       sourceUrl:'',notes:'Material sintético; não publicar',reviewStatus:'pending',
     }]});
     const direction=doc(project);
-    direction.beats[2]={...direction.beats[2],investigation:{
-      sourceEvidenceId:evidenceId,points:[{label:'Teste',value:10}],unit:'un',
-    }} as typeof direction.beats[number];
+    direction.beats[2]={...direction.beats[2],investigation:investigationSchema.parse({sourceEvidenceId:evidenceId,points:[{label:'Teste',value:10}],unit:'un'})};
     const staged=compileDirection(project,direction,uuid);
     expect(staged.report.unverifiedVisuals).toBeGreaterThan(0);
     expect(staged.report.issues.some(x=>x.code==='source-unverified')).toBe(true);
@@ -102,7 +99,7 @@ describe('diretor de montagem investigativa offline e responsável',()=>{
     old.shots.forEach(shot=>{delete (shot as unknown as {investigation?:unknown}).investigation;});
     expect(parseProject(old).shots[0].investigation.representation).toBe('illustration');
     const invalid=doc(project);
-    invalid.beats[1]={...invalid.beats[1],investigation:{sourceEvidenceId:uuid()}} as typeof invalid.beats[number];
+    invalid.beats[1]={...invalid.beats[1],investigation:investigationSchema.parse({sourceEvidenceId:uuid()})};
     expect(()=>compileDirection(project,invalid,uuid)).toThrow(/não cadastrada/);
   });
 });
