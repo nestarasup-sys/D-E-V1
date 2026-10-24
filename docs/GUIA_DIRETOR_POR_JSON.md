@@ -38,7 +38,7 @@ Este é o documento que uma IA deve ler **antes de escrever o JSON que dirige um
 
 **Caso recomendado:** você já tem um projeto no Dark Studio com roteiro/cenas e, idealmente, narração e legendas. Quer que uma IA desenhe a montagem visual sem destruir áudio.
 
-1. No Windows, atualize o código com `01-INSTALAR-ATUALIZAR.bat` e abra `02-ABRIR-DARK-STUDIO.bat`. Se houver modificações locais do Codex, o atualizador para por segurança: peça para conciliar, nunca usar `git reset --hard`.
+1. No Windows, atualize o código com `ATUALIZAR.bat` e abra `INICIAR.bat`. Arquivos extras não versionados (por exemplo, dados gerados pelo app) não impedem a atualização, mas alterações em arquivos versionados do Codex continuam protegidas: concilie sem usar `git reset --hard`. O `INICIAR.bat` abre a versão já instalada, sem consultar o GitHub.
 2. No **Codex do ChatGPT Desktop em modo Local**, abra o clone `D-E-V1` e autorize acesso às pastas locais de projetos/mídias. A IA **não é um modelo offline** só porque os arquivos estão no computador.
 3. Peça ao Codex para executar os comandos a seguir, substituindo `UUID` pelo ID retornado pelo Dark Studio (os comandos são **PowerShell**, não código JSON):
 
@@ -840,7 +840,7 @@ Esta seção complementa a direção declarativa das seções 4–13 com um **pa
 
 #### A. Dashboard: criar, preservar e localizar projetos
 
-1. Abra `02-ABRIR-DARK-STUDIO.bat` na raiz do repositório (depois de instalar com `01-INSTALAR-ATUALIZAR.bat`) e confira se a tela mostra um serviço local **compatível**. Se não mostrar, use `service-info` e o diagnóstico da seção 17; não prossiga supondo que `/health ready` basta.
+1. Abra `INICIAR.bat` na raiz do repositório (depois de instalar com `ATUALIZAR.bat`) e confira se a tela mostra um serviço local **compatível**. Se não mostrar, use `service-info` e o diagnóstico da seção 17; não prossiga supondo que `/health ready` basta.
 2. Digite o nome e escolha **Criar projeto**. Para testar animação e narração do Windows sem usar um episódio real, existe o botão `Criar piloto audiovisual 30s`: é **piloto demonstrativo** e usa a voz SAPI instalada, não pesquisa/locução final aprovada.
 3. Use `Importar JSON` somente com um `project.json` completo e compatível (schema v2). O botão não interpreta diretamente `direction.json` ou um array de operações.
 4. No cartão de cada projeto, use **Abrir editor**, `Duplicar` (antes de ensaios arriscados), `Copiar instrução Codex` (gera a instrução com o contexto local), `Versões` (histórico/restauração), `Revisar Codex` (propostas pendentes), `Diagnóstico` (validações), `Produção` (checkpoints/exportações) ou `Arquivar`. Arquivar move o projeto para a área local `_archived`; **não é upload nem exclusão da mídia**. Antes de restaurar uma versão, leia o que será substituído.
@@ -1023,7 +1023,7 @@ Não há pontuação mágica de qualidade, mas uma IA deve conferir:
 | `Palavras destacadas fora de tempo` | `captions.words[]` inventado ou desatualizado | Remova `words` ou realinhe usando WAV real |
 | Serviço exporta vídeo, mas ele não tem locução | `clips[]` sem lane `narration` | Importe voz e verifique `doctor`; não confunda cobertura visual com áudio |
 | Render interrompido | Processo/serviço foi fechado | Confira `production status`; exportação não recomeça do mesmo frame |
-| Atualizador BAT bloqueado | Clone tem alterações do Codex | Preserve, faça backup/commit consciente e concilie a `main` |
+| Atualizador BAT bloqueado | Arquivos versionados alterados, commits divergentes ou colisão de nome com arquivo novo | Preserve o trabalho do Codex ou os dados locais; concilie antes de atualizar. Arquivos extras sem colisão não bloqueiam mais |
 | O Codex ignorou 50 modelos | Não consultou o catálogo e recebeu prompt genérico | Exija `presets`, storyboard justificando escolhas, inspeção visual e proposta revisável |
 
 ### 17.3 Separar problemas de produto e problemas de direção

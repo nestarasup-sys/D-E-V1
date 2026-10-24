@@ -1,16 +1,17 @@
 @echo off
 setlocal EnableExtensions DisableDelayedExpansion
-title Dark Studio - Abrir editor local
+title Dark Studio - INICIAR versao local
 color 0B
 
-rem Adaptado do ABRIR_DESENVOLVIMENTO.bat do Native-gacha.
+rem Abre APENAS o codigo que ja esta no computador.
+rem Nao faz git fetch/pull, nao baixa atualizacoes e nao roda npm install.
 rem O Dark Studio usa Tauri 2, Vite e servico Node local, NAO Electron.
 set "BASE=%~dp0"
 set "PROJECT_DIR="
 
 echo.
 echo =====================================================
-echo           DARK STUDIO - ABRIR LOCAL
+echo           DARK STUDIO - INICIAR LOCAL
 echo =====================================================
 echo.
 call :MAIN
@@ -27,7 +28,7 @@ exit /b %RESULT%
 call :LOCATE_REPO
 if not defined PROJECT_DIR (
   echo [ERRO] Clone Dark Studio nao localizado.
-  echo Execute 01-INSTALAR-ATUALIZAR.bat ou informe a pasta correta.
+  echo Informe a pasta do clone ou instale pelo ATUALIZAR.bat.
   exit /b 1
 )
 cd /d "%PROJECT_DIR%"
@@ -60,17 +61,11 @@ if errorlevel 1 (
   exit /b 1
 )
 
-rem Tal como no Native Gacha: instalar automaticamente so quando falta o binario.
+rem INICIAR nunca altera codigo nem instala pacotes automaticamente.
 if not exist "node_modules\.bin\tauri.cmd" (
-  echo [1/3] Instalando dependencias na pasta local...
-  call npm install --no-package-lock --no-audit --no-fund
-  if errorlevel 1 (
-    echo [ERRO] Nao consegui preparar node_modules.
-    exit /b 1
-  )
-)
-if not exist "node_modules\.bin\tauri.cmd" (
-  echo [ERRO] CLI Tauri nao encontrada. Execute 01-INSTALAR-ATUALIZAR.bat.
+  echo [ERRO] Dependencias locais ainda nao instaladas.
+  echo Na pasta do projeto, rode: npm install --no-package-lock --no-audit --no-fund
+  echo Depois abra INICIAR.bat. Nenhum Git foi executado.
   exit /b 1
 )
 if not exist "scripts\ensure-service.ps1" (
@@ -82,7 +77,7 @@ call :SAVE_LOCATION
 echo Projeto: %PROJECT_DIR%
 echo Dados pessoais: %%USERPROFILE%%\DarkStudio\projects
 echo.
-echo [2/3] Verificando a versao do servico local 127.0.0.1:4317...
+echo [1/2] Verificando servico compativel com ESTE codigo local...
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%PROJECT_DIR%\scripts\ensure-service.ps1"
 if errorlevel 1 (
   echo [ERRO] Servico incompativel ou porta 4317 ocupada por outro programa.
@@ -91,7 +86,7 @@ if errorlevel 1 (
 )
 
 echo.
-echo [3/3] Abrindo a janela Dark Studio (Tauri)...
+echo [2/2] Abrindo ESTA versao instalada do Dark Studio (Tauri)...
 echo Pode demorar na primeira compilacao. Mantenha esta janela aberta.
 echo Para encerrar, feche o editor e esta janela.
 echo.

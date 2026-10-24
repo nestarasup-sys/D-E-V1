@@ -91,9 +91,10 @@ Em \`evidence[]\`, o Codex pode preencher \`sourceExcerpt\`, \`publicationDate\`
 
 ## Inicializadores Windows e atualizacao Git (2026-10)
 
-- Os BATs oficiais estao em `01-INSTALAR-ATUALIZAR.bat` e `02-ABRIR-DARK-STUDIO.bat`; manter copias byte-a-byte iguais em `windows/`. Foram adaptados dos BATs da `Main-desenvolvimento` do Native-gacha.
-- Updater: `origin/main` apenas; status sujo, untracked, commits divergentes => bloquear/nao sobrescrever. Nunca `reset --hard`, `clean -fd`, `rebase` automatico. `npm install --no-package-lock` evita criar lockfile nao versionado. Nao rodar testes grandes a cada duplo clique.
-- Opener: Tauri, nao Electron; dependencias se ausentes, `scripts/ensure-service.ps1`, `npm run dev:desktop` em foreground. Nao matar processos desconhecidos na porta 4317.
-- Ambos devem funcionar com repo renomeado, BAT na raiz, `windows/`, fora do repo usando `DARK_STUDIO_REPO_DIR`, caminho persistido em `%LOCALAPPDATA%\DarkStudio\code-path.txt` ou solicitacao manual. Scripts nao dependem do diretorio atual.
-- Projeto/midia do usuario fora do repo em `%USERPROFILE%\DarkStudio`. Pasta persistida identifica SOMENTE codigo.
-- Rodar `scripts/test-windows-bats.ps1` no GitHub Actions Windows para exercitar o updater contra remote Git isolado e confirmar protecao de arquivos nao commitados.
+- BATs oficiais: `ATUALIZAR.bat` e `INICIAR.bat` na raiz, copias byte-a-byte em `windows/`. Os nomes antigos nao sao mais usados.
+- `ATUALIZAR.bat` busca **somente origin/main** e faz **fast-forward** (`git fetch`, `git merge --ff-only`) sem `reset --hard`, `clean`, rebase ou merge automatico. Apos atualizar o codigo, executa `npm install --no-package-lock` (sem testes pesados).
+- Arquivos **nao versionados** — incluindo dados locais/JSONs/rascunhos do usuario — **nao bloqueiam o atualizador** e devem permanecer intactos. Arquivos versionados modificados/staged, commits locais divergentes e arquivos untracked em conflito com novos caminhos da main **continuam bloqueados**. Nunca desabilitar as protecoes do Git para fazer update.
+- `INICIAR.bat` **nunca atualiza o codigo nem baixa pacotes por conta propria**, mesmo se a main remota mudou. Deve iniciar Tauri da versao instalada, conferir/iniciar apenas o servico local compativel com ela via `scripts/ensure-service.ps1`, e orientar `npm install --no-package-lock` **manual** se faltar dependencias. Nao matar processos desconhecidos na porta 4317.
+- Ambos funcionam com repo renomeado, na raiz, em `windows/`, ou fora do repo usando `DARK_STUDIO_REPO_DIR`, caminho persistido em `%LOCALAPPDATA%\DarkStudio\code-path.txt`, ou pasta informada. Scripts nao dependem do diretorio atual.
+- Projetos/midias do usuario vivem preferencialmente fora do repo em `%USERPROFILE%\DarkStudio`. O atualizador nao deve enviar, limpar, reescrever ou ocultar os projetos do app.
+- Rodar `scripts/test-windows-bats.ps1` na CI Windows para verificar fast-forward, dados nao versionados preservados, bloqueios de codigo tracked/staged, recusa de untracked em colisao e isolamento do `INICIAR`.

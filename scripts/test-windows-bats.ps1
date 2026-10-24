@@ -58,8 +58,8 @@ try {
   Invoke-Git $src @('commit','-m','rev 2')
   Invoke-Git $src @('push','origin','main')
 
-  Copy-Item (Join-Path $repo '01-INSTALAR-ATUALIZAR.bat') (Join-Path $detached '01-INSTALAR-ATUALIZAR.bat')
-  $script=Join-Path $detached '01-INSTALAR-ATUALIZAR.bat'
+  Copy-Item (Join-Path $repo 'ATUALIZAR.bat') (Join-Path $detached 'ATUALIZAR.bat')
+  $script=Join-Path $detached 'ATUALIZAR.bat'
   $env:DARK_STUDIO_REPO_DIR=$clone
   $env:LOCALAPPDATA=(Join-Path $dir 'user-local-data')
   # Process-scoped Git config rewrites canonical GitHub remote into local fixture.
@@ -85,29 +85,78 @@ try {
   Write-Host '[CI BAT] Localizando clone pela ultima pasta salva...'
   Invoke-Updater $script 0
 
-  Write-Host '[CI BAT] Verificando bloqueio de alteracao local...'
+  Write-Host '[CI BAT] Aceitar dados extras locais e preservar seus bytes...'
   Set-Content -Path (Join-Path $clone 'codex-notes.txt') -Value 'NAO APAGAR' -Encoding ASCII
-  $dirty=(& git -C $clone status --porcelain --untracked-files=all) -join [Environment]::NewLine
-  if(-not $dirty.Contains('codex-notes.txt')){throw 'A fixture nao esta suja antes do teste.'}
+  Set-Content -Path (Join-Path $clone 'direction.json') -Value '{"local":true}' -Encoding ASCII
+  New-Item -ItemType Directory -Force (Join-Path $clone 'meus-videos') | Out-Null
+  Set-Content -Path (Join-Path $clone 'meus-videos/roteiro.srt') -Value 'LEGENDA LOCAL' -Encoding ASCII
   Set-Content -Path (Join-Path $src 'edition.txt') -Value 'rev-3' -Encoding ASCII
   Invoke-Git $src @('add','edition.txt')
   Invoke-Git $src @('commit','-m','rev 3')
   Invoke-Git $src @('push','origin','main')
-  Invoke-Updater $script 1
-  if((Get-Content (Join-Path $clone 'edition.txt')).Trim() -ne 'rev-2') {
-    throw 'Updater alterou clone com trabalho do Codex.'
+  Invoke-Updater $script 0
+  if((Get-Content (Join-Path $clone 'edition.txt')).Trim() -ne 'rev-3') {
+    throw 'Updater nao trouxe rev-3 com arquivos extras nao rastreados.'
   }
-  if((Get-Content (Join-Path $clone 'codex-notes.txt')).Trim() -ne 'NAO APAGAR') {
-    throw 'Updater excluiu trabalho local.'
+  if((Get-Content (Join-Path $clone 'codex-notes.txt')).Trim() -ne 'NAO APAGAR' -or
+     (Get-Content (Join-Path $clone 'direction.json') -Raw) -notmatch '"local":true' -or
+     (Get-Content (Join-Path $clone 'meus-videos/roteiro.srt')).Trim() -ne 'LEGENDA LOCAL') {
+    throw 'Dados do usuario foram alterados pelo updater.'
   }
 
-  $opener=Get-Content (Join-Path $repo '02-ABRIR-DARK-STUDIO.bat') -Raw
+  Write-Host '[CI BAT] Bloquear modificacao de codigo rastreado...'
+  Set-Content -Path (Join-Path $clone 'edition.txt') -Value 'EDICAO LOCAL DO CODEX' -Encoding ASCII
+  Set-Content -Path (Join-Path $src 'edition.txt') -Value 'rev-4' -Encoding ASCII
+  Invoke-Git $src @('add','edition.txt')
+  Invoke-Git $src @('commit','-m','rev 4')
+  Invoke-Git $src @('push','origin','main')
+  Invoke-Updater $script 1
+  if((Get-Content (Join-Path $clone 'edition.txt')).Trim() -ne 'EDICAO LOCAL DO CODEX') {
+    throw 'Updater sobrescreveu arquivo versionado modificado.'
+  }
+  Write-Host '[CI BAT] Bloquear alteracao de codigo staged...'
+  Invoke-Git $clone @('add','edition.txt')
+  Invoke-Updater $script 1
+  if((Get-Content (Join-Path $clone 'edition.txt')).Trim() -ne 'EDICAO LOCAL DO CODEX') {
+    throw 'Updater sobrescreveu arquivo staged.'
+  }
+  Invoke-Git $clone @('restore','--staged','edition.txt')
+  Invoke-Git $clone @('restore','edition.txt')
+  Invoke-Updater $script 0
+  if((Get-Content (Join-Path $clone 'edition.txt')).Trim() -ne 'rev-4') {
+    throw 'Updater nao retomou apos restaurar somente o teste de codigo.'
+  }
+
+  Write-Host '[CI BAT] Git recusa sobrescrever um arquivo novo em conflito...'
+  Set-Content -Path (Join-Path $clone 'novo-do-github.txt') -Value 'MEU ARQUIVO' -Encoding ASCII
+  Set-Content -Path (Join-Path $src 'novo-do-github.txt') -Value 'ARQUIVO REMOTO' -Encoding ASCII
+  Invoke-Git $src @('add','novo-do-github.txt')
+  Invoke-Git $src @('commit','-m','rev 5 conflito')
+  Invoke-Git $src @('push','origin','main')
+  Invoke-Updater $script 1
+  if((Get-Content (Join-Path $clone 'novo-do-github.txt')).Trim() -ne 'MEU ARQUIVO') {
+    throw 'Updater sobrescreveu arquivo local nao versionado em conflito.'
+  }
+  if((Get-Content (Join-Path $clone 'edition.txt')).Trim() -ne 'rev-4') {
+    throw 'Updater alterou o clone apesar do conflito.'
+  }
+
+  $opener=Get-Content (Join-Path $repo 'INICIAR.bat') -Raw
   if(-not $opener.Contains('npm run dev:desktop') -or
      -not $opener.Contains('scripts\ensure-service.ps1') -or
-      $opener.Contains('electron-vite')){
-    throw 'Launcher nao esta adaptado a Tauri/servico local.'
+      $opener.Contains('electron-vite') -or
+      $opener.Contains('call npm install') -or
+      $opener -match '(?im)^\s*(call\s+)?git\s+(fetch|pull|merge|switch|clone)') {
+    throw 'INICIAR nao deve atualizar a main nem instalar pacotes.'
   }
-  Write-Host '[CI BAT] OK: main, diretorio arbitrario, persistencia e protecao de modificacoes.'
+  foreach($file in @('ATUALIZAR.bat','INICIAR.bat')){
+    $rootBat=[IO.File]::ReadAllBytes((Join-Path $repo $file))
+    $windowsBat=[IO.File]::ReadAllBytes((Join-Path $repo "windows/$file"))
+    if([Convert]::ToBase64String($rootBat) -ne [Convert]::ToBase64String($windowsBat)){
+      throw "Copia em windows/ diferente do BAT raiz: $file"
+    }
+  }
+  Write-Host '[CI BAT] OK: main com dados extras, bloqueio de codigo/conflitos e iniciar local.'
 }
 finally {
   $env:LOCALAPPDATA=$originalLocalAppData

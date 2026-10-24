@@ -1,9 +1,9 @@
 @echo off
 setlocal EnableExtensions DisableDelayedExpansion
-title Dark Studio - Atualizar codigo main
+title Dark Studio - ATUALIZAR codigo da main
 color 0B
 
-rem Adaptado do ATUALIZAR_DESENVOLVIMENTO.bat do Native-gacha.
+rem Atualizador isolado: somente origin/main, sem apagar dados pessoais.
 rem Atualiza SOMENTE codigo-fonte; NUNCA faz reset, clean, rebase ou exclusao.
 set "BRANCH=main"
 set "REMOTE_REPO=https://github.com/nestarasup-sys/D-E-V1.git"
@@ -19,10 +19,11 @@ call :MAIN
 set "RESULT=%ERRORLEVEL%"
 echo.
 if "%RESULT%"=="0" (
-  echo [OK] Codigo atualizado. Abra 02-ABRIR-DARK-STUDIO.bat.
+  echo [OK] Codigo atualizado. Abra INICIAR.bat.
 ) else (
   echo [ATENCAO] Atualizacao interrompida.
   echo Nenhum git reset, git clean ou rebase foi executado.
+  echo Arquivos extras foram preservados; conflitos reais continuam protegidos.
   echo Seus projetos em %%USERPROFILE%%\DarkStudio estao preservados.
 )
 echo.
@@ -76,11 +77,11 @@ echo Projeto local: %PROJECT_DIR%
 echo Repositorio: %REMOTE_REPO%
 echo Branch de atualizacao: %BRANCH%
 echo.
-rem Inclui modificacoes, staged e arquivos novos nao ignorados.
-rem Usa arquivo temporario para nao depender de FOR /F sobre comando aninhado do CMD.
-rem Nao destrua trabalho ainda nao commitado do Codex.
+rem Checa somente modificacoes em arquivos JA VERSIONADOS (inclusive staged).
+rem Dados de usuario/arquivos novos nao impedem update; conflitos sao protegidos pelo Git.
+rem Usa arquivo temporario para nao depender de FOR /F do CMD.
 set "STATUS_FILE=%TEMP%\dark-studio-git-status-%RANDOM%-%RANDOM%.txt"
-git status --porcelain --untracked-files=all > "%STATUS_FILE%"
+git status --porcelain --untracked-files=no > "%STATUS_FILE%"
 if errorlevel 1 (
   if exist "%STATUS_FILE%" del /q "%STATUS_FILE%" >nul 2>&1
   echo [ERRO] Nao consegui verificar o estado do Git. Nada sera atualizado.
@@ -157,12 +158,12 @@ exit /b 0
 
 :DIRTY
 if defined STATUS_FILE if exist "%STATUS_FILE%" del /q "%STATUS_FILE%" >nul 2>&1
-echo [BLOQUEADO] Existem mudancas locais ou arquivos novos no clone:
-git status --short
+echo [BLOQUEADO] Existem alteracoes em arquivos versionados do clone:
+git status --short --untracked-files=no
 echo.
-echo Nada foi descartado. Peca ao Codex para fazer commit ou guardar as alteracoes.
-echo Se aparecer package-lock.json de instalacao antiga, mova-o para backup
-echo SOMENTE apos conferir que nao ha trabalho importante nele.
+echo Nada foi descartado. Protegidas as alteracoes em codigo do Codex.
+echo Arquivos novos de usuario sao permitidos; Git protege conflitos de nomes.
+echo Revise e concilie alteracoes versionadas antes de atualizar.
 exit /b 1
 
 :LOCATE_REPO

@@ -19,3 +19,17 @@ local-projects/
 media/
 user-data/
 *.operations.json
+
+# Dados locais e resultados de producao: nunca subir ao GitHub
+project.json
+direction.json
+operacoes.json
+previews/
+production/
+proposals/
+history/
+jobs/
+exports/
+renders/
+cache/
+*.srt
