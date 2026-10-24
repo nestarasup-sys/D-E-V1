@@ -83,3 +83,13 @@ Em \`evidence[]\`, o Codex pode preencher \`sourceExcerpt\`, \`publicationDate\`
 - \`npm run project -- sfx list\` retorna nove efeitos sintetizados localmente; \`sfx <tipo> <UUID> <REVISAO> <frame> <volume>\` cria WAV apenas no computador e proposta de \`addAsset\` + \`addClip\`. Não aplicar ou mixar sem prévia auditiva.
 - \`captions[].words\` aceita \`[{text,startFrame,endFrame}]\` em frames ABSOLUTOS do projeto; o editor destaca a palavra ativa, mas nenhum alinhador fonético automático está incorporado. Nunca inferir esses valores apenas pelo texto; usar ferramenta de alinhamento real e verificar.
 - Alterar manualmente texto/tempos de uma legenda invalida seus \`words[]\`; regenerar a sincronização a partir do áudio, não copiá-la cegamente.
+
+
+## Inicializadores Windows e atualizacao Git (2026-10)
+
+- Os BATs oficiais estao em `01-INSTALAR-ATUALIZAR.bat` e `02-ABRIR-DARK-STUDIO.bat`; manter copias byte-a-byte iguais em `windows/`. Foram adaptados dos BATs da `Main-desenvolvimento` do Native-gacha.
+- Updater: `origin/main` apenas; status sujo, untracked, commits divergentes => bloquear/nao sobrescrever. Nunca `reset --hard`, `clean -fd`, `rebase` automatico. `npm install --no-package-lock` evita criar lockfile nao versionado. Nao rodar testes grandes a cada duplo clique.
+- Opener: Tauri, nao Electron; dependencias se ausentes, `scripts/ensure-service.ps1`, `npm run dev:desktop` em foreground. Nao matar processos desconhecidos na porta 4317.
+- Ambos devem funcionar com repo renomeado, BAT na raiz, `windows/`, fora do repo usando `DARK_STUDIO_REPO_DIR`, caminho persistido em `%LOCALAPPDATA%\DarkStudio\code-path.txt` ou solicitacao manual. Scripts nao dependem do diretorio atual.
+- Projeto/midia do usuario fora do repo em `%USERPROFILE%\DarkStudio`. Pasta persistida identifica SOMENTE codigo.
+- Rodar `scripts/test-windows-bats.ps1` no GitHub Actions Windows para exercitar o updater contra remote Git isolado e confirmar protecao de arquivos nao commitados.

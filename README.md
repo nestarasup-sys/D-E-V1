@@ -15,19 +15,20 @@ Na timeline do novo projeto, arraste um plano ou as alças laterais para alterar
 
 A voz precisa realmente estar instalada no Windows; caso contrário o sistema apresenta uma falha clara. Para detalhes do teste e suas limitações veja [docs/PILOT_30S.md](docs/PILOT_30S.md). O diagnóstico da arquitetura e próximas fases está em [docs/VIDEO_ARCHITECTURE.md](docs/VIDEO_ARCHITECTURE.md).
 
-## Windows: instalar, atualizar e abrir com dois cliques (BAT)
+## Windows: abrir e atualizar com dois cliques (BAT)
 
-**Os dois BATs estão na raiz do repositório**, junto ao `package.json`: [01-INSTALAR-ATUALIZAR.bat](01-INSTALAR-ATUALIZAR.bat) e [02-ABRIR-DARK-STUDIO.bat](02-ABRIR-DARK-STUDIO.bat). Também mantemos cópias na subpasta `windows` para quem já utilizava os caminhos antigos.
+Os scripts foram **adaptados dos arquivos de desenvolvimento** do [Native-gacha (branch Main-desenvolvimento)](https://github.com/nestarasup-sys/Native-gacha/tree/Main-desenvolvimento), preservando a separacao entre ABRIR e ATUALIZAR. Dark Studio usa **Tauri, nao Electron**, portanto o inicializador executa o servico local e depois o Tauri. Os scripts oficiais estao na **raiz** do repositorio e tem copias identicas em `windows/`:
 
-Se você baixou os dois BATs separadamente e os colocou em uma **pasta nova**, mantenha-os juntos:
+- **[01-INSTALAR-ATUALIZAR.bat](01-INSTALAR-ATUALIZAR.bat)**: em um clone existente, busca **somente `origin/main`**, usa `git switch main` e `git merge --ff-only origin/main` (nao reseta, nao limpa, nao rebasa) e executa `npm install --no-package-lock --no-audit --no-fund`. Se baixar os BATs em uma pasta nova, este script tambem consegue fazer `git clone --branch main --single-branch` na subpasta `D-E-V1`.
+- **[02-ABRIR-DARK-STUDIO.bat](02-ABRIR-DARK-STUDIO.bat)**: abre o codigo ja instalado, confere Node 22, npm e Rust/Cargo, instala dependencias automaticamente se faltarem, valida/inicia o servico local na porta 4317 pelo supervisor e executa **`npm run dev:desktop`** diretamente na janela atual. Deixe a janela aberta. A primeira compilacao Tauri pode demorar.
 
-1. Abra o **01-INSTALAR-ATUALIZAR.bat**. Ele detecta Git e Node.js; se faltarem, pergunta antes de instalar via winget. Baixa o repositório na subpasta **D-E-V1** se ainda não existir. Em execuções seguintes, atualiza a branch **main** com \`git pull --ff-only\`, instala as dependências, verifica TypeScript, testes e build, e confere Rust/MSVC. Pode oferecer instalação de Rust e C++ Build Tools com sua confirmação.
-2. Se um instalador de Git, Node, Rust ou C++ foi executado, feche e reabra o terminal e rode o primeiro BAT de novo. O Microsoft C++ Build Tools é um download grande e pode requerer permissão de administrador; no Windows 11 o WebView2 normalmente já está instalado.
-3. Abra o **02-ABRIR-DARK-STUDIO.bat**. Ele inicia o serviço de projetos/mídia e o aplicativo desktop Tauri em **janelas de terminal separadas**. Mantenha as janelas abertas enquanto trabalha.
+**Funciona mesmo se a pasta do clone tiver outro nome ou estiver em outra localizacao.** A busca considera a pasta do BAT, pasta pai, subpasta `D-E-V1`, diretorio atual, variavel opcional `DARK_STUDIO_REPO_DIR` e ultimo caminho valido guardado em `%LOCALAPPDATA%\DarkStudio\code-path.txt`. Se nao encontrar, o BAT pede o caminho completo do clone; no atualizador, Enter tambem permite clonar o codigo. Nao exige que o repositório fique em `C:\D-E-V1`.
 
-Os BATs também funcionam dentro da pasta do repositório ou em sua subpasta \`windows\`. O atualizador não executa \`git reset\`, \`git clean\` ou trocas de branch; se houver alterações locais no código, ele avisa e para, em vez de sobrescrevê-las.
+**Se o Codex tiver mudado o codigo local**, o atualizador **para antes de buscar** e mostra `git status --short` quando houver arquivos editados, preparados ou novos. Nao execute `git reset --hard` ou `git clean` sem revisar com o Codex; commits divergentes tambem ficam preservados. O `--no-package-lock` evita deixar um `package-lock.json` novo que bloquearia a proxima atualizacao.
 
-**Importante:** GitHub baixa/atualiza somente o **código-fonte**. Projetos, roteiros, narrações e mídias continuam em pastas locais fora do repositório, e o Codex é usado **pelo chat do aplicativo ChatGPT, em modo Local**.
+Os dois BATs funcionam independentemente de onde voce os executa **desde que consigam encontrar o clone pelo local do BAT ou pelo caminho informado**. Isso **nao significa** abrir automaticamente um documentario especifico: o Dark Studio exibe todos os projetos pessoais no painel inicial. **Projetos, narracoes e midias nao vao ao GitHub** e permanecem em `%USERPROFILE%\DarkStudio` (fora do repositorio). O Codex continua sendo usado em modo Local no ChatGPT Desktop, sem chat interno no editor.
+
+Se a janela reclamar de Rust/Cargo, ferramentas C++ ou WebView2, veja a instalacao oficial em https://v2.tauri.app/start/prerequisites/. O BAT agora prefere **avisar** a baixar ferramentas grandes ou alterar o Windows sem sua autorizacao. Os testes automatizados em Windows verificam atualizacao `main`, pasta arbitraria, caminho salvo e recusa de sobrescrever trabalho local. Eles nao substituem um teste manual da janela Tauri no seu computador.
 
 ## Preparar o Windows
 

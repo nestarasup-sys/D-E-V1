@@ -1,211 +1,190 @@
 @echo off
 setlocal EnableExtensions DisableDelayedExpansion
-title Dark Studio - Instalar e atualizar
+title Dark Studio - Atualizar codigo main
 color 0B
 
+rem Adaptado do ATUALIZAR_DESENVOLVIMENTO.bat do Native-gacha.
+rem Atualiza SOMENTE codigo-fonte; NUNCA faz reset, clean, rebase ou exclusao.
+set "BRANCH=main"
+set "REMOTE_REPO=https://github.com/nestarasup-sys/D-E-V1.git"
+set "BASE=%~dp0"
+set "PROJECT_DIR="
+
 echo.
-echo =======================================================
-echo           DARK STUDIO - INSTALAR / ATUALIZAR
-echo =======================================================
+echo =====================================================
+echo       DARK STUDIO - ATUALIZAR MAIN
+echo =====================================================
 echo.
 call :MAIN
-set "RESULT=%errorlevel%"
+set "RESULT=%ERRORLEVEL%"
 echo.
 if "%RESULT%"=="0" (
-    echo [OK] Instalacao e verificacoes concluidas.
-    echo Para abrir, use 02-ABRIR-DARK-STUDIO.bat.
+  echo [OK] Codigo atualizado. Abra 02-ABRIR-DARK-STUDIO.bat.
 ) else (
-    echo [ERRO] Processo interrompido. Leia as mensagens acima.
-    echo Nenhum git reset ou git clean foi executado.
+  echo [ATENCAO] Atualizacao interrompida.
+  echo Nenhum git reset, git clean ou rebase foi executado.
+  echo Seus projetos em %%USERPROFILE%%\DarkStudio estao preservados.
 )
 echo.
 pause
 exit /b %RESULT%
 
 :MAIN
-set "BASE=%~dp0"
-set "PROJECT_DIR="
-
 where git >nul 2>&1
 if errorlevel 1 (
-    call :OFFER_TOOL "Git.Git" "Git for Windows"
-    exit /b 1
+  echo [ERRO] Instale Git for Windows: https://git-scm.com/downloads/win
+  exit /b 1
 )
+
+call :LOCATE_REPO
+if not defined PROJECT_DIR (
+  if exist "%BASE%D-E-V1" (
+    echo [ERRO] D-E-V1 existe ao lado deste BAT, mas nao e um clone reconhecido.
+    echo Nao vou sobrescrever essa pasta.
+    exit /b 1
+  )
+  echo [1/3] Nao achei um clone local. Clonando a branch main...
+  git clone --branch main --single-branch "%REMOTE_REPO%" "%BASE%D-E-V1"
+  if errorlevel 1 (
+    echo [ERRO] Clone falhou. Verifique internet, acesso ao GitHub e destino.
+    exit /b 1
+  )
+  call :CHECK_REPO "%BASE%D-E-V1"
+)
+
+if not defined PROJECT_DIR (
+  echo [ERRO] Repositorio Dark Studio nao encontrado.
+  exit /b 1
+)
+cd /d "%PROJECT_DIR%"
+if errorlevel 1 (
+  echo [ERRO] Nao consegui acessar a pasta do repositorio.
+  exit /b 1
+)
+git rev-parse --is-inside-work-tree >nul 2>&1
+if errorlevel 1 (
+  echo [ERRO] Esta pasta nao e um clone Git valido.
+  exit /b 1
+)
+git remote get-url origin 2>nul | findstr /i /c:"nestarasup-sys/D-E-V1" >nul
+if errorlevel 1 (
+  echo [ERRO] O origin nao e nestarasup-sys/D-E-V1. Nao atualizarei outro repositorio.
+  exit /b 1
+)
+
+echo Projeto local: %PROJECT_DIR%
+echo Repositorio: %REMOTE_REPO%
+echo Branch de atualizacao: %BRANCH%
+echo.
+rem Inclui modificacoes, staged e arquivos novos nao ignorados.
+rem Nao destrua trabalho ainda nao commitado do Codex.
+for /f "delims=" %%L in ('git status --porcelain --untracked-files=normal 2^>nul') do goto :DIRTY
+
+echo [2/3] Buscando a versao atual do GitHub...
+git fetch origin "refs/heads/%BRANCH%:refs/remotes/origin/%BRANCH%"
+if errorlevel 1 (
+  echo [ERRO] Nao consegui buscar a branch main.
+  exit /b 1
+)
+
+rem O Dark Studio so usa main. Nenhuma branch alternativa sera criada.
+git show-ref --quiet --verify "refs/heads/%BRANCH%"
+if errorlevel 1 (
+  echo [ERRO] A branch main nao existe neste clone.
+  echo Verifique o clone com o Codex antes de mudar branches.
+  exit /b 1
+)
+git switch "%BRANCH%"
+if errorlevel 1 (
+  echo [ERRO] Nao consegui selecionar main de forma segura.
+  exit /b 1
+)
+git branch --set-upstream-to="origin/%BRANCH%" "%BRANCH%" >nul 2>&1
+if errorlevel 1 (
+  echo [ERRO] Nao consegui configurar upstream origin/main.
+  exit /b 1
+)
+
+rem Fast-forward estrito: nunca apaga commits locais nem cria merge automatico.
+git merge --ff-only "origin/%BRANCH%"
+if errorlevel 1 (
+  echo [ERRO] Historico local divergiu de origin/main.
+  echo Os commits locais foram preservados. Peca ao Codex para conciliar.
+  exit /b 1
+)
+echo.
+echo [3/3] Preparando dependencias atualizadas...
 where node >nul 2>&1
 if errorlevel 1 (
-    call :OFFER_TOOL "OpenJS.NodeJS.LTS" "Node.js LTS"
-    exit /b 1
+  echo [ERRO] Node.js 22+ nao encontrado: https://nodejs.org/
+  exit /b 1
 )
 where npm >nul 2>&1
 if errorlevel 1 (
-    call :OFFER_TOOL "OpenJS.NodeJS.LTS" "Node.js LTS e npm"
-    exit /b 1
+  echo [ERRO] npm nao encontrado. Reinstale Node.js.
+  exit /b 1
 )
-set "NODE_MAJOR="
-for /f "delims=" %%V in ('node -p "process.versions.node.split('.')[0]" 2^>nul') do set "NODE_MAJOR=%%V"
-if not defined NODE_MAJOR (
-    echo [ERRO] Nao foi possivel conferir a versao do Node.js.
-    exit /b 1
-)
-if %NODE_MAJOR% LSS 22 (
-    echo [AVISO] Node.js 22 ou superior e recomendado. Encontrado: %NODE_MAJOR%.
-    call :OFFER_TOOL "OpenJS.NodeJS.LTS" "Node.js LTS atualizado"
-    exit /b 1
-)
-
-rem O BAT pode estar: dentro do repo; em repo\windows; ou numa pasta nova.
-if exist "%BASE%package.json" if exist "%BASE%.git" set "PROJECT_DIR=%BASE%"
-if not defined PROJECT_DIR if exist "%BASE%..\package.json" if exist "%BASE%..\.git" set "PROJECT_DIR=%BASE%.."
-if not defined PROJECT_DIR if exist "%BASE%D-E-V1\package.json" if exist "%BASE%D-E-V1\.git" set "PROJECT_DIR=%BASE%D-E-V1"
-
-if not defined PROJECT_DIR (
-    if exist "%BASE%D-E-V1" (
-        echo [ERRO] A pasta D-E-V1 ja existe, mas nao parece ser um clone valido.
-        echo Verifique essa pasta manualmente. Nao apagarei nada.
-        exit /b 1
-    )
-    echo [1/5] Baixando o codigo na subpasta D-E-V1...
-    git clone --branch main --single-branch "https://github.com/nestarasup-sys/D-E-V1.git" "%BASE%D-E-V1"
-    if errorlevel 1 (
-        echo [ERRO] Falha no clone. Confira internet, Git e pasta de destino.
-        exit /b 1
-    )
-    set "PROJECT_DIR=%BASE%D-E-V1"
-)
-
-cd /d "%PROJECT_DIR%"
+node -e "process.exit(Number(process.versions.node.split('.')[0])>=22?0:1)" >nul 2>&1
 if errorlevel 1 (
-    echo [ERRO] Nao consegui acessar a pasta do Dark Studio.
-    exit /b 1
+  echo [ERRO] Dark Studio exige Node.js 22 ou superior.
+  exit /b 1
 )
-if not exist "package.json" (
-    echo [ERRO] package.json nao encontrado. Pasta invalida.
-    exit /b 1
+rem --no-package-lock evita criar package-lock.json nao versionado (repo sem lock).
+call npm install --no-package-lock --no-audit --no-fund
+if errorlevel 1 (
+  echo [ERRO] npm install falhou. Codigo atualizado, dependencias pendentes.
+  exit /b 1
 )
 
-git rev-parse --is-inside-work-tree >nul 2>&1
-if errorlevel 1 (
-    echo [ERRO] Esta pasta nao e um repositorio Git valido.
-    exit /b 1
-)
-git remote get-url origin 2>nul | findstr /I /C:"nestarasup-sys/D-E-V1" >nul
-if errorlevel 1 (
-    echo [ERRO] O remote origin nao aponta para nestarasup-sys/D-E-V1.
-    echo Nao farei atualizacoes em repositorios desconhecidos.
-    exit /b 1
-)
-set "BRANCH="
-for /f "delims=" %%B in ('git branch --show-current 2^>nul') do set "BRANCH=%%B"
-if /I not "%BRANCH%"=="main" (
-    echo [ERRO] Branch atual: %BRANCH%. Use a branch main antes de atualizar.
-    echo Nao criarei ou trocarei branches automaticamente.
-    exit /b 1
-)
-
-git diff --quiet
-if errorlevel 1 (
-    echo [ATENCAO] Ha mudancas locais nao salvas em commit.
-    echo O atualizador NAO vai sobrescrever seu trabalho.
-    git status --short
-    exit /b 1
-)
-git diff --cached --quiet
-if errorlevel 1 (
-    echo [ATENCAO] Ha mudancas preparadas para commit.
-    echo O atualizador NAO vai sobrescrever seu trabalho.
-    git status --short
-    exit /b 1
-)
-
+call :SAVE_LOCATION
 echo.
-echo [2/5] Atualizando o codigo pelo GitHub (sem apagar arquivos)...
-git pull --ff-only origin main
-if errorlevel 1 (
-    echo [ERRO] Nao foi possivel atualizar. Nenhum reset/clean sera feito.
-    echo Confira a conexao e rode "git status" para diagnostico.
-    exit /b 1
-)
-
+echo [OK] Branch ativa:
+git branch --show-current
+echo [OK] Commit local:
+git log -1 --format="%%h - %%s"
 echo.
-echo [3/5] Instalando dependencias do projeto...
-call npm install --no-audit --no-fund
-if errorlevel 1 (
-    echo [ERRO] npm install falhou. Confira Node, rede e logs acima.
-    exit /b 1
-)
-
-echo.
-echo [4/5] Conferindo TypeScript, testes e build...
-call npm run check
-if errorlevel 1 exit /b 1
-call npm test
-if errorlevel 1 exit /b 1
-call npm run build
-if errorlevel 1 exit /b 1
-
-echo.
-echo [5/5] Verificando requisitos do editor desktop...
-where cargo >nul 2>&1
-if errorlevel 1 if exist "%USERPROFILE%\.cargo\bin\cargo.exe" set "PATH=%USERPROFILE%\.cargo\bin;%PATH%"
-where cargo >nul 2>&1
-if errorlevel 1 (
-    echo [AVISO] Rust/Cargo nao foi encontrado.
-    call :OFFER_TOOL "Rustlang.Rustup" "Rust para o Tauri"
-    exit /b 1
-)
-
-rem Visual Studio C++ Build Tools pode estar instalado sem cl.exe no PATH.
-powershell.exe -NoProfile -Command "$v=Join-Path ([Environment]::GetFolderPath('ProgramFilesX86')) 'Microsoft Visual Studio\Installer\vswhere.exe'; if(Test-Path $v){ $p=(& $v -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath); if($p){exit 0} }; exit 1" >nul 2>&1
-if errorlevel 1 (
-    echo [AVISO] Microsoft C++ Build Tools nao foi detectado.
-    echo O Tauri precisa do componente 'Desktop development with C++'.
-    echo Guia oficial: https://v2.tauri.app/start/prerequisites/
-    where winget >nul 2>&1
-    if not errorlevel 1 (
-        echo.
-        choice /C SN /N /M "Deseja instalar o C++ Build Tools agora (download grande)? [S/N] "
-        if errorlevel 2 (
-            echo [AVISO] Instalacao do C++ ignorada. O desktop pode nao compilar.
-            exit /b 1
-        )
-        winget install --id Microsoft.VisualStudio.BuildTools -e --source winget --override "--passive --wait --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended" --accept-package-agreements --accept-source-agreements
-        if errorlevel 1 (
-            echo [ERRO] A instalacao do C++ falhou; confira o instalador da Microsoft.
-            exit /b 1
-        )
-        echo [OK] Instalador do C++ executado. Reabra os terminais e rode este BAT de novo.
-        exit /b 1
-    )
-    echo Instale manualmente pelo guia oficial acima.
-    exit /b 1
-)
-
-echo.
-echo Projeto instalado em: %PROJECT_DIR%
-echo Projetos do usuario ficam FORA deste repo: %%USERPROFILE%%\DarkStudio\projects
-echo GitHub e usado somente para atualizar o CODIGO, nunca os projetos pessoais.
+echo Feche as janelas antigas do editor ANTES de iniciar a versao nova.
 exit /b 0
 
-:OFFER_TOOL
-set "APP_ID=%~1"
-set "APP_NAME=%~2"
+:DIRTY
+echo [BLOQUEADO] Existem mudancas locais ou arquivos novos no clone:
+git status --short
 echo.
-echo [FALTA] %APP_NAME% nao esta disponivel no terminal.
-where winget >nul 2>&1
-if errorlevel 1 (
-    echo Instale %APP_NAME% manualmente e execute este BAT novamente.
-    echo https://v2.tauri.app/start/prerequisites/
-    exit /b 1
+echo Nada foi descartado. Peca ao Codex para fazer commit ou guardar as alteracoes.
+echo Se aparecer package-lock.json de instalacao antiga, mova-o para backup
+echo SOMENTE apos conferir que nao ha trabalho importante nele.
+exit /b 1
+
+:LOCATE_REPO
+rem Detecta: variavel opcional, pasta do BAT, subpasta windows, clone irmao,
+rem diretorio de execucao e ultima localizacao salva. Funciona com pasta renomeada.
+if defined DARK_STUDIO_REPO_DIR call :CHECK_REPO "%DARK_STUDIO_REPO_DIR%"
+if not defined PROJECT_DIR call :CHECK_REPO "%BASE%"
+if not defined PROJECT_DIR call :CHECK_REPO "%BASE%.."
+if not defined PROJECT_DIR call :CHECK_REPO "%BASE%D-E-V1"
+if not defined PROJECT_DIR call :CHECK_REPO "%CD%"
+if not defined PROJECT_DIR if defined LOCALAPPDATA if exist "%LOCALAPPDATA%\DarkStudio\code-path.txt" (
+  for /f "usebackq delims=" %%R in ("%LOCALAPPDATA%\DarkStudio\code-path.txt") do if not defined PROJECT_DIR call :CHECK_REPO "%%R"
 )
-choice /C SN /N /M "Deseja instalar %APP_NAME% via winget? [S/N] "
-if errorlevel 2 (
-    echo Instalacao cancelada pelo usuario.
-    exit /b 1
-)
-winget install --id "%APP_ID%" -e --source winget --accept-package-agreements --accept-source-agreements
-if errorlevel 1 (
-    echo [ERRO] Falha instalando %APP_NAME%. Tente manualmente.
-    exit /b 1
-)
-echo [OK] Instalador executado. Feche e reabra o terminal, depois rode este BAT novamente.
+if not defined PROJECT_DIR call :PROMPT_PATH
+exit /b 0
+
+:PROMPT_PATH
+echo Pasta local nao identificada automaticamente.
+set "MANUAL_REPO="
+set /p "MANUAL_REPO=Digite a pasta do clone, ou Enter para instalar em D-E-V1: "
+if defined MANUAL_REPO call :CHECK_REPO "%MANUAL_REPO%"
+exit /b 0
+
+:CHECK_REPO
+if not exist "%~1\package.json" exit /b 0
+if not exist "%~1\src-tauri\tauri.conf.json" exit /b 0
+if not exist "%~1\.git" exit /b 0
+for %%I in ("%~1") do set "PROJECT_DIR=%%~fI"
+exit /b 0
+
+:SAVE_LOCATION
+if not defined LOCALAPPDATA exit /b 0
+powershell.exe -NoProfile -Command "try { $d=Join-Path $env:LOCALAPPDATA 'DarkStudio'; [IO.Directory]::CreateDirectory($d) | Out-Null; [IO.File]::WriteAllText((Join-Path $d 'code-path.txt'),$env:PROJECT_DIR,[Text.UTF8Encoding]::new($false)) } catch { exit 1 }" >nul 2>&1
+if errorlevel 1 echo [AVISO] Nao consegui registrar o caminho. O BAT continua funcionando na pasta do repo.
 exit /b 0

@@ -19,6 +19,9 @@ jobs:
           npm run check
           npm test
           npm run build
+      - name: Test BAT updater safely against isolated Git main
+        shell: powershell
+        run: .\scripts\test-windows-bats.ps1
       - name: Check Windows launcher supervisor syntax
         shell: powershell
         run: |
