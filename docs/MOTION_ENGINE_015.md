@@ -12,6 +12,8 @@ A v0.15 amplia o **vocabulário declarativo de direção audiovisual**, sem exec
 | Câmera | `cameraPath` em `beat` / `shot` | Interpolação determinística entre pontos (X/Y em px, zoom, rotação) | Inserir, modificar, excluir pontos; trajetória-modelo |
 | Transição 2D | `transitionIn: {type,durationFrames}` | Corte, fusão, deslizar, revelar; quando há plano contíguo, reexibe os últimos frames do plano anterior durante a entrada | Tipo e duração no inspetor |
 
+O comportamento de texto `word-reveal` revela palavras em etapas, de modo determinístico, sem depender de marcação fonética. A fonte ainda deve estar instalada no computador que gera o MP4.
+
 **Ainda não implementado:** importação direta de direction JSON pelo dashboard, importação de fontes em arquivo e empacotamento de fontes, character rig com braços/pernas e troca de poses, câmera seguindo automaticamente objetos, mola/física, parallax de profundidade real, máscaras arbitrárias por caminho, agrupamento automático por seleção múltipla, gráficos de fluxos de dinheiro avançados, licenciamento automático de B-roll, inspeção computacional dos pixels renderizados e pacote único `.darkstudio`. Nada disso deve ser descrito como pronto.
 
 ## Como a IA cria uma cena do zero
