@@ -7,6 +7,7 @@ import {Transform} from 'node:stream';
 import {pipeline} from 'node:stream/promises';
 import type {IncomingMessage,ServerResponse} from 'node:http';
 import {json} from './http';
+import type {Asset} from '../../../src/model/project';
 
 export const DATA_ROOT=join(homedir(),'DarkStudio');
 const MEDIA_DIR=join(DATA_ROOT,'media');
@@ -25,7 +26,7 @@ function nameFromHeader(v:string|undefined){if(!v)return null;try{return decodeU
 /** Mídia sintetizada LOCALMENTE pelo Dark Studio; a voz não é publicada em GitHub. */
 export async function importGeneratedWave(wav:Buffer,options?:{
   name?:string;durationFrames?:number;
-}):Promise<{id:string,name:string,kind:'audio',mime:string,url:string,durationFrames:number}>{
+}):Promise<Asset & {durationFrames:number}>{
   if(wav.length<44||wav.length>30*1024*1024)throw new Error('WAV sintetizado inválido.');
   const id=randomUUID(),name=options?.name??'piloto-narracao-local.wav';
   if(!/^[^\\/\u0000-\u001f]{1,200}\.wav$/i.test(name))throw new Error('Nome de WAV local inválido.');
@@ -45,7 +46,8 @@ export async function importGeneratedWave(wav:Buffer,options?:{
     await unlink(path).catch(()=>{});
     throw e;
   }
-  return {id,name,kind:'audio',mime:entry.mime,url:entry.url,durationFrames};
+  return {id,name,kind:'audio',mime:entry.mime,url:entry.url,durationFrames,
+    rights:{status:'unknown',sourceUrl:'',creator:'',licenseName:'',attribution:'',notes:''}};
 }
 /** Portable archives may only read registered media; never arbitrary user paths. */
 export async function readRegisteredMedia(id:string):Promise<{bytes:Buffer;ext:string;mime:string;kind:'image'|'video'|'audio';name:string}>{

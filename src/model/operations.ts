@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import {shotSchema,chapterSchema,channelKitSchema,channelKitObjectSchema} from './shots';
-import { assetSchema, clipSchema, captionSchema, evidenceSchema, projectSchema, sceneSchema, type Project } from './project';
+import { assetSchema, assetObjectSchema, clipSchema, captionSchema, evidenceSchema, projectSchema, sceneSchema, type Project } from './project';
 
 const editableSceneSchema = sceneSchema.omit({id:true}).partial().strict();
 export const operationSchema = z.discriminatedUnion('type', [
@@ -9,7 +9,7 @@ export const operationSchema = z.discriminatedUnion('type', [
   z.object({type:z.literal('removeScene'), sceneId:z.string()}).strict(),
   z.object({type:z.literal('moveScene'), sceneId:z.string(), direction:z.enum(['left','right'])}).strict(),
   z.object({type:z.literal('addAsset'), asset:assetSchema}).strict(),
-  z.object({type:z.literal('updateAsset'), assetId:z.string().uuid(), changes:assetSchema.omit({id:true,kind:true,mime:true,url:true}).partial().strict()}).strict(),
+  z.object({type:z.literal('updateAsset'), assetId:z.string().uuid(), changes:assetObjectSchema.omit({id:true,kind:true,mime:true,url:true}).partial().strict()}).strict(),
   z.object({type:z.literal('addClip'), clip:clipSchema}).strict(),
   z.object({type:z.literal('updateClip'), clipId:z.string(), changes:clipSchema.omit({id:true,assetId:true}).partial().strict()}).strict(),
   z.object({type:z.literal('removeClip'), clipId:z.string()}).strict(),

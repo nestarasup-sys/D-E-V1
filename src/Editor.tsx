@@ -190,6 +190,7 @@ export function Editor({onHome,syncStatus,onReload}:{onHome:()=>void,syncStatus:
       kicker:'DARK STUDIO',accentColor:project.channelKit.accentColor,backgroundColor:'#111e2c',
       motion:{x:[],y:[],scale:[],rotation:[],opacity:[]},investigation:investigationSchema.parse({}),layers:[],
       cameraPath:[],transitionIn:{type:'cut',durationFrames:12},
+      framing:{fit:'cover',focusX:50,focusY:50,zoom:1,trimStartFrames:0},
     };
     try{
       const ops:Operation[]=project.visualMode==='shots'?[]:[{type:'setVisualMode',visualMode:'shots'}];

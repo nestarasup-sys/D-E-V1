@@ -27,7 +27,7 @@ export const assetRightsSchema=z.object({
   attribution:z.string().max(360).default(''),
   notes:z.string().max(500).default(''),
 }).strict().default({});
-export const assetSchema = z.object({
+export const assetObjectSchema = z.object({
   id: z.string().uuid(),
   name: z.string().min(1).max(240),
   kind: assetKindSchema,
@@ -35,7 +35,8 @@ export const assetSchema = z.object({
   url: z.string().max(512).url(),
   durationFrames: z.number().int().positive().max(30 * 60 * 60).optional(),
   rights:assetRightsSchema,
-}).strict().refine(a => a.url === `http://127.0.0.1:4317/media/${a.id}`, 'URL de mídia inválida');
+}).strict();
+export const assetSchema=assetObjectSchema.refine(a => a.url === `http://127.0.0.1:4317/media/${a.id}`, 'URL de mídia inválida');
 export const laneSchema = z.enum(['visual', 'narration', 'music', 'sfx']);
 export const clipSchema = z.object({
   id: z.string().uuid(),

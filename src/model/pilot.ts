@@ -54,6 +54,7 @@ export function buildPilotProject(options:{
     backgroundColor:backgrounds[i],accentColor:colors[i],trimStartFrames:0,
     motion:easingMotion(beat.end-beat.start,i),investigation:investigationSchema.parse({}),layers:[],
     cameraPath:[],transitionIn:{type:'cut',durationFrames:12},
+    framing:{fit:'cover',focusX:50,focusY:50,zoom:1,trimStartFrames:0},
   }));
   const captions=pilotBeats.map((beat,i)=>{
     const length=options.speechFrames?.[i]??beat.end-beat.start-8;

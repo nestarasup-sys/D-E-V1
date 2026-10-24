@@ -23,7 +23,7 @@ async function main(){
   const voice=await synthesizePilotVoice();
   const assetId=randomUUID();
   const asset={id:assetId,kind:'audio' as const,mime:'audio/wav',name:'narracao-piloto.wav',
-    url:'http://127.0.0.1:4317/media/'+assetId,durationFrames:PILOT_FRAMES};
+    url:'http://127.0.0.1:4317/media/'+assetId,durationFrames:PILOT_FRAMES,rights:{status:'unknown' as const,sourceUrl:'',creator:'',licenseName:'',attribution:'',notes:''},};
   const syntheticSourceId=randomUUID();
   const project=projectSchema.parse({
     ...buildPilotProject({newId:randomUUID,voiceAsset:asset,speechFrames:voice.speechFrames}),

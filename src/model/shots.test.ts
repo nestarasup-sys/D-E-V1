@@ -34,7 +34,8 @@ describe('modelo de episódios com planos e compatibilidade',()=>{
     const uuid=idFactory();
     const assetId=uuid();
     const asset={id:assetId,kind:'audio' as const,mime:'audio/wav',name:'voz.wav',
-      url:'http://127.0.0.1:4317/media/'+assetId,durationFrames:900};
+      url:'http://127.0.0.1:4317/media/'+assetId,durationFrames:900,
+      rights:{status:'unknown' as const,sourceUrl:'',creator:'',licenseName:'',attribution:'',notes:''}};
     const before=buildPilotProject({newId:uuid,voiceAsset:asset,speechFrames:pilotBeats.map(x=>x.end-x.start-8)});
     expect(before.clips[0].durationFrames).toBe(900);
     const first=before.shots[0];

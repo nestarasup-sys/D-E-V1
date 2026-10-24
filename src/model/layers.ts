@@ -129,7 +129,7 @@ export const layerSchema=layerObjectSchema.superRefine((layer,ctx)=>{
     ctx.addIssue({code:'custom',path:['vectorPath'],message:'Vetor precisa de um caminho SVG (d).'});
   if(layer.chartStages.some(stage=>stage.values.length!==layer.values.length))
     ctx.addIssue({code:'custom',path:['chartStages'],message:'Cada estágio deve ter a mesma quantidade de valores do gráfico.'});
-  if(layer.rigKeys.some(key=>layer.kind!=='character'))
+  if(layer.kind!=='character'&&layer.rigKeys.length)
     ctx.addIssue({code:'custom',path:['rigKeys'],message:'Poses articuladas são exclusivas de personagens.'});
   if(layer.parentId===layer.id)
     ctx.addIssue({code:'custom',path:['parentId'],message:'Uma camada não pode ser seu próprio grupo.'});

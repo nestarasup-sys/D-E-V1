@@ -10,7 +10,7 @@ const uuid=()=>randomUUID();
 function fixture(){
   const assetId=uuid();
   const asset={id:assetId,kind:'audio' as const,name:'voz-local.wav',mime:'audio/wav',
-    url:'http://127.0.0.1:4317/media/'+assetId,durationFrames:900};
+    url:'http://127.0.0.1:4317/media/'+assetId,durationFrames:900,rights:{status:'unknown' as const,sourceUrl:'',creator:'',licenseName:'',attribution:'',notes:''},};
   return buildPilotProject({newId:uuid,voiceAsset:asset,speechFrames:pilotBeats.map(b=>b.end-b.start-8)});
 }
 function doc(project=fixture()):Direction{

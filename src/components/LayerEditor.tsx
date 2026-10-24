@@ -168,7 +168,7 @@ export function LayerEditor({shot,selectedId,onSelected,assets,captions,evidence
           const taken=new Set(selected.rigKeys.map(k=>k.frame));
           const frame=Array.from({length:selected.durationFrames},(_,i)=>i).find(i=>!taken.has(i));
           if(frame===undefined)return;
-          patch(selected.id,{rigKeys:[...selected.rigKeys,{frame,pose:{...selected.rig},easing:'ease-in-out'}].sort((a,b)=>a.frame-b.frame)});
+          patch(selected.id,{rigKeys:[...selected.rigKeys,{frame,pose:{...selected.rig},easing:'ease-in-out' as const}].sort((a,b)=>a.frame-b.frame)});
         }}>+ Pose no frame</button></div>
         {selected.rigKeys.map((key,i)=><div key={'pose-'+i}>
           <div className="kfRow"><label>Frame<input type="number" min={0} max={selected.durationFrames-1}
@@ -261,7 +261,7 @@ export function LayerEditor({shot,selectedId,onSelected,assets,captions,evidence
             const frame=Array.from({length:selected.durationFrames},(_,i)=>i).find(i=>!used.has(i));
             if(frame===undefined)return;
             patch(selected.id,{chartStages:[...selected.chartStages,{
-              frame,values:[...selected.values],easing:'ease-in-out'}].sort((a,b)=>a.frame-b.frame)});
+              frame,values:[...selected.values],easing:'ease-in-out' as const}].sort((a,b)=>a.frame-b.frame)});
           }}>+ Estágio animado</button>
         {selected.chartStages.map((stage,i)=><div className="kfRow" key={'chart-stage-'+i}>
           <label>Frame<input type="number" min={0} max={selected.durationFrames-1} value={stage.frame}
