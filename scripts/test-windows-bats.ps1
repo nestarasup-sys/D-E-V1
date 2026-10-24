@@ -117,3 +117,7 @@ finally {
   $env:GIT_CONFIG_VALUE_0=$originalGitValue
   Remove-Item $dir -Recurse -Force -ErrorAction SilentlyContinue
 }
+
+# A dirty-tree refusal is an EXPECTED exit 1. Do not propagate that native
+# process exit code to the overall PowerShell CI step after all assertions pass.
+exit 0
