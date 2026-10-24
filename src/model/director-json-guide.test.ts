@@ -31,16 +31,16 @@ describe('Guia Diretor por JSON v0.14 (documentação viva)',()=>{
       expect(guide,'categoria ausente do guia: '+preset.category).toContain(preset.category);
     }
     for(const kind of investigativeStyles)expect(guide).toContain('`'+kind+'`');
-    for(const style of shotSchema.shape.style.options)expect(guide).toContain('`'+style+'`');
+    for(const style of shotSchema.shape.style.removeDefault().options)expect(guide).toContain('`'+style+'`');
   });
   it('documenta tipos de camada, movimentos, personagens, objetos, cenários e SFX',()=>{
     expect(layerKinds).toHaveLength(10);
     expect(layerBehaviors).toHaveLength(19);
     for(const kind of layerKinds)expect(guide).toContain('`'+kind+'`');
     for(const behavior of layerBehaviors)expect(guide).toContain('`'+behavior+'`');
-    for(const kind of layerObjectSchema.shape.characterType.options)expect(guide).toContain('`'+kind+'`');
-    for(const kind of layerObjectSchema.shape.objectType.options)expect(guide).toContain('`'+kind+'`');
-    for(const kind of layerObjectSchema.shape.sceneType.options)expect(guide).toContain('`'+kind+'`');
+    for(const kind of layerObjectSchema.shape.characterType.removeDefault().options)expect(guide).toContain('`'+kind+'`');
+    for(const kind of layerObjectSchema.shape.objectType.removeDefault().options)expect(guide).toContain('`'+kind+'`');
+    for(const kind of layerObjectSchema.shape.sceneType.removeDefault().options)expect(guide).toContain('`'+kind+'`');
     for(const type of SFX_TYPES)expect(guide).toContain('`'+type+'`');
   });
   it('compila o exemplo completo de 12 s sem mover voz, legendas, fontes ou cenas',()=>{
