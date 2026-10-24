@@ -15,7 +15,8 @@
     "smoke:render": "tsx scripts/smoke-render.ts",
     "dev:service": "tsx apps/agent/src/index.ts",
     "project": "tsx scripts/project-tool.ts",
-    "smoke:pilot": "tsx scripts/smoke-pilot.ts"
+    "smoke:pilot": "tsx scripts/smoke-pilot.ts",
+    "smoke:service": "tsx scripts/smoke-service.ts"
   },
   "dependencies": {
     "@remotion/player": "^4.0.360",

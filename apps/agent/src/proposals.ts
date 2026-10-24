@@ -126,6 +126,13 @@ export class ProposalRepository {
     return results.filter((x):x is ProposalView=>x!==null)
       .sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
   }
+  async count(projectId:string):Promise<number>{
+    await this.projects.read(projectId);
+    try{
+      return (await readdir(this.directory(projectId)))
+        .filter(name=>/^[0-9a-f-]{36}\.json$/.test(name)).length;
+    }catch(e){if((e as NodeJS.ErrnoException).code==='ENOENT')return 0;throw e;}
+  }
   async accept(projectId:string,proposalId:string):Promise<Awaited<ReturnType<ProjectRepository['save']>>>{
     const proposal=await this.get(projectId,proposalId);
     const original=await this.projects.read(projectId);

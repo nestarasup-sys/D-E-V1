@@ -19,6 +19,8 @@ jobs:
           npm run check
           npm test
           npm run build
+      - name: Local service API contract smoke
+        run: npm run smoke:service
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
