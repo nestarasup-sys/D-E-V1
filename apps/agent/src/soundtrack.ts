@@ -48,9 +48,9 @@ const normalize=(s:string)=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'')
   .toLowerCase().replace(/[^a-z0-9]/g,'');
 function inferMood(text:string):Mood{
   const sentence=text.split(/\s+/).map(normalize).join(' ');
-  if(/\b(alerta|divida|crise|risco|inflacao|problema|perda)\b/.test(sentence)
+  if(/\b(alerta|divida|crise|risco|inflacao|problema|perda)\b/.test(sentence))
     return 'tension';
-  if(/\b(conquista|esperanca|solucao|crescimento|melhora)\b/.test(sentence)
+  if(/\b(conquista|esperanca|solucao|crescimento|melhora)\b/.test(sentence))
     return 'hope';
   return 'documentary';
 }
