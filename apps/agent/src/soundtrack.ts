@@ -20,7 +20,7 @@ export function makeMusicWave(frames:number,mood:Mood):Buffer{
   const samples=Math.ceil(frames*RATE/30);
   const pcm=Buffer.alloc(samples*2),tones=palette[mood];
   for(let n=0;n<samples;n++){
-    const time=n/RATE,progress=n/Math.max(1,samples-1);
+    const time=n/RATE;
     const fade=Math.min(1,time/.6,Math.max(0,(samples/RATE-time)/.7));
     const chord=tones[Math.floor(time/4)%tones.length],other=tones[(Math.floor(time/4)+2)%tones.length];
     const shimmer=Math.sin(Math.PI*2*time*.12)*.025;
@@ -47,9 +47,10 @@ const semantic:Record<string,SfxType>={
 const normalize=(s:string)=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'')
   .toLowerCase().replace(/[^a-z0-9]/g,'');
 function inferMood(text:string):Mood{
-  if(/\b(alerta|divida|crise|risco|inflacao|problema|perda)\b/.test(normalize(text).replace(/\W+/g,' ')))
+  const sentence=text.split(/\s+/).map(normalize).join(' ');
+  if(/\b(alerta|divida|crise|risco|inflacao|problema|perda)\b/.test(sentence)
     return 'tension';
-  if(/\b(conquista|esperanca|solucao|crescimento|melhora)\b/.test(normalize(text).replace(/\W+/g,' ')))
+  if(/\b(conquista|esperanca|solucao|crescimento|melhora)\b/.test(sentence)
     return 'hope';
   return 'documentary';
 }
