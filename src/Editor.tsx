@@ -8,6 +8,7 @@ import {parseSrt,exportSrt} from './model/captions';
 import {ShotTimeline} from './components/ShotTimeline';
 import {ShotInspector} from './components/ShotInspector';
 import {CaptionInspector} from './components/CaptionInspector';
+import {ChannelKitPanel} from './components/ChannelKitPanel';
 import type {Shot} from './model/shots';
 import {EvidencePanel} from './components/EvidencePanel';
 
@@ -249,6 +250,7 @@ export function Editor({onHome,syncStatus,onReload}:{onHome:()=>void,syncStatus:
         <div className="field"><label>Notas de produção / evidências</label><textarea rows={3} maxLength={500} value={scene.productionNotes||''} onChange={e=>update({productionNotes:e.target.value})} placeholder="Direção visual e evidências a verificar..."/></div>
         <div className="sceneActions"><button onClick={()=>action([{type:'moveScene',sceneId:scene.id,direction:'left'}])} disabled={selectedIndex===0}>← Mover</button><button onClick={()=>action([{type:'moveScene',sceneId:scene.id,direction:'right'}])} disabled={selectedIndex===project.scenes.length-1}>Mover →</button><button className="danger" disabled={project.scenes.length===1} onClick={()=>action([{type:'removeScene',sceneId:scene.id}])}>Excluir</button></div>
         <EvidencePanel sceneId={scene.id} evidence={project.evidence.filter(e=>e.sceneId===scene.id)} onOps={action}/>
+        <ChannelKitPanel kit={project.channelKit} onChange={changes=>action([{type:'updateChannelKit',changes}])}/>
         </div>{message&&<p role="alert" className="warning">{message}</p>}
       </aside>
     </div>

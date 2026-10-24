@@ -34,12 +34,14 @@ function ProjectSession({initial,onClose}: {initial:ProjectRecord;onClose:()=>vo
     const raw=JSON.stringify(current);
     if(raw===baseline.current)return true;
     saving.current=true;
+    let succeeded=false;
     setSync('Salvando...');
     try{
       const updated=await saveProject(current,revision.current);
       baseline.current=JSON.stringify(updated.project);
       revision.current=updated.revision;
       setSync('Salvo no computador');
+      succeeded=true;
       return true;
     }catch(e){
       if(e instanceof ApiError && e.status===409){
@@ -51,7 +53,7 @@ function ProjectSession({initial,onClose}: {initial:ProjectRecord;onClose:()=>vo
     }finally{
       saving.current=false;
       // Se houve nova digitação enquanto salvava, não deixe a versão nova sem persistir.
-      if(!conflicted.current && JSON.stringify(useEditor.getState().project)!==baseline.current){
+      if(succeeded && !conflicted.current && JSON.stringify(useEditor.getState().project)!==baseline.current){
         setTimeout(()=>{void save();},300);
       }
     }
@@ -206,10 +208,10 @@ export function App(){
       'ID: '+entry.id,
       'Arquivo local: '+file,
       'Você precisa de acesso local autorizado a esta pasta e ao repositório de código D-E-V1.',
-      'Leia src/model/project.ts, src/model/operations.ts e AGENTS.md antes de editar.',
+      'Leia src/model/project.ts, src/model/shots.ts, src/model/operations.ts e AGENTS.md antes de editar.',
       'No diretório do código D-E-V1, execute npm run project -- info '+entry.id+' para conhecer a revisão atual.',
       'Leia o JSON, gere operações estruturadas e prepare para minha aprovação com npm run project -- propose '+entry.id+' <arquivo-operacoes.json> <revisao>. Não aplique antes da revisão no Dark Studio.',
-      'Preserve os IDs e as evidências existentes. Não invente fatos, fontes nem links de mídia. Não apague cenas sem instrução.',
+      'Para montagem dinâmica use operações addShot/updateShot (início, duração, movimento, easing e camadas), sem deslocar narração ou legendas. Preserve as cenas, IDs e fontes existentes. Não invente fatos ou mídias.',
       'Após aplicar, valide com npm run project -- validate '+entry.id+'. O Dark Studio perceberá a alteração local automaticamente.',
       'Se for solicitado exportar MP4, abra npm run dev:service e use npm run project -- render '+entry.id+'.'
     ].join('\n');

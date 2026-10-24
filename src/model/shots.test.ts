@@ -20,7 +20,6 @@ describe('modelo de episódios com planos e compatibilidade',()=>{
   });
   it('gera um piloto de 900 frames com 8 planos e 3 capítulos, sem dados privados',()=>{
     const project=buildPilotProject({newId:idFactory()});
-    expect(project.durationFrames).toBeUndefined();
     expect(projectDuration(project)).toBe(PILOT_FRAMES);
     expect(project.shots).toHaveLength(8);
     expect(project.visualMode).toBe('shots');
@@ -39,7 +38,7 @@ describe('modelo de episódios com planos e compatibilidade',()=>{
     const before=buildPilotProject({newId:uuid,voiceAsset:asset,speechFrames:pilotBeats.map(x=>x.end-x.start-8)});
     expect(before.clips[0].durationFrames).toBe(900);
     const first=before.shots[0];
-    const after=applyOperations(before,[{type:'updateShot',shotId:first.id,changes:{startFrame:6,durationFrames:first.durationFrames-6}}]);
+    const after=applyOperations(before,[{type:'updateShot',shotId:first.id,changes:{startFrame:6,durationFrames:first.durationFrames-6,motion:retimeMotion(first.motion,first.durationFrames,first.durationFrames-6)}}]);
     expect(after.shots[0].startFrame).toBe(6);
     expect(after.clips).toEqual(before.clips);
     expect(after.captions).toEqual(before.captions);

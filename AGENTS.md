@@ -31,3 +31,12 @@
 - Arquivos \`.srt\` são legendas importáveis pelo editor, **não transcrição automática**.
 - Ferramentas locais: \`history\`, \`restore\`, \`preview\`, \`propose\`, \`pending\`, \`accept\`, \`reject\`, \`doctor\`. Nenhuma delas usa GitHub para dados de usuário.
 - Snapshots históricos em \`history\` (até 30) e propostas em \`proposals\` ficam no diretório privado de cada projeto. Não publique esses arquivos.
+
+## Montagem vNext / piloto 30s
+
+- Antes de reconstruir o modelo veja `docs/VIDEO_ARCHITECTURE.md`. Preservar `version:2` com `visualMode:'legacy'` para projetos antigos.
+- `shots[]`: planos visuais editáveis em frames absolutos, com `startFrame`, `durationFrames`, `motion` (keyframes relativos ao plano), `zIndex`, `kind` e `style`. `chapters[]` organiza cenas sem alterar a duração; `channelKit` compartilha identidade visual.
+- Preferir operações `addShot`, `updateShot`, `removeShot`, `replaceChapters` e `updateChannelKit` via proposta validada. Não deslocar automaticamente a narração e as legendas quando o usuário mover um plano.
+- O piloto (`npm run project -- pilot`) requer serviço local e voz SAPI do Windows; gera WAV e JSON apenas em `%USERPROFILE%\DarkStudio`, sem GitHub nem mídia no repositório.
+- A mesma composição `Documentary` serve para Player e render MP4; não criar dois motores separados. Alterações de keyframes precisam de testes determinísticos.
+- Verificar `npm run smoke:pilot` (Windows) e `npm run smoke:render` (legacy) antes de declarar o piloto automatizado validado. Testes reais do usuário continuam necessários para validar UI, desempenho e escuta.

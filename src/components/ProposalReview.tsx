@@ -36,6 +36,9 @@ export function ProposalReview({projectId,onClose,onChanged}:{projectId:string,o
             {p.preview.changedScenes.map(item=><li key={item.id}>Cena alterada: {item.before} → {item.after} (campos: {item.changedFields.join(', ')})</li>)}
             {p.preview.changedClips.map(item=><li key={item.id}>Clipe {item.id.slice(0,8)}: {item.changedFields.join(', ')}</li>)}
             <li>Clipes adicionados: {p.preview.addedClips} · removidos: {p.preview.removedClips}</li>
+            {p.preview.addedShots.map((name,i)=><li key={'as'+i}>Plano visual novo: {name}</li>)}
+            {p.preview.removedShots.map((name,i)=><li key={'rs'+i}>Plano removido: {name}</li>)}
+            {p.preview.changedShots.map(s=><li key={s.id}>Plano {s.id.slice(0,8)}: campos {s.changedFields.join(', ')}</li>)}
             <li>Legendas: {p.preview.addedCaptions>=0?'+':''}{p.preview.addedCaptions} · Fontes: {p.preview.addedEvidence>=0?'+':''}{p.preview.addedEvidence}</li>
           </ul>}
           <div className="projectActions">

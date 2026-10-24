@@ -18,6 +18,7 @@ export interface ChangePreview {
   addedScenes:string[];removedScenes:string[];changedScenes:{before:string;after:string;id:string;changedFields:string[]}[];
   changedClips:{id:string;changedFields:string[]}[];addedClips:number;removedClips:number;
   addedAssets:number;removedAssets:number;addedCaptions:number;addedEvidence:number;
+  addedShots:string[];removedShots:string[];changedShots:{id:string;changedFields:string[]}[];
 }
 export function describeChanges(before:Project,after:Project):ChangePreview {
   const a=new Map(before.scenes.map(s=>[s.id,s]));
@@ -42,6 +43,14 @@ export function describeChanges(before:Project,after:Project):ChangePreview {
     }),
     addedClips:after.clips.filter(c=>!before.clips.some(x=>x.id===c.id)).length,
     removedClips:before.clips.filter(c=>!after.clips.some(x=>x.id===c.id)).length,
+    addedShots:after.shots.filter(s=>!before.shots.some(x=>x.id===s.id)).map(s=>s.title),
+    removedShots:before.shots.filter(s=>!after.shots.some(x=>x.id===s.id)).map(s=>s.title),
+    changedShots:after.shots.flatMap(s=>{
+      const old=before.shots.find(x=>x.id===s.id);
+      if(!old||JSON.stringify(s)===JSON.stringify(old))return [];
+      return [{id:s.id,changedFields:Object.keys(s).filter(key=>
+        JSON.stringify(s[key as keyof typeof s])!==JSON.stringify(old[key as keyof typeof s]))}];
+    }),
     addedAssets:after.assets.length-before.assets.length,
     removedAssets:Math.max(0,before.assets.length-after.assets.length),
     addedCaptions:after.captions.length-before.captions.length,

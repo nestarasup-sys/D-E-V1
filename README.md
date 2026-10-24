@@ -1,10 +1,19 @@
-# Dark Studio v0.10 — Editor desktop com Codex local
+# Dark Studio v0.11 (piloto de montagem) — Editor desktop com Codex local
 
 O **Dark Studio** é um editor de documentários para Windows 11. A interface usa Tauri 2 + React + TypeScript, o preview utiliza Remotion e a exportação MP4 acontece via Remotion Renderer/FFmpeg em processo separado.
 
 **Como a IA funciona:** você conversa com o **Codex no aplicativo ChatGPT Desktop, em modo Local / Este computador**. O Codex recebe permissão para trabalhar com arquivos locais do projeto Dark Studio, cria ou modifica projetos e opcionalmente solicita a exportação MP4. O editor detecta alterações no disco. **Não existe chat de IA dentro do Dark Studio; nenhum projeto é sincronizado via GitHub.**
 
 GitHub serve apenas para hospedar o **código-fonte do aplicativo**, sem roteiros, mídia ou projetos reais de usuários.
+
+
+## Piloto de montagem dinâmica de 30 segundos (v0.11)
+
+**Novo:** na página inicial clique em **▶ Criar piloto audiovisual 30s**. O serviço local usa uma voz TTS instalada no Windows (System.Speech, sem geração de voz por IA) para montar uma locução WAV de 30s, cria um novo projeto com oito planos animados independentes e respectivas legendas, sem modificar seus projetos atuais.
+
+Na timeline do novo projeto, arraste um plano ou as alças laterais para alterar início/duração; no inspetor edite os keyframes de posição, zoom, rotação, opacidade e easing. Clique em uma legenda para alterar texto/tempo. A narração permanece fixa se você alterar apenas um plano. O render e a prévia usam `src/video/Documentary.tsx`.
+
+A voz precisa realmente estar instalada no Windows; caso contrário o sistema apresenta uma falha clara. Para detalhes do teste e suas limitações veja [docs/PILOT_30S.md](docs/PILOT_30S.md). O diagnóstico da arquitetura e próximas fases está em [docs/VIDEO_ARCHITECTURE.md](docs/VIDEO_ARCHITECTURE.md).
 
 ## Windows: instalar, atualizar e abrir com dois cliques (BAT)
 

@@ -69,5 +69,7 @@ export function ShotVisual({shot,asset,kit}:{shot:Shot;asset?:Asset;kit:ChannelK
         </div>
       </AbsoluteFill>}
     </AbsoluteFill>
+    <div style={{position:'absolute',top:32,right:55,fontSize:21,fontWeight:700,letterSpacing:4,
+      color:'#ffffffaa'}}>{kit.brandName}</div>
   </AbsoluteFill>;
 }

@@ -27,3 +27,5 @@ jobs:
         run: cargo check --manifest-path src-tauri/Cargo.toml
       - name: Render short real MP4
         run: npm run smoke:render
+      - name: Render 30-second pilot with Windows narration and captions
+        run: npm run smoke:pilot

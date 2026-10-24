@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import {shotSchema,chapterSchema,channelKitSchema} from './shots';
+import {shotSchema,chapterSchema,channelKitSchema,channelKitObjectSchema} from './shots';
 import { assetSchema, clipSchema, captionSchema, evidenceSchema, projectSchema, sceneSchema, type Project } from './project';
 
 const editableSceneSchema = sceneSchema.omit({id:true}).partial().strict();
@@ -17,7 +17,7 @@ export const operationSchema = z.discriminatedUnion('type', [
   z.object({type:z.literal('removeShot'),shotId:z.string().uuid()}).strict(),
   z.object({type:z.literal('replaceChapters'),chapters:z.array(chapterSchema).max(100)}).strict(),
   z.object({type:z.literal('setVisualMode'),visualMode:z.enum(['legacy','shots'])}).strict(),
-  z.object({type:z.literal('updateChannelKit'),changes:channelKitSchema.partial().strict()}).strict(),
+  z.object({type:z.literal('updateChannelKit'),changes:channelKitObjectSchema.partial().strict()}).strict(),
   z.object({type:z.literal('replaceCaptions'), captions:z.array(captionSchema).max(3000)}).strict(),
   z.object({type:z.literal('updateCaption'),captionId:z.string().uuid(),
     changes:captionSchema.omit({id:true}).partial().strict()}).strict(),

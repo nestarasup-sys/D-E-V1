@@ -41,12 +41,13 @@ export const chapterSchema=z.object({
   firstSceneId:z.string().min(1).max(80),
 }).strict();
 export type Chapter=z.infer<typeof chapterSchema>;
-export const channelKitSchema=z.object({
+export const channelKitObjectSchema=z.object({
   brandName:z.string().max(90).default('DARK STUDIO'),
   font:z.enum(['sans','serif','mono']).default('sans'),
   accentColor:hex.default('#e2ad56'),
   captionStyle:z.enum(['boxed','minimal']).default('boxed'),
-}).strict().default({brandName:'DARK STUDIO',font:'sans',accentColor:'#e2ad56',captionStyle:'boxed'});
+}).strict();
+export const channelKitSchema=channelKitObjectSchema.default({brandName:'DARK STUDIO',font:'sans',accentColor:'#e2ad56',captionStyle:'boxed'});
 export type ChannelKit=z.infer<typeof channelKitSchema>;
 
 export function validateMotion(motion:Motion,durationFrames:number,ctx:z.RefinementCtx,path:(string|number)[]){
