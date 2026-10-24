@@ -149,6 +149,7 @@ export function Editor({onHome,syncStatus,onReload}:{onHome:()=>void,syncStatus:
       trimStartFrames:0,zIndex:1,title:'NOVO PLANO',subtitle:'Edite este plano na timeline.',
       kicker:'DARK STUDIO',accentColor:project.channelKit.accentColor,backgroundColor:'#111e2c',
       motion:{x:[],y:[],scale:[],rotation:[],opacity:[]},investigation:investigationSchema.parse({}),layers:[],
+      cameraPath:[],transitionIn:{type:'cut',durationFrames:12},
     };
     try{
       const ops:Operation[]=project.visualMode==='shots'?[]:[{type:'setVisualMode',visualMode:'shots'}];
