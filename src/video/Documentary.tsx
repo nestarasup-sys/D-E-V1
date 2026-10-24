@@ -3,6 +3,7 @@ import type {Project,Scene,MediaClip,Asset,Caption} from '../model/project';
 import type {ReactNode,CSSProperties} from 'react';
 import {evaluateKeyframes,type Shot} from '../model/shots';
 import {ShotVisual} from './ShotVisual';
+import {PortableFonts} from './PortableFonts';
 
 function SceneVisual({scene,layer}:{scene:Scene,layer:'background'|'text'}) {
   const frame=useCurrentFrame();
@@ -66,6 +67,7 @@ export function Documentary({project}:{project:Project}) {
   const previousFor=new Map(chronological.map((shot,i)=>[shot.id,chronological[i-1]]));
   const positions=project.scenes.map(scene=>{const from=offset;offset+=scene.durationFrames;return {scene,from};});
   return <AbsoluteFill style={{background:'#050911'}}>
+    <PortableFonts assets={project.assets}/>
     {project.visualMode==='legacy'&&positions.map(({scene,from})=><Sequence key={'background-'+scene.id} from={from} durationInFrames={scene.durationFrames}><SceneVisual scene={scene} layer="background"/></Sequence>)}
     {project.visualMode==='legacy'&&project.clips.filter(c=>c.lane==='visual').map(clip=>{const asset=assets.get(clip.assetId);return asset?<Sequence key={clip.id} from={clip.startFrame} durationInFrames={clip.durationFrames}><ClipVisual clip={clip} asset={asset}/></Sequence>:null;})}
     {project.visualMode==='legacy'&&positions.map(({scene,from})=><Sequence key={'text-'+scene.id} from={from} durationInFrames={scene.durationFrames}><SceneVisual scene={scene} layer="text"/></Sequence>)}

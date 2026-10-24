@@ -183,11 +183,43 @@ export function App(){
     await act(async()=>{
       if(file.name.toLowerCase().endsWith('.darkstudio')){
         await ensureServiceCompatible();
-        const response=await fetch('http://127.0.0.1:4317/v1/archive/import',{
-          method:'POST',headers:{'Content-Type':'application/vnd.darkstudio+zip'},body:file,
-        });
+        const base='http://127.0.0.1:4317/v1/archive/uploads';
+        const key='darkstudio:upload:'+file.name+':'+file.size+':'+file.lastModified;
+        let id=localStorage.getItem(key)||'';
+        let offset=0;
+        if(id){
+          const status=await fetch(base+'/'+id);
+          if(status.ok){
+            const state=await status.json() as {offset:number;size:number};
+            if(state.size===file.size&&state.offset<=file.size)offset=state.offset;
+            else id='';
+          }else id='';
+        }
+        if(!id){
+          const response=await fetch(base,{method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({name:file.name,size:file.size})});
+          const state=await response.json() as {id?:string;error?:string};
+          if(!response.ok||!state.id)throw new Error(state.error||'Não foi possível criar upload.');
+          id=state.id;localStorage.setItem(key,id);
+        }
+        while(offset<file.size){
+          const piece=file.slice(offset,Math.min(file.size,offset+8*1024*1024));
+          const response=await fetch(base+'/'+id,{method:'PUT',
+            headers:{'Content-Type':'application/octet-stream','X-Upload-Offset':String(offset)},
+            body:piece});
+          const state=await response.json() as {offset?:number;error?:string};
+          if(!response.ok||state.offset===undefined)
+            throw new Error(state.error||'Envio interrompido; reabra o arquivo para retomar.');
+          if(state.offset<=offset)throw new Error('Transferência sem avanço.');
+          offset=state.offset;
+          setNotice('Enviando .darkstudio: '+Math.round(offset/file.size*100)+'% — retomável.');
+        }
+        setNotice('Validando e importando mídia e fontes...');
+        const response=await fetch(base+'/'+id+'/complete',{method:'POST'});
         const result=await response.json() as ProjectRecord & {error?:string};
         if(!response.ok||!result.project)throw new Error(result.error||'Pacote .darkstudio inválido');
+        localStorage.removeItem(key);setNotice('Pacote importado e verificado.');
         useEditor.getState().openProject(result.project);setActive(result);
         return;
       }

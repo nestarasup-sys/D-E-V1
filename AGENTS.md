@@ -89,6 +89,15 @@ Em \`evidence[]\`, o Codex pode preencher \`sourceExcerpt\`, \`publicationDate\`
 - Alterar manualmente texto/tempos de uma legenda invalida seus \`words[]\`; regenerar a sincronização a partir do áudio, não copiá-la cegamente.
 
 
+## Intelligent Production v0.17 — OCR, ZIP64 e licenças de fonte
+
+- Nenhum dado do usuário deve entrar na main. Projetos continuam `version:2` e direções `version:1`.
+- OCR offline em português via `tesseract.js` com modelo local do npm; indicar segundos exatos, alertas e correções. Não prometer OCR infalível nem inspecionar todos os frames se a rotina é amostral.
+- `.darkstudio` formato ZIP v2 e ZIP64: somente entradas previstas, 64 GiB totais / 16 GiB por item / 12 mil mídias, verificar SHA-256, sem ler vídeos inteiros na RAM, temporários isolados com limpeza após erros. Uploads em blocos podem ser retomados por offset; exportação gera arquivo de disco e HTTP Range. Preservar importador v1.
+- Fontes importadas têm `kind:"font"` e MIME WOFF2/WOFF/TTF/OTF, assinatura mágica checada; família `DSFont-UUID` no texto, CSS @font-face carregado tanto no Player como MP4. Para exportar em .darkstudio: `rights.redistributionAllowed===true` e `licenseName` não vazio obrigatórios. Remapear IDs e referências de fonte ao importar.
+- Manter `ATUALIZAR.bat` buscando apenas origin/main e `INICIAR.bat` abrindo exclusivamente o local.
+- Atualizar `docs/INTELLIGENT_PRODUCTION_017.md`, guia, testes e smoke de Windows no mesmo commit.
+
 ## Motion Engine v0.16 — regras para as cinco novas frentes
 
 - Preservar formato `project.version:2` e `direction.version:1`. Rigs (`rig`, `rigKeys`), estágios de gráficos (`chartStages`), B-roll (`framing`, `mediaPlan`) e `assets[].rights` usam validação estrita/defaults para projetos antigos. Os 50 presets continuam válidos.

@@ -112,7 +112,14 @@ export function LayerEditor({shot,selectedId,onSelected,assets,captions,evidence
         <input type="number" min={12} max={260} value={selected.fontSize}
           onChange={e=>patch(selected.id,{fontSize:Math.round(Number(e.target.value))})}/></div>}
       {selected.kind==='text'&&<>
-        <div className="field"><label>Fonte instalada no Windows (fallback Arial)</label>
+        <div className="field"><label>Fonte portátil importada (mesma fonte na prévia e MP4)</label>
+          <select value={selected.fontFamily.startsWith('DSFont-')?selected.fontFamily:''}
+            onChange={e=>patch(selected.id,{fontFamily:e.target.value||'Arial'})}>
+            <option value="">Fonte instalada no computador / Arial</option>
+            {assets.filter(a=>a.kind==='font').map(a=><option key={a.id}
+              value={'DSFont-'+a.id}>{a.name} · {a.rights.redistributionAllowed?'portátil':'somente local'}</option>)}
+          </select></div>
+        <div className="field"><label>Família tipográfica (fallback Arial)</label>
           <input maxLength={100} value={selected.fontFamily}
             onChange={e=>patch(selected.id,{fontFamily:e.target.value})}/></div>
         <div className="twoCols">
@@ -137,7 +144,7 @@ export function LayerEditor({shot,selectedId,onSelected,assets,captions,evidence
             <input type="number" min={0} max={12} step=".5" value={selected.strokeWidth}
               onChange={e=>patch(selected.id,{strokeWidth:Number(e.target.value)})}/></div>
         </div>
-        <p className="help">Para animar palavra por palavra, selecione word-reveal em Comportamento. A fonte deve estar instalada no sistema usado no MP4.</p>
+        <p className="help">Para animar palavra por palavra, selecione word-reveal em Comportamento. Fontes importadas são carregadas igualmente no preview e no MP4; só serão incluídas no pacote com permissão de redistribuição.</p>
       </>}
       {selected.kind==='vector'&&<div className="field"><label>Caminho SVG (d) · coordenadas internas</label>
         <textarea rows={3} value={selected.vectorPath} maxLength={2000}

@@ -43,8 +43,8 @@ export function Editor({onHome,syncStatus,onReload}:{onHome:()=>void,syncStatus:
   const [mediaMessage,setMediaMessage] = useState('');
   const [rasterBusy,setRasterBusy] = useState(false);
   const [rasterReport,setRasterReport] = useState<{
-    frames:number[];issues:Array<{frame:number;code:string;severity:string;message:string}>;
-    method:string;
+    frames:number[];issues:Array<{frame:number;seconds?:number;code:string;severity:string;message:string;recommendation?:string}>;
+    method:string;ocr?:{status:string;language:string;framesAnalyzed:number;error?:string};
   }|null>(null);
   const {selectedClipId,selectClip}=useEditor();
   const selectedClip=project.clips.find(c=>c.id===selectedClipId)||null;
@@ -93,10 +93,13 @@ export function Editor({onHome,syncStatus,onReload}:{onHome:()=>void,syncStatus:
     setImporting(true);setMediaMessage('');
     try{
       for(const file of files){
-        const response=await fetch(`${endpoint}/v1/media/import`,{method:'POST',headers:{'Content-Type':file.type||'application/octet-stream','X-File-Name':encodeURIComponent(file.name)},body:file});
+        const response=await fetch(`${endpoint}/v1/media/import`,{method:'POST',headers:{'Content-Type':({
+          woff2:'font/woff2',woff:'font/woff',ttf:'font/ttf',otf:'font/otf',
+        } as Record<string,string>)[file.name.split('.').pop()?.toLowerCase()||'']||
+          file.type||'application/octet-stream','X-File-Name':encodeURIComponent(file.name)},body:file});
         const result: {asset?:Asset,error?:string}=await response.json();
         if(!response.ok||!result.asset)throw new Error(`${file.name}: ${result.error||'Falha ao importar'}`);
-        const durationFrames=await mediaDuration(result.asset);
+        const durationFrames=result.asset.kind==='font'?undefined:await mediaDuration(result.asset);
         const asset={...result.asset,...(durationFrames?{durationFrames}:{})};
         apply([{type:'addAsset',asset}]);
       }
@@ -126,21 +129,19 @@ export function Editor({onHome,syncStatus,onReload}:{onHome:()=>void,syncStatus:
     catch(e){setMediaMessage(e instanceof Error?e.message:'Propriedades inválidas');}
   }
   async function exportArchive(){
-    setMediaMessage('Preparando pacote audiovisual local...');
+    setMediaMessage('Preparando .darkstudio em disco (sem carregar vídeos na RAM)...');
     try{
       await ensureServiceCompatible();
-      const response=await fetch(endpoint+'/v1/archive/export',{method:'POST',
+      const response=await fetch(endpoint+'/v1/archive/prepare',{method:'POST',
         headers:{'Content-Type':'application/json'},body:JSON.stringify(project)});
-      if(!response.ok){
-        const err=await response.json() as {error?:string};
-        throw new Error(err.error||'Não foi possível criar o pacote');
-      }
-      const blob=await response.blob();
-      const url=URL.createObjectURL(blob),link=document.createElement('a');
-      link.href=url;link.download=project.name.replace(/[^a-zA-Z0-9_-]/g,'_').slice(0,65)+'.darkstudio';
-      link.click();setTimeout(()=>URL.revokeObjectURL(url),2000);
-      setMediaMessage('Pacote .darkstudio criado com as mídias importadas, suas fontes e legendas.');
-    }catch(e){setMediaMessage(e instanceof Error?e.message:'Falha ao exportar pacote');}
+      const body=await response.json() as {error?:string;url?:string;size?:number};
+      if(!response.ok||!body.url)throw new Error(body.error||'Falha no pacote');
+      const a=document.createElement('a');a.href=body.url;
+      a.download=project.name.replace(/[^a-zA-Z0-9_-]/g,'_').slice(0,65)+'.darkstudio';
+      document.body.append(a);a.click();a.remove();
+      setMediaMessage('Pacote pronto: '+((body.size||0)/1024**3).toFixed(2)+
+        ' GiB. Download direto do serviço local, com suporte a retomada por bytes.');
+    }catch(e){setMediaMessage(e instanceof Error?e.message:'Falha no .darkstudio');}
   }
   async function reviewRaster(){
     setRasterBusy(true);setRasterReport(null);
@@ -149,7 +150,8 @@ export function Editor({onHome,syncStatus,onReload}:{onHome:()=>void,syncStatus:
       const response=await fetch(endpoint+'/v1/qa/frames',{method:'POST',
         headers:{'Content-Type':'application/json'},body:JSON.stringify(project)});
       const data=await response.json() as {error?:string;frames:number[];
-        issues:Array<{frame:number;code:string;severity:string;message:string}>;method:string};
+        issues:Array<{frame:number;seconds?:number;code:string;severity:string;message:string;recommendation?:string}>;method:string;
+        ocr?:{status:string;language:string;framesAnalyzed:number;error?:string}};
       if(!response.ok)throw new Error(data.error||'Revisão de frames indisponível');
       setRasterReport(data);
     }catch(e){setMediaMessage(e instanceof Error?e.message:'Erro de QA raster');}
@@ -227,11 +229,11 @@ export function Editor({onHome,syncStatus,onReload}:{onHome:()=>void,syncStatus:
   }
   function jumpTo(index:number) {select(project.scenes[index].id);player.current?.seekTo(sceneStart(project,index));}
   return <div className="shell">
-    <header className="topbar"><div className="brand"><span className="brandmark">D</span><div><strong>DARK STUDIO</strong><small>MOTION ENGINE v0.16</small></div></div>
+    <header className="topbar"><div className="brand"><span className="brandmark">D</span><div><strong>DARK STUDIO</strong><small>INTELLIGENT PRODUCTION v0.17</small></div></div>
       <div className="projectName"><span className="dot"/>{project.name}</div>
       <div className="topActions"><button onClick={onHome}>← Projetos</button><button onClick={undo} disabled={!past.length} title="Desfazer">↶ Desfazer</button><button onClick={redo} disabled={!future.length} title="Refazer">↷ Refazer</button><button onClick={()=>mediaFile.current?.click()} disabled={importing}>{importing?'Importando...':'Importar mídia'}</button><button className="primary" onClick={()=>void exportVideo()}>Exportar MP4</button><button onClick={()=>saveJson(project)}>Exportar JSON ↧</button><button onClick={()=>void exportArchive()}>Exportar .darkstudio</button></div>
       <input className="hidden" ref={captionFile} type="file" accept=".srt,.txt" onChange={e=>void importSubtitles(e)}/>
-      <input className="hidden" ref={mediaFile} type="file" multiple accept=".png,.jpg,.jpeg,.webp,.mp4,.webm,.mov,.mp3,.wav,.m4a,.ogg" onChange={uploadMedia}/>
+      <input className="hidden" ref={mediaFile} type="file" multiple accept=".png,.jpg,.jpeg,.webp,.mp4,.webm,.mov,.mp3,.wav,.m4a,.ogg,.woff2,.woff,.ttf,.otf" onChange={uploadMedia}/>
     </header>
     <div className="workspace">
       <aside className="library"><div className="panelTitle">BIBLIOTECA DE CENAS <span>{project.scenes.length}</span></div>
@@ -250,9 +252,9 @@ export function Editor({onHome,syncStatus,onReload}:{onHome:()=>void,syncStatus:
       {project.chapters.length>0&&<div className="libraryNote"><b>CAPÍTULOS · {project.chapters.length}</b>
         {project.chapters.map(ch=><p key={ch.id}>{ch.title}</p>)}
       </div>}
-      <div className="libraryNote"><b>ARQUIVOS DE MÍDIA · {project.assets.length}</b><p>Importe imagens, vídeo e narração pelo serviço local. Depois adicione-os a uma trilha.</p>
-      <div className="assetList">{project.assets.map(a=><div className="assetRow" key={a.id}><strong title={a.name}>{a.kind==='image'?'▣':a.kind==='video'?'▶':'♫'} {a.name}</strong><div className="assetActions">
-      {a.kind==='audio'?<><button onClick={()=>insertAsset(a,'narration')}>+ Narração</button><button onClick={()=>insertAsset(a,'music')}>+ Música</button><button onClick={()=>insertAsset(a,'sfx')}>+ Efeito</button></>:<button onClick={()=>insertAsset(a,'visual')}>+ Visual</button>}
+      <div className="libraryNote"><b>ARQUIVOS DE MÍDIA E FONTES · {project.assets.length}</b><p>Importe imagens, vídeo e narração pelo serviço local. Depois adicione-os a uma trilha.</p>
+      <div className="assetList">{project.assets.map(a=><div className="assetRow" key={a.id}><strong title={a.name}>{a.kind==='image'?'▣':a.kind==='video'?'▶':a.kind==='font'?'F':'♫'} {a.name}</strong><div className="assetActions">
+      {a.kind==='font'?<span>Fonte local · selecione em Tipografia</span>:a.kind==='audio'?<><button onClick={()=>insertAsset(a,'narration')}>+ Narração</button><button onClick={()=>insertAsset(a,'music')}>+ Música</button><button onClick={()=>insertAsset(a,'sfx')}>+ Efeito</button></>:<button onClick={()=>insertAsset(a,'visual')}>+ Visual</button>}
         {a.kind!=='audio'&&<details><summary>Licença e atribuição · {a.rights.status}</summary>
           <div className="field"><label>Status da licença (confirmação humana)</label>
             <select value={a.rights.status} onChange={e=>updateAssetRights(a,{
@@ -267,6 +269,13 @@ export function Editor({onHome,syncStatus,onReload}:{onHome:()=>void,syncStatus:
             onBlur={e=>updateAssetRights(a,{creator:e.target.value})}/></div>
           <div className="field"><label>Licença / termos</label><input defaultValue={a.rights.licenseName}
             onBlur={e=>updateAssetRights(a,{licenseName:e.target.value})}/></div>
+          {a.kind==='font'&&<div className="field"><label>
+            <input type="checkbox" checked={a.rights.redistributionAllowed===true}
+              onChange={e=>updateAssetRights(a,{redistributionAllowed:e.target.checked})}/>
+            Tenho autorização para redistribuir esta fonte no arquivo .darkstudio
+          </label>
+          <small>Sem essa autorização, a fonte permanece apenas neste computador. O empacotamento bloqueará sua inclusão.</small>
+          </div>}
           <div className="field"><label>Atribuição</label><input defaultValue={a.rights.attribution}
             onBlur={e=>updateAssetRights(a,{attribution:e.target.value})}/></div>
         </details>}
@@ -287,9 +296,12 @@ export function Editor({onHome,syncStatus,onReload}:{onHome:()=>void,syncStatus:
         {rasterReport&&<div className="libraryNote" role="status">
           <strong>REVISÃO VISUAL AUTOMÁTICA · {rasterReport.frames.length} FRAMES</strong>
           <p>{rasterReport.method}</p>
+          {rasterReport.ocr&&<p>OCR local: {rasterReport.ocr.status} · {rasterReport.ocr.framesAnalyzed} frames · {rasterReport.ocr.language}
+            {rasterReport.ocr.error?' · '+rasterReport.ocr.error:''}</p>}
           <p>{rasterReport.issues.length} alerta(s) de revisão, sem garantir ausência de erros.</p>
           {rasterReport.issues.slice(0,24).map((issue,i)=><p key={i}>
-            Frame {issue.frame} · {issue.severity} · {issue.message}</p>)}
+            {issue.seconds!==undefined?issue.seconds.toFixed(3)+' s':'Frame '+issue.frame} · {issue.severity} · {issue.message}
+            {issue.recommendation&&<small> Sugestão: {issue.recommendation}</small>}</p>)}
         </div>}
         <div className="projectSync" role="status"><span>{syncStatus}</span>{onReload&&<button onClick={onReload}>Recarregar projeto do disco</button>}</div>
         <div className="stageFooter"><div>● PREVIEW LOCAL <span>Cenas, clipes, narração e música pelo Remotion Player.</span></div><strong>{seconds(total,project.fps)} total</strong></div>

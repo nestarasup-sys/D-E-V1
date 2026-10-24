@@ -1,7 +1,7 @@
 # Guia Diretor por JSON — Dark Studio
 
 > **Manual operacional e referência de capacidades para humanos, ChatGPT e Codex Local.**
-> **Estado documentado:** Dark Studio **v0.16.0 (Motion Engine completo — cinco novas frentes)** · `project.json` **schema v2** · `direction.json` **schema v1** · serviço local **protocolo 7**.
+> **Estado documentado:** Dark Studio **v0.17.0 (Intelligent Production — OCR, streaming e fontes)** · `project.json` **schema v2** · `direction.json` **schema v1** · serviço local **protocolo 7**.
 > **Branch de código:** `main`. **Última revisão editorial deste guia:** 2026-10-24.
 > **Contrato de manutenção:** este guia é **vivo**. Toda nova funcionalidade ou alteração de schema/comando deve atualizar este documento, seus exemplos e os testes do guia no mesmo PR/commit. Consulte [Como manter atualizado](#19-como-atualizar-este-guia-nas-próximas-versões).
 
@@ -906,6 +906,14 @@ Consulte a [especificação completa v0.16](MOTION_ENGINE_016.md), também obrig
 
 **Processo responsável:** direção da IA continua sendo **um único `direction.json`**, aplicada via Codex/CLI e revisão editorial. Para transportar **o projeto audiovisual inteiro com mídia**, use `.darkstudio`. Não confundir essas duas entregas.
 
+### 14.10 Intelligent Production v0.17 — OCR local, ZIP64 e fontes autorizadas
+
+- [Documentação completa da v0.17](INTELLIGENT_PRODUCTION_017.md).
+- **Revisão de frames reais com OCR português offline:** usa até 96 PNGs em pontos-chave e até 24 com Tesseract.js por arquivo local do NPM; registra caixas de texto, confiança, tempo em segundos e recomendações. Detecta riscos, não certifica perfeição.
+- **Projetos grandes `.darkstudio`:** novo ZIP64 versão 2 em streaming até 64 GiB / 12 mil mídias (16 GiB por arquivo), com validação de caminho, CRC no ZIP e SHA-256 no manifesto. Transferência retomável em blocos no dashboard; download com HTTP Range. Importador v1 anterior preservado.
+- **Fontes incorporadas:** envie WOFF2/WOFF/TTF/OTF na biblioteca, selecione a família `DSFont-UUID` em Tipografia. Prévia e MP4 usam @font-face local; somente fontes `rights.redistributionAllowed: true` com `licenseName` preenchido entram no `.darkstudio`. Licenças comerciais sem redistribuição continuam locais e não são empacotadas.
+- O fluxo da IA ainda produz `direction.json` para revisão, ou um `.darkstudio` completo para compartilhar todos os arquivos permitidos. Nenhum arquivo do computador é enviado para o GitHub.
+
 ## 15. Referência completa dos comandos locais
 
 Execute na **pasta do repositório**, em PowerShell/CMD. `UUID` deve ser substituído pelo ID real e `REV` pelo SHA-256 exibido em `info`. O usuário pode pedir que o Codex Local execute tudo; não precisa digitar.
@@ -1060,7 +1068,7 @@ Se o vídeo parece estático, verifique primeiro se a **proposta aprovada** cont
 
 ## 18. O que ainda NÃO está implementado
 
-| Capacidade desejada | Estado real na v0.16 |
+| Capacidade desejada | Estado real na v0.17 |
 | --- | --- |
 | Criar direção por JSON e presets/camadas novas | **Implementado**, via CLI/proposta |
 | 50 receitas + 7 visuais investigativos | **Implementado** |

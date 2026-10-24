@@ -53,7 +53,7 @@ export function ShotInspector({shot,assets,evidence,captions,selectedLayerId,onS
         onEdit({kind:asset?(asset.kind==='video'?'video':'image'):'graphic',assetId:asset?.id});
       }}>
         <option value="">Composição gráfica</option>
-        {assets.filter(a=>a.kind!=='audio').map(asset=><option key={asset.id} value={asset.id}>{asset.name}</option>)}
+        {assets.filter(a=>a.kind==='video'||a.kind==='image').map(asset=><option key={asset.id} value={asset.id}>{asset.name}</option>)}
       </select>
     </div>
     {shot.kind==='video'&&<div className="field"><label>Corte inicial do vídeo (segundos)</label>

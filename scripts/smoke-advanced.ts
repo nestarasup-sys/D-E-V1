@@ -33,6 +33,8 @@ async function main(){
   if(plan.preview.shots.length!==3||plan.report.coveragePercent!==100)
     throw Error('Direção autoral inválida.');
   const report=await inspectRenderedFrames(plan.preview);
+  if(report.ocr.status!=='ready'||report.ocr.framesAnalyzed===0)
+    throw Error('OCR português offline não executou nas imagens rasterizadas: '+String(report.ocr.error));
   if(report.samples.length<6||report.samples.some(s=>!Number.isFinite(s.luminanceSpread)||
     !Number.isFinite(s.edgeActivity)))throw Error('Análise dos pixels rasterizados inválida.');
   console.log(JSON.stringify({ok:true,version:'v0.16',shots:3,

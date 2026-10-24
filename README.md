@@ -1,4 +1,4 @@
-# Dark Studio v0.16 — Motion Engine: personagens, gráficos, B-roll, QA raster e arquivo único
+# Dark Studio v0.17 — Intelligent Production: OCR local, ZIP streaming e fontes portáteis
 
 O **Dark Studio** é um editor de documentários para Windows 11. A interface usa Tauri 2 + React + TypeScript, o preview utiliza Remotion e a exportação MP4 acontece via Remotion Renderer/FFmpeg em processo separado.
 
@@ -6,6 +6,16 @@ O **Dark Studio** é um editor de documentários para Windows 11. A interface us
 
 GitHub serve apenas para hospedar o **código-fonte do aplicativo**, sem roteiros, mídia ou projetos reais de usuários.
 
+
+## v0.17 — Intelligent Production
+
+**OCR português offline:** os frames estratégicos são renderizados localmente e analisados com Tesseract.js e modelo de português instalado via npm. O relatório mostra tempo (segundos), palavras reconhecidas, possíveis cortes, sobreposições, riscos de contraste e recomendações. Continua sendo uma análise amostral, não uma garantia editorial.
+
+**Projeto audiovisual grande:** `.darkstudio` ZIP64 v2 usa arquivos temporários e leitura/escrita em streaming, suporta até **64 GiB / 12.000 mídias** (limite individual de 16 GiB), hashes SHA-256 e bloqueios de ZIP malicioso. Download HTTP Range e upload em blocos retomáveis após interrupção. Pacotes v1 menores continuam aceitos.
+
+**Fontes portáteis:** importe WOFF2/WOFF/TTF/OTF como mídia e selecione no editor; o mesmo arquivo é usado na prévia e no MP4. Só fontes com declaração explícita de redistribuição e nome de licença são incluídas no pacote.
+
+[Documentação, contratos e limites da v0.17](docs/INTELLIGENT_PRODUCTION_017.md).
 
 ## v0.16 — Cinco frentes agora integradas
 

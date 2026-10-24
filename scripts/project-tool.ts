@@ -12,7 +12,7 @@
  * npm run project -- replace <id> <projeto.json> <revisao>
  * npm run project -- render <id>
  */
-import {readFile,writeFile} from 'node:fs/promises';
+import {readFile,writeFile,open,stat} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {randomUUID} from 'node:crypto';
 import {compileDirection,makeAutomaticDirection,reviewVisualDirection} from '../src/model/direction';
@@ -23,8 +23,8 @@ import {ProposalRepository} from '../apps/agent/src/proposals';
 import {ProductionCoordinator} from '../apps/agent/src/production';
 import {assertServiceCompatibility} from '../src/model/service-contract';
 import {diagnoseProject,runtimeDiagnostics} from '../apps/agent/src/diagnostics';
-import {mediaExistsFor,importGeneratedWave,readRegisteredMedia} from '../apps/agent/src/media';
-import {buildPortableArchive} from '../apps/agent/src/portable';
+import {mediaExistsFor,importGeneratedWave} from '../apps/agent/src/media';
+import {buildStreamingArchive} from '../apps/agent/src/portable-stream';
 import {inspectRenderedFrames} from '../apps/agent/src/frame-qa';
 import {makeSfxWave,SFX_TYPES,type SfxType} from '../apps/agent/src/sfx';
 import {applyOperations} from '../src/model/operations';
@@ -141,7 +141,7 @@ async function main() {
       const path=resolve(requireArgument(args[1],'saida .darkstudio'));
       if(!path.toLowerCase().endsWith('.darkstudio'))throw new Error('Use extensão .darkstudio');
       const record=await repository.read(id);
-      await writeFile(path,await buildPortableArchive(record.project,readRegisteredMedia),{flag:'wx'});
+      await buildStreamingArchive(record.project,path);
       console.log('Pacote único com todas as mídias salvo localmente: '+path);
       return;
     }
@@ -149,11 +149,33 @@ async function main() {
       const file=resolve(requireArgument(args[0],'arquivo .darkstudio'));
       if(!file.toLowerCase().endsWith('.darkstudio'))throw new Error('Use arquivo .darkstudio');
       await requireServiceCompatible();
-      const result=await fetch(api+'/v1/archive/import',{method:'POST',
-        headers:{'Content-Type':'application/vnd.darkstudio+zip'},body:await readFile(file)});
-      const data=await result.json() as {error?:string;project?:{id:string};path?:string};
-      if(!result.ok||!data.project)throw new Error(data.error||'Falha ao importar pacote');
-      console.log('Projeto portátil importado com mídias e novos IDs: '+data.path);
+      const size=(await stat(file)).size;
+      const created=await fetch(api+'/v1/archive/uploads',{method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({name:'importado.darkstudio',size})});
+      const session=await created.json() as {id?:string;error?:string};
+      if(!created.ok||!session.id)throw new Error(session.error||'Erro ao iniciar transferência.');
+      const fd=await open(file,'r');
+      try{
+        let offset=0;
+        while(offset<size){
+          const buffer=Buffer.allocUnsafe(Math.min(8*1024*1024,size-offset));
+          const read=await fd.read(buffer,0,buffer.length,offset);
+          if(!read.bytesRead)throw new Error('Arquivo interrompido no disco.');
+          const part=new Uint8Array(buffer.buffer,buffer.byteOffset,read.bytesRead);
+          const sent=await fetch(api+'/v1/archive/uploads/'+session.id,{method:'PUT',
+            headers:{'Content-Type':'application/octet-stream','X-Upload-Offset':String(offset)},
+            body:part});
+          const state=await sent.json() as {offset?:number;error?:string};
+          if(!sent.ok||state.offset===undefined)throw new Error(state.error||'Falha no bloco '+offset);
+          offset=state.offset;
+          console.log('Envio seguro: '+Math.round(offset/size*100)+'%');
+        }
+      }finally{await fd.close();}
+      const done=await fetch(api+'/v1/archive/uploads/'+session.id+'/complete',{method:'POST'});
+      const result=await done.json() as {project?:{id:string};path?:string;error?:string};
+      if(!done.ok||!result.project)throw new Error(result.error||'Falha ao validar pacote');
+      console.log('Projeto e mídias importados em: '+result.path);
       return;
     }
     case 'raster-qa': {

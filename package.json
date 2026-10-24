@@ -1,7 +1,7 @@
 {
   "name": "dark-studio",
   "private": true,
-  "version": "0.16.0",
+  "version": "0.17.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
@@ -32,7 +32,11 @@
     "@remotion/bundler": "^4.0.360",
     "@remotion/renderer": "^4.0.360",
     "fflate": "^0.8.2",
-    "pngjs": "^7.0.0"
+    "pngjs": "^7.0.0",
+    "yazl": "^3.3.1",
+    "yauzl": "^3.4.0",
+    "tesseract.js": "^6.0.1",
+    "@tesseract.js-data/por": "^1.0.0"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.0.0",
@@ -44,6 +48,8 @@
     "typescript": "~5.8.3",
     "vite": "^6.0.0",
     "vitest": "^3.0.0",
-    "@types/pngjs": "^6.0.5"
+    "@types/pngjs": "^6.0.5",
+    "@types/yauzl": "^2.10.3",
+    "@types/yazl": "^2.4.6"
   }
 }

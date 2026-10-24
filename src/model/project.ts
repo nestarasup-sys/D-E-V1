@@ -17,7 +17,7 @@ export const sceneSchema = z.object({
   productionNotes: z.string().max(500).optional(),
 }).strict();
 
-export const assetKindSchema = z.enum(['image', 'video', 'audio']);
+export const assetKindSchema = z.enum(['image', 'video', 'audio', 'font']);
 /** Licença é metadado cadastrado pelo editor; nunca prova licença automaticamente. */
 export const assetRightsSchema=z.object({
   status:z.enum(['unknown','cleared','restricted']).default('unknown'),
@@ -26,6 +26,7 @@ export const assetRightsSchema=z.object({
   licenseName:z.string().max(160).default(''),
   attribution:z.string().max(360).default(''),
   notes:z.string().max(500).default(''),
+  redistributionAllowed:z.boolean().optional(),
 }).strict().default({});
 export const assetObjectSchema = z.object({
   id: z.string().uuid(),
@@ -90,7 +91,7 @@ export const projectSchema = z.object({
   id: z.string().min(1), name: z.string().min(1).max(120),
   fps: z.literal(30), width: z.literal(1920), height: z.literal(1080),
   scenes: z.array(sceneSchema).min(1).max(200),
-  assets: z.array(assetSchema).max(2000),
+  assets: z.array(assetSchema).max(12000),
   clips: z.array(clipSchema).max(4000),
   captions:z.array(captionSchema).max(3000).default([]),
   evidence:z.array(evidenceSchema).max(2000).default([]),
@@ -189,7 +190,7 @@ export const projectSchema = z.object({
     });
     const a = assetById.get(c.assetId);
     if (!a) ctx.addIssue({code:'custom', path:['clips',i,'assetId'], message:'Arquivo de mídia não cadastrado'});
-    else if ((c.lane === 'visual') !== (a.kind !== 'audio')) ctx.addIssue({code:'custom', path:['clips',i,'lane'], message:'Tipo de mídia incompatível com trilha'});
+    else if (a.kind==='font'||(c.lane === 'visual') !== (a.kind !== 'audio')) ctx.addIssue({code:'custom', path:['clips',i,'lane'], message:'Tipo de mídia incompatível com trilha'});
     if (c.startFrame + c.durationFrames > total) ctx.addIssue({code:'custom', path:['clips',i], message:'Clipe ultrapassa a duração do projeto'});
     if (a?.durationFrames && c.trimStartFrames + c.durationFrames > a.durationFrames && a.kind !== 'image') ctx.addIssue({code:'custom', path:['clips',i], message:'Clipe ultrapassa a duração do arquivo'});
   });

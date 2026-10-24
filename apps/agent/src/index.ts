@@ -30,7 +30,7 @@ const server=createServer(async(req,res)=>{
   if(origin){res.setHeader('Access-Control-Allow-Origin',origin);res.setHeader('Vary','Origin');}
   if(req.method==='OPTIONS'){
     res.writeHead(204,{'Access-Control-Allow-Methods':'GET,POST,PUT,DELETE,OPTIONS',
-      'Access-Control-Allow-Headers':'Content-Type,X-File-Name,If-Match'});
+      'Access-Control-Allow-Headers':'Content-Type,X-File-Name,X-Upload-Offset,If-Match'});
     res.end();
     return;
   }
