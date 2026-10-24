@@ -66,7 +66,7 @@ if errorlevel 1 (
   echo [ERRO] Esta pasta nao e um clone Git valido.
   exit /b 1
 )
-git remote get-url origin 2>nul | findstr /i /c:"nestarasup-sys/D-E-V1" >nul
+git config --get remote.origin.url 2>nul | findstr /i /c:"nestarasup-sys/D-E-V1" >nul
 if errorlevel 1 (
   echo [ERRO] O origin nao e nestarasup-sys/D-E-V1. Nao atualizarei outro repositorio.
   exit /b 1
