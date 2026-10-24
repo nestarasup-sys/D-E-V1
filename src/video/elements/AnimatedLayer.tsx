@@ -125,7 +125,11 @@ function LayerContents({layer,elapsed,progress,asset}:{
     </svg>;
     case 'connector':return <Connector layer={layer} progress={clamp(progress*3)}/>;
     case 'particles':return <Particles layer={layer} frame={elapsed}/>;
-    case 'image':return asset?.kind==='image'?<Img src={asset.url} style={{width:'100%',height:'100%',objectFit:'cover'}}/>:null;
+    case 'image':return asset?.kind==='image'?<Img src={asset.url} style={{
+      width:'100%',height:'100%',objectFit:layer.framing.fit,
+      objectPosition:layer.framing.focusX+'% '+layer.framing.focusY+'%',
+      transform:'scale('+layer.framing.zoom+')',transformOrigin:'center'
+    }}/>:null;
   }
 }
 export function AnimatedLayer({layer,frame,shotStart,captions,assets,allLayers}:{

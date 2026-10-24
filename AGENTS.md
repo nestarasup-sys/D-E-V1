@@ -89,6 +89,15 @@ Em \`evidence[]\`, o Codex pode preencher \`sourceExcerpt\`, \`publicationDate\`
 - Alterar manualmente texto/tempos de uma legenda invalida seus \`words[]\`; regenerar a sincronização a partir do áudio, não copiá-la cegamente.
 
 
+## Motion Engine v0.16 — regras para as cinco novas frentes
+
+- Preservar formato `project.version:2` e `direction.version:1`. Rigs (`rig`, `rigKeys`), estágios de gráficos (`chartStages`), B-roll (`framing`, `mediaPlan`) e `assets[].rights` usam validação estrita/defaults para projetos antigos. Os 50 presets continuam válidos.
+- Gráficos com números exigem `sourceEvidenceId`. B-roll externo deve ser **importado** e ter licença revisada pelo usuário; `status:"cleared"` só é registrado por ação editorial, nunca inventado como automaticamente verificado.
+- QA raster executa somente em `127.0.0.1`, renderiza amostras e combina métricas dos pixels com geometria; **não** alegar OCR ou avaliação semântica se não existem.
+- Pacote `.darkstudio` deve conter todos os assets cadastrados com manifesto e SHA-256; validar IDs, MIME, nomes e limites antes de importar, sem extração de caminhos e sem sobrescrever mídia ou projeto do usuário. Limite 512 MB e 250 mídias neste primeiro formato.
+- `docs/MOTION_ENGINE_016.md` e `docs/GUIA_DIRETOR_POR_JSON.md` fazem parte do contrato de manutenção do JSON/render/editor/serviço; atualize também os testes de integridade.
+- `ATUALIZAR.bat` baixa a main; `INICIAR.bat` apenas a versão local. Não mexer nesse contrato.
+
 ## Motion Engine v0.15 — contrato de composição autoral
 
 - Manter `project.version:2` e `direction.version:1`; os 50 presets v0.14 continuam válidos. Não substituir dados de usuário nem migrar projetos silenciosamente.

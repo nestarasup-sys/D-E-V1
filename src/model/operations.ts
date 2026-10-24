@@ -9,6 +9,7 @@ export const operationSchema = z.discriminatedUnion('type', [
   z.object({type:z.literal('removeScene'), sceneId:z.string()}).strict(),
   z.object({type:z.literal('moveScene'), sceneId:z.string(), direction:z.enum(['left','right'])}).strict(),
   z.object({type:z.literal('addAsset'), asset:assetSchema}).strict(),
+  z.object({type:z.literal('updateAsset'), assetId:z.string().uuid(), changes:assetSchema.omit({id:true,kind:true,mime:true,url:true}).partial().strict()}).strict(),
   z.object({type:z.literal('addClip'), clip:clipSchema}).strict(),
   z.object({type:z.literal('updateClip'), clipId:z.string(), changes:clipSchema.omit({id:true,assetId:true}).partial().strict()}).strict(),
   z.object({type:z.literal('removeClip'), clipId:z.string()}).strict(),
@@ -77,6 +78,11 @@ export function applyOperations(project:Project, input:unknown):Project {
         if(j>=0&&j<draft.scenes.length){const [s]=draft.scenes.splice(i,1);draft.scenes.splice(j,0,s);} break;
       }
       case 'addAsset': if(draft.assets.some(a=>a.id===op.asset.id)) throw new Error('Asset duplicado');draft.assets.push(op.asset);break;
+      case 'updateAsset': {
+        const idx=draft.assets.findIndex(a=>a.id===op.assetId);
+        if(idx<0)throw new Error('Mídia não encontrada');
+        draft.assets[idx]=assetSchema.parse({...draft.assets[idx],...op.changes});break;
+      }
       case 'addClip': if(draft.clips.some(c=>c.id===op.clip.id)) throw new Error('Clipe duplicado'); draft.clips.push(op.clip);break;
       case 'updateClip': {
         const i=draft.clips.findIndex(c=>c.id===op.clipId);

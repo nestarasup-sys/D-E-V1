@@ -60,6 +60,21 @@ export function ShotInspector({shot,assets,evidence,captions,selectedLayerId,onS
       <input type="number" step=".1" min={0} value={seconds(shot.trimStartFrames)}
         onChange={e=>{const value=Number(e.target.value);if(Number.isFinite(value))onEdit({trimStartFrames:Math.max(0,Math.round(value*30))});}}/>
     </div>}
+    {shot.kind!=='graphic'&&<div className="shotMotion">
+      <div className="panelTitle">B-ROLL · CROP E LICENÇA</div>
+      <div className="field"><label>Encaixe</label><select value={shot.framing.fit}
+        onChange={e=>onEdit({framing:{...shot.framing,fit:e.target.value as 'cover'|'contain'}})}>
+        <option value="cover">Preencher tela</option><option value="contain">Mostrar arquivo inteiro</option>
+      </select></div>
+      <div className="twoCols">{(['focusX','focusY','zoom'] as const).map(k=>
+        <div className="field" key={k}><label>{k}</label>
+        <input type="number" min={k==='zoom'?1:0} max={k==='zoom'?4:100}
+          step={k==='zoom'?.05:1} value={shot.framing[k]}
+          onChange={e=>onEdit({framing:{...shot.framing,[k]:Number(e.target.value)}})}/></div>)}</div>
+      {shot.assetId&&<p className="help">Licença da mídia: {assets.find(a=>a.id===shot.assetId)?.rights.status||'desconhecida'}.
+        Revise a origem na biblioteca antes de publicar.</p>}
+      {shot.mediaPlan&&<p className="help">Direção de B-roll: {shot.mediaPlan.query} — {shot.mediaPlan.intendedUse}. Licença: {shot.mediaPlan.licenseNote}</p>}
+    </div>}
     <div className="field"><label>Estilo de composição</label>
       <select disabled={shot.kind!=='graphic'} value={shot.style}
         onChange={e=>onEdit({style:e.target.value as Shot['style']})}>

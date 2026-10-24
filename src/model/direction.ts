@@ -2,7 +2,7 @@ import {z} from 'zod';
 import {type Project,projectDuration} from './project';
 import {type Operation,applyOperations} from './operations';
 import {type Shot,shotSchema,channelKitObjectSchema,type Motion,investigationSchema,cameraPointSchema,transitionSchema} from './shots';
-import {layerSchema,layerObjectSchema} from './layers';
+import {layerSchema,layerObjectSchema,mediaFramingSchema,mediaPlanSchema} from './layers';
 import {PRESET_CATALOG,getPreset,instantiatePreset} from './presets';
 import {examineShot} from './visual-qa';
 
@@ -31,6 +31,8 @@ const beatSchema=z.object({
   presetId:z.string().max(70).optional(),
   layers:z.array(layerBlueprintSchema).max(48).optional(),
   cameraPath:z.array(cameraPointSchema).max(24).optional(),
+  framing:mediaFramingSchema.optional(),
+  mediaPlan:mediaPlanSchema.optional(),
   transitionIn:transitionSchema.optional(),
   data:dataSchema.optional(),
   title:z.string().max(180),
@@ -111,6 +113,9 @@ export function compileDirection(project:Project,raw:unknown,newId:()=>string):{
     if(investigation.sourceEvidenceId&&!project.evidence.some(e=>e.id===investigation.sourceEvidenceId))
       throw new Error('Plano '+(i+1)+' cita uma fonte não cadastrada no projeto.');
     if(beat.presetId)getPreset(beat.presetId);
+    if(beat.mediaPlan&&!beat.assetId&&!beat.layers?.some(l=>l.assetId))
+      throw new Error('Plano de B-roll sem assetId importado: busque a mídia, confira licença e importe antes de dirigir.');
+
     if(beat.presetId&&beat.assetId)
       throw new Error('Composição procedural e plano de mídia inteira não podem ser usados juntos. Use uma camada image.');
     const source=beat.data?.sourceEvidenceId;
@@ -150,6 +155,7 @@ export function compileDirection(project:Project,raw:unknown,newId:()=>string):{
       backgroundColor:beat.backgroundColor??palette[i%palette.length],
       investigation,presetId:beat.presetId,layers,
       cameraPath:beat.cameraPath,transitionIn:beat.transitionIn,
+      framing:beat.framing,mediaPlan:beat.mediaPlan,
       motion:motionFor(beat.motionPreset,beat.durationFrames),
       ...(asset?{assetId:asset.id}:{}),
     });
@@ -230,7 +236,19 @@ export function reviewVisualDirection(project:Project):DirectionReport{
       shortShots++;issues.push({severity:'info',code:'fast-shot',shotId:shot.id,
         message:'Plano muito rápido ('+(shot.durationFrames/30).toFixed(1)+' s). Confira a legibilidade.'});
     }
+    if(shot.assetId){
+      const asset=project.assets.find(a=>a.id===shot.assetId);
+      if(asset?.rights.status!=='cleared')
+        issues.push({severity:'warning',code:'media-license-pending',shotId:shot.id,
+          message:'Licença do B-roll não confirmada pelo editor: '+(asset?.name||shot.title)});
+    }
     for(const layer of shot.layers){
+      if(layer.assetId){
+        const asset=project.assets.find(a=>a.id===layer.assetId);
+        if(asset?.rights.status!=='cleared')
+          issues.push({severity:'warning',code:'layer-license-pending',shotId:shot.id,
+            message:'Licença da mídia em camada não confirmada: '+layer.name});
+      }
       if(layer.kind==='text'&&(layer.x+layer.width>2020||layer.y+layer.height>1120)){
         issues.push({severity:'warning',code:'text-safe-area',shotId:shot.id,
           message:'Texto próximo ou além da margem: '+layer.name});

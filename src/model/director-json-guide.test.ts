@@ -16,11 +16,11 @@ const guide=read('docs/GUIA_DIRETOR_POR_JSON.md');
 const direction=JSON.parse(read('docs/examples/GUIA_DIRECAO_12S.example.json')) as unknown;
 const operations=JSON.parse(read('docs/examples/GUIA_OPERACOES.example.json')) as unknown;
 
-describe('Guia Diretor por JSON v0.15 (documentação viva)',()=>{
+describe('Guia Diretor por JSON v0.16 (documentação viva)',()=>{
   it('possui 20 seções e metadados de versão do contrato',()=>{
     expect(guide).toContain('Dark Studio');
-    expect(guide).toContain('v0.15');
-    expect(guide).toContain('protocolo 6');
+    expect(guide).toContain('v0.16');
+    expect(guide).toContain('protocolo 7');
     for(let i=1;i<=20;i++)expect(guide).toMatch(new RegExp('^## '+i+'\\. ','m'));
   });
   it('lista todos os 50 presets reais, categorias e sete estilos investigativos',()=>{
@@ -83,6 +83,16 @@ describe('Guia Diretor por JSON v0.15 (documentação viva)',()=>{
     expect(compiled.preview.scenes).toEqual(project.scenes);
   });
 
+  it('documenta os cinco fundamentos extras do Motion Engine v0.16',()=>{
+    const spec=read('docs/MOTION_ENGINE_016.md');
+    for(const tag of ['rigKeys','chartStages','cashflow','waterfall','counter',
+      'mediaPlan','framing','assets[].rights','raster-qa','.darkstudio']){
+      expect(guide,'guia sem '+tag).toContain(tag);
+      expect(spec,'especificação sem '+tag).toContain(tag);
+    }
+    expect(read('src/Editor.tsx')).toContain('Exportar .darkstudio');
+    expect(read('src/App.tsx')).toContain('.darkstudio');
+  });
   it('compila o exemplo completo de 12 s sem mover voz, legendas, fontes ou cenas',()=>{
     const project=projectSchema.parse({
       ...structuredClone(starterProject),

@@ -1,7 +1,7 @@
 # Guia Diretor por JSON — Dark Studio
 
 > **Manual operacional e referência de capacidades para humanos, ChatGPT e Codex Local.**
-> **Estado documentado:** Dark Studio **v0.15.0 (Motion Engine, primeiro incremento)** · `project.json` **schema v2** · `direction.json` **schema v1** · serviço local **protocolo 6**.
+> **Estado documentado:** Dark Studio **v0.16.0 (Motion Engine completo — cinco novas frentes)** · `project.json` **schema v2** · `direction.json` **schema v1** · serviço local **protocolo 7**.
 > **Branch de código:** `main`. **Última revisão editorial deste guia:** 2026-10-24.
 > **Contrato de manutenção:** este guia é **vivo**. Toda nova funcionalidade ou alteração de schema/comando deve atualizar este documento, seus exemplos e os testes do guia no mesmo PR/commit. Consulte [Como manter atualizado](#19-como-atualizar-este-guia-nas-próximas-versões).
 
@@ -894,6 +894,18 @@ Esta seção complementa a direção declarativa das seções 4–13 com um **pa
 
 **Limites reais:** personagens articulados com poses detalhadas, tracking automático da câmera, fontes empacotadas, máscara vetorial arbitrária, física de mola, análise dos pixels rasterizados, B-roll licenciado automaticamente e pacote portátil `.darkstudio` **não estão implementados**. Não confunda a expansão do JSON com esses recursos futuros.
 
+### 14.9 Motion Engine v0.16 — personagens, economia, B-roll, QA e arquivo único
+
+Consulte a [especificação completa v0.16](MOTION_ENGINE_016.md), também obrigatória para a IA que prepara direção. **Os campos têm implementação no schema, render e controles do editor, não são nomes inventados.**
+
+- **Personagem articulado:** `layers[].rig` aceita `leftArm`, `rightArm`, `leftLeg`, `rightLeg`, `head`, `eyeX`, `eyeY` e `smile`; `rigKeys` aceita até 40 poses `{frame,pose,easing}`, interpoladas em SVG entre frames. Ajustes por membro e poses estão no `LayerEditor`.
+- **Gráficos econômicos:** `chartType` acrescenta `waterfall`, `cashflow` e `counter`. Use `chartStages` (até 12 etapas) para animar `values` por frame. Exigem `sourceEvidenceId` válido para qualquer número, com verificação humana; números ilustrativos sem fonte não podem fingir ser dados reais.
+- **Direção de B-roll:** cada beat de `direction.json` ou shot aceita `mediaPlan:{query,intendedUse,licenseNote}` e `framing:{fit,focusX,focusY,zoom,trimStartFrames}`. Um beat com mídia real exige `assetId` que já exista no projeto. `assets[].rights` contém `status` (`unknown`/`cleared`/`restricted`), `sourceUrl`, `creator`, `licenseName`, `attribution` e `notes`. O app avisa licenças pendentes; **não baixa nem licencia mídia automaticamente**.
+- **Revisão de frames renderizados:** botão **Revisar frames renderizados (QA)**, endpoint `POST /v1/qa/frames` e CLI `npm run project -- raster-qa UUID` renderizam amostras PNG localmente e analisam diferenças reais de pixels, variação luminosa e margens, combinadas a riscos de geometria. O método não executa OCR e não comprova ausência de cortes, sobreposição ou problemas editoriais.
+- **Arquivo audiovisual único:** `.darkstudio` é ZIP com manifesto SHA-256, `project.json` e todos os arquivos cadastrados em `assets[]`, incluindo narração, música e efeitos; legendas, direitos e fontes ficam no JSON. Na interface use **Exportar .darkstudio** e **Importar JSON / .darkstudio**; na CLI use `pack UUID arquivo.darkstudio` e `unpack arquivo.darkstudio`. Arquivos recebem novos IDs na importação, para preservar mídias existentes. Limite 512 MB e 250 assets; fontes locais não são embutidas.
+
+**Processo responsável:** direção da IA continua sendo **um único `direction.json`**, aplicada via Codex/CLI e revisão editorial. Para transportar **o projeto audiovisual inteiro com mídia**, use `.darkstudio`. Não confundir essas duas entregas.
+
 ## 15. Referência completa dos comandos locais
 
 Execute na **pasta do repositório**, em PowerShell/CMD. `UUID` deve ser substituído pelo ID real e `REV` pelo SHA-256 exibido em `info`. O usuário pode pedir que o Codex Local execute tudo; não precisa digitar.
@@ -1027,7 +1039,7 @@ Não há pontuação mágica de qualidade, mas uma IA deve conferir:
 | `direction` não cobre o episódio | Soma de beats ≠ soma de `scenes[].durationFrames` | Leia `show UUID`, calcule frames e corrija **beats**; não altere narração escondido |
 | `Intervalos visuais devem ser contínuos` | `startFrame` diferente do cursor esperado | Próximo início = início anterior + duração anterior |
 | `Composição não encontrada` | `presetId` inexistente ou digitado errado | Execute `npm run project -- presets` |
-| `Unrecognized key` / schema inválido | Campo inexistente na API v0.15 | Consulte schema de `direction`, `layers` ou `project`; não invente |
+| `Unrecognized key` / schema inválido | Campo inexistente na API v0.16 | Consulte schema de `direction`, `layers` ou `project`; não invente |
 | `Imagem/mídia não importada` | `assetId` errado/URL externa | Importe mídia local, descubra UUID e recoloque |
 | `Fonte inexistente` | `sourceEvidenceId` não existe em `evidence[]` | Cadastre origem legítima, mantenha `pending` e confirme ID |
 | `Gráfico sem valores` | Receita de gráfico sem `data` | Use placeholder **ilustrativo** ou dados com origem verificável |
@@ -1048,7 +1060,7 @@ Se o vídeo parece estático, verifique primeiro se a **proposta aprovada** cont
 
 ## 18. O que ainda NÃO está implementado
 
-| Capacidade desejada | Estado real na v0.15 |
+| Capacidade desejada | Estado real na v0.16 |
 | --- | --- |
 | Criar direção por JSON e presets/camadas novas | **Implementado**, via CLI/proposta |
 | 50 receitas + 7 visuais investigativos | **Implementado** |
@@ -1061,7 +1073,12 @@ Se o vídeo parece estático, verifique primeiro se a **proposta aprovada** cont
 | SRT + importação de mídia local + MP4 | **Implementado** |
 | WAV TTS com vozes SAPI Windows | **Piloto local**, qualidade depende da voz |
 | Nove efeitos sonoros procedurais | **Implementado**, biblioteca simples |
-| QA de contraste e margens | **Heurístico**; não é OCR/perícia visual |
+| QA de contraste e margens | **Raster real + geometria**, amostral e heurístico; não é OCR/perícia visual |
+| Personagens 2D com braços, pernas, cabeça, olhos e sorriso por pose/keyframes | **Implementado na v0.16**, sem lip-sync automático |
+| Gráficos econômicos de fluxo, cascata, contador e valores interpolados | **Implementado na v0.16**; números exigem fonte |
+| Direção de B-roll importado com enquadramento e cadastro de licença | **Implementado na v0.16**; busca/download/licença não são automáticos |
+| Análise de pixels renderizados em amostras PNG | **Implementado na v0.16**, com alertas heurísticos e sem OCR |
+| Pacote audiovisual único com mídia e JSON | **Implementado na v0.16** como ZIP .darkstudio, até 512 MB |
 | Ator fotorrealista e lip-sync de voz | **Não** |
 | Pesquisa automática dentro do editor | **Não**; Codex/IA são externos |
 | Gerador integrado de imagens e vídeos por IA | **Não** |
@@ -1081,7 +1098,7 @@ Uma funcionalidade futura não deve aparecer aqui como implementada **antes** de
 
 ## 19. Como atualizar este guia nas próximas versões
 
-**Este guia é uma referência de trabalho do produto, não uma fotografia imutável da v0.15.** Ele permanece em `docs/GUIA_DIRETOR_POR_JSON.md` e deve ser a primeira leitura de qualquer IA diretora. O processo abaixo deve ser seguido **na mesma alteração de código que introduzir a capacidade**.
+**Este guia é uma referência de trabalho do produto, não uma fotografia imutável da v0.16.** Ele permanece em `docs/GUIA_DIRETOR_POR_JSON.md` e deve ser a primeira leitura de qualquer IA diretora. O processo abaixo deve ser seguido **na mesma alteração de código que introduzir a capacidade**.
 
 ### 19.1 Contrato de manutenção
 

@@ -1,6 +1,8 @@
 import {createServer} from 'node:http';
 import {handleMedia} from './media';
 import {handleExport} from './export';
+import {handleArchive} from './archive';
+import {handleFrameQa} from './qa';
 import {handleProjects} from './projects';
 import {json} from './http';
 import {runtimeDiagnostics} from './diagnostics';
@@ -47,6 +49,8 @@ const server=createServer(async(req,res)=>{
     if(req.method==='GET'&&url.pathname==='/v1/diagnostics'){json(res,200,runtimeDiagnostics());return;}
     if(await handleProjects(req,res,url))return;
     if(await handleMedia(req,res,url))return;
+    if(await handleArchive(req,res,url))return;
+    if(await handleFrameQa(req,res,url))return;
     if(await handleExport(req,res,url))return;
     json(res,404,{error:'Rota não encontrada'});
   }catch(e){

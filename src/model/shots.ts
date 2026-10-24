@@ -1,5 +1,5 @@
 import {z} from 'zod';
-import {layerSchema,type SceneLayer,retimeLayer} from './layers';
+import {layerSchema,type SceneLayer,retimeLayer,mediaFramingSchema,mediaPlanSchema} from './layers';
 import {PRESET_CATALOG} from './presets';
 
 const hex=z.string().regex(/^#[0-9a-fA-F]{6}$/);
@@ -64,6 +64,8 @@ export const shotSchema=z.object({
   presetId:z.string().max(70).refine(id=>PRESET_CATALOG.some(p=>p.id===id),'Composição inexistente').optional(),
   layers:z.array(layerSchema).max(48).default([]),
   cameraPath:z.array(cameraPointSchema).max(24).default([]),
+  framing:mediaFramingSchema,
+  mediaPlan:mediaPlanSchema.optional(),
   transitionIn:transitionSchema,
   title:z.string().max(180).default(''),
   subtitle:z.string().max(400).default(''),

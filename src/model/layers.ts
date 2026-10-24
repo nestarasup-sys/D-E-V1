@@ -38,12 +38,47 @@ export const layerEffectsSchema=z.object({
 }).strict().default({});
 export type LayerEffects=z.infer<typeof layerEffectsSchema>;
 
+/** Independently editable joints in degrees; evaluated per frame, no procedural JS from the director. */
+export const rigPoseSchema=z.object({
+  leftArm:z.number().finite().min(-150).max(150).default(0),
+  rightArm:z.number().finite().min(-150).max(150).default(0),
+  leftLeg:z.number().finite().min(-80).max(80).default(0),
+  rightLeg:z.number().finite().min(-80).max(80).default(0),
+  head:z.number().finite().min(-55).max(55).default(0),
+  eyeX:z.number().finite().min(-15).max(15).default(0),
+  eyeY:z.number().finite().min(-12).max(12).default(0),
+  smile:z.number().finite().min(-1).max(1).default(0),
+}).strict().default({});
+export type RigPose=z.infer<typeof rigPoseSchema>;
+export const rigKeySchema=z.object({
+  frame:z.number().int().min(0),
+  pose:rigPoseSchema,
+  easing:layerEasing.default('ease-in-out'),
+}).strict();
+export const chartStageSchema=z.object({
+  frame:z.number().int().min(0),
+  values:z.array(z.number().finite().min(-1e9).max(1e9)).min(1).max(12),
+  easing:layerEasing.default('ease-in-out'),
+}).strict();
+export const mediaFramingSchema=z.object({
+  fit:z.enum(['cover','contain']).default('cover'),
+  focusX:z.number().finite().min(0).max(100).default(50),
+  focusY:z.number().finite().min(0).max(100).default(50),
+  zoom:z.number().finite().min(1).max(4).default(1),
+  trimStartFrames:z.number().int().min(0).max(54000).default(0),
+}).strict().default({});
+export const mediaPlanSchema=z.object({
+  query:z.string().trim().min(1).max(180),
+  intendedUse:z.string().trim().min(1).max(280),
+  licenseNote:z.string().trim().min(1).max(300),
+}).strict();
 export const layerObjectSchema=z.object({
   id:z.string().uuid(),
   name:z.string().trim().min(1).max(90),
   kind:z.enum(layerKinds),
   parentId:z.string().uuid().optional(),
-  chartType:z.enum(['bar','line','donut','ranking','area']).default('bar'),
+  chartType:z.enum(['bar','line','donut','ranking','area','waterfall','cashflow','counter']).default('bar'),
+  chartStages:z.array(chartStageSchema).max(12).default([]),
   x:z.number().finite().min(-400).max(2400),
   y:z.number().finite().min(-400).max(1400),
   width:z.number().finite().min(8).max(2400),
@@ -68,6 +103,8 @@ export const layerObjectSchema=z.object({
   characterType:z.enum(['worker','parent','child','banker','presenter','scientist',
     'builder','student','silhouette']).default('worker'),
   expression:z.enum(['neutral','happy','sad','curious','surprised','worried','thinking']).default('neutral'),
+  rig:rigPoseSchema,
+  rigKeys:z.array(rigKeySchema).max(40).default([]),
   sceneType:z.enum(['city','home','bank','office','supermarket','construction','street','studio']).default('city'),
   shapeType:z.enum(['rectangle','circle','triangle','line','ring','pill']).default('rectangle'),
   behavior:z.enum(layerBehaviors).default('none'),
@@ -84,15 +121,21 @@ export const layerObjectSchema=z.object({
   effects:layerEffectsSchema,
   motion:layerMotionSchema,
   assetId:z.string().uuid().optional(),
+  framing:mediaFramingSchema,
+  mediaPlan:mediaPlanSchema.optional(),
 }).strict();
 export const layerSchema=layerObjectSchema.superRefine((layer,ctx)=>{
   if(layer.kind==='vector'&&!layer.vectorPath.trim())
     ctx.addIssue({code:'custom',path:['vectorPath'],message:'Vetor precisa de um caminho SVG (d).'});
+  if(layer.chartStages.some(stage=>stage.values.length!==layer.values.length))
+    ctx.addIssue({code:'custom',path:['chartStages'],message:'Cada estágio deve ter a mesma quantidade de valores do gráfico.'});
+  if(layer.rigKeys.some(key=>layer.kind!=='character'))
+    ctx.addIssue({code:'custom',path:['rigKeys'],message:'Poses articuladas são exclusivas de personagens.'});
   if(layer.parentId===layer.id)
     ctx.addIssue({code:'custom',path:['parentId'],message:'Uma camada não pode ser seu próprio grupo.'});
   if(layer.kind==='image'&&!layer.assetId)
     ctx.addIssue({code:'custom',path:['assetId'],message:'Camada de imagem exige mídia local importada.'});
-  if(layer.values.length&&layer.kind==='chart'&&!layer.sourceEvidenceId)
+  if((layer.values.length||layer.chartStages.length)&&layer.kind==='chart'&&!layer.sourceEvidenceId)
     ctx.addIssue({code:'custom',path:['sourceEvidenceId'],
       message:'Gráfico com números precisa de evidência vinculada. Para simulação use texto ilustrativo, não valores inventados.'});
 });
@@ -121,6 +164,14 @@ export function validateLayers(layers:SceneLayer[],durationFrames:number):string
         if(seen.has(node.id)){issues.push('Ciclo de grupos na camada "'+layer.name+'".');break;}
         seen.add(node.id);
         node=node.parentId?byId.get(node.parentId):undefined;
+      }
+    }
+    for(const [key,items] of [['rigKeys',layer.rigKeys],['chartStages',layer.chartStages]] as const){
+      let last=-1;
+      for(const item of items){
+        if(item.frame<=last||item.frame>=layer.durationFrames)
+          issues.push(key+' fora de ordem ou duração em "'+layer.name+'".');
+        last=item.frame;
       }
     }
     const start=layer.startFrame;
@@ -154,6 +205,12 @@ export function retimeLayer(layer:SceneLayer,newDuration:number):SceneLayer{
     }
     out.motion[key]=[...adjusted.values()].sort((a,b)=>a.frame-b.frame);
   }
+  const scaleFrame=(frame:number)=>layer.durationFrames>1?
+    Math.round(frame*(newDuration-1)/(layer.durationFrames-1)):0;
+  out.rigKeys=[...new Map(layer.rigKeys.map(key=>[scaleFrame(key.frame),
+    {...key,frame:scaleFrame(key.frame)}])).values()].sort((a,b)=>a.frame-b.frame);
+  out.chartStages=[...new Map(layer.chartStages.map(key=>[scaleFrame(key.frame),
+    {...key,frame:scaleFrame(key.frame)}])).values()].sort((a,b)=>a.frame-b.frame);
   return {...out,durationFrames:newDuration};
 }
 export function layerAtCaption(layer:SceneLayer,shotStart:number,captions:readonly {

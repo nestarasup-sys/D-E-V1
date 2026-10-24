@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import type {Caption,Asset,Evidence} from '../model/project';
 import {emptyLayerMotion,layerSchema,layerBehaviors,layerKinds,
-  type SceneLayer,type LayerMotion,type LayerKeyframe} from '../model/layers';
+  type SceneLayer,type LayerMotion,type LayerKeyframe,type RigPose} from '../model/layers';
 import type {Shot} from '../model/shots';
 
 const labels:Record<keyof LayerMotion,string>={
@@ -154,6 +154,34 @@ export function LayerEditor({shot,selectedId,onSelected,assets,captions,evidence
             {(['neutral','happy','sad','curious','surprised','worried','thinking'] as const)
               .map(v=><option key={v} value={v}>{v}</option>)}</select></div>
       </>}
+      {selected.kind==='character'&&<div className="shotMotion">
+        <div className="panelTitle">PERSONAGEM ARTICULADO · POSES EDITÁVEIS</div>
+        <p className="help">Braços, pernas, cabeça, olhos e expressão em graus/deslocamento. Quadros-chave animam cada articulação sem achatar o personagem.</p>
+        <div className="twoCols">
+          {(Object.keys(selected.rig) as (keyof RigPose)[]).map(key=>
+            <div className="field" key={key}><label>{key}</label>
+              <input type="number" step=".5" value={selected.rig[key]}
+                onChange={e=>patch(selected.id,{rig:{...selected.rig,[key]:Number(e.target.value)}})}/>
+            </div>)}
+        </div>
+        <div className="projectActions"><button disabled={selected.rigKeys.length>=40} onClick={()=>{
+          const taken=new Set(selected.rigKeys.map(k=>k.frame));
+          const frame=Array.from({length:selected.durationFrames},(_,i)=>i).find(i=>!taken.has(i));
+          if(frame===undefined)return;
+          patch(selected.id,{rigKeys:[...selected.rigKeys,{frame,pose:{...selected.rig},easing:'ease-in-out'}].sort((a,b)=>a.frame-b.frame)});
+        }}>+ Pose no frame</button></div>
+        {selected.rigKeys.map((key,i)=><div key={'pose-'+i}>
+          <div className="kfRow"><label>Frame<input type="number" min={0} max={selected.durationFrames-1}
+            value={key.frame} onChange={e=>patch(selected.id,{rigKeys:selected.rigKeys.map((k,j)=>i===j?
+              {...k,frame:Math.round(Number(e.target.value))}:k).sort((a,b)=>a.frame-b.frame)})}/></label>
+            <button onClick={()=>patch(selected.id,{rigKeys:selected.rigKeys.filter((_,j)=>j!==i)})}>Excluir pose</button></div>
+          <div className="twoCols">{(Object.keys(key.pose) as (keyof RigPose)[]).map(joint=>
+            <div className="field" key={joint}><label>{joint}</label>
+              <input type="number" step=".5" value={key.pose[joint]}
+                onChange={e=>patch(selected.id,{rigKeys:selected.rigKeys.map((k,j)=>i===j?
+                  {...k,pose:{...k.pose,[joint]:Number(e.target.value)}}:k)})}/></div>)}</div>
+        </div>)}
+      </div>}
       {(selected.kind==='object'||selected.kind==='building')&&<div className="field"><label>Objeto</label>
         <select value={selected.objectType}
           onChange={e=>patch(selected.id,{objectType:e.target.value as SceneLayer['objectType']})}>
@@ -180,11 +208,26 @@ export function LayerEditor({shot,selectedId,onSelected,assets,captions,evidence
           {assets.filter(a=>a.kind==='image').map(a=>
             <option key={a.id} value={a.id}>{a.name}</option>)}</select>
       </div>}
+      {selected.kind==='image'&&<div className="shotMotion">
+        <div className="panelTitle">ENQUADRAMENTO INTELIGENTE · B-ROLL</div>
+        <div className="field"><label>Encaixe</label>
+          <select value={selected.framing.fit} onChange={e=>patch(selected.id,{framing:{
+            ...selected.framing,fit:e.target.value as 'cover'|'contain'}})}>
+            <option value="cover">Preencher</option><option value="contain">Mostrar tudo</option>
+          </select></div>
+        <div className="twoCols">
+          {(['focusX','focusY','zoom'] as const).map(k=><div className="field" key={k}>
+            <label>{k}</label><input type="number" min={k==='zoom'?1:0} max={k==='zoom'?4:100}
+              step={k==='zoom'?.05:1} value={selected.framing[k]}
+              onChange={e=>patch(selected.id,{framing:{...selected.framing,[k]:Number(e.target.value)}})}/>
+          </div>)}
+        </div>
+      </div>}
       {selected.kind==='chart'&&<>
         <div className="field"><label>Formato de gráfico</label>
           <select value={selected.chartType}
             onChange={e=>patch(selected.id,{chartType:e.target.value as SceneLayer['chartType']})}>
-            {(['bar','line','donut','ranking','area'] as const)
+            {(['bar','line','donut','ranking','area','waterfall','cashflow','counter'] as const)
               .map(v=><option key={v} value={v}>{v}</option>)}</select></div>
         <div className="field"><label>Fonte da informação (obrigatória para números)</label>
           <select value={selected.sourceEvidenceId||''} onChange={e=>patch(selected.id,{
@@ -210,6 +253,27 @@ export function LayerEditor({shot,selectedId,onSelected,assets,captions,evidence
               if(arr.length<=12&&arr.every(Number.isFinite))patch(selected.id,{values:arr});
             }}/>
         </div>
+        <div className="panelTitle">ESTÁGIOS · MORPH DE DADOS</div>
+        <p className="help">Valores animados por frame. A evidência vinculada continua obrigatória, inclusive para cascata e fluxo de dinheiro.</p>
+        <button disabled={!selected.sourceEvidenceId||selected.chartStages.length>=12||!selected.values.length}
+          onClick={()=>{
+            const used=new Set(selected.chartStages.map(k=>k.frame));
+            const frame=Array.from({length:selected.durationFrames},(_,i)=>i).find(i=>!used.has(i));
+            if(frame===undefined)return;
+            patch(selected.id,{chartStages:[...selected.chartStages,{
+              frame,values:[...selected.values],easing:'ease-in-out'}].sort((a,b)=>a.frame-b.frame)});
+          }}>+ Estágio animado</button>
+        {selected.chartStages.map((stage,i)=><div className="kfRow" key={'chart-stage-'+i}>
+          <label>Frame<input type="number" min={0} max={selected.durationFrames-1} value={stage.frame}
+            onChange={e=>patch(selected.id,{chartStages:selected.chartStages.map((k,j)=>i===j?
+              {...k,frame:Math.round(Number(e.target.value))}:k).sort((a,b)=>a.frame-b.frame)})}/></label>
+          <label>Valores (;)<input value={stage.values.join('; ')} onChange={e=>{
+            const v=e.target.value.split(';').map(x=>Number(x.trim()));
+            if(v.length===selected.values.length&&v.every(Number.isFinite))
+              patch(selected.id,{chartStages:selected.chartStages.map((k,j)=>i===j?{...k,values:v}:k)});
+          }}/></label>
+          <button onClick={()=>patch(selected.id,{chartStages:selected.chartStages.filter((_,j)=>j!==i)})}>×</button>
+        </div>)}
       </>}
       <div className="twoCols">
         {(['x','y','width','height'] as const).map(key=><div className="field" key={key}>

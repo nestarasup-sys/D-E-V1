@@ -33,3 +33,6 @@ exports/
 renders/
 cache/
 *.srt
+
+# Pacotes audiovisuais de usuarios nunca entram em commits
+*.darkstudio

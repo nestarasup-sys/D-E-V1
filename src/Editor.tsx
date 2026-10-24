@@ -41,6 +41,11 @@ export function Editor({onHome,syncStatus,onReload}:{onHome:()=>void,syncStatus:
   const captionFile = useRef<HTMLInputElement>(null);
   const [captionNotice,setCaptionNotice] = useState('');
   const [mediaMessage,setMediaMessage] = useState('');
+  const [rasterBusy,setRasterBusy] = useState(false);
+  const [rasterReport,setRasterReport] = useState<{
+    frames:number[];issues:Array<{frame:number;code:string;severity:string;message:string}>;
+    method:string;
+  }|null>(null);
   const {selectedClipId,selectClip}=useEditor();
   const selectedClip=project.clips.find(c=>c.id===selectedClipId)||null;
   const selectedShot=project.shots.find(s=>s.id===selectedShotId)||null;
@@ -120,6 +125,41 @@ export function Editor({onHome,syncStatus,onReload}:{onHome:()=>void,syncStatus:
     if(!selectedClip)return;try{apply([{type:'updateClip',clipId:selectedClip.id,changes}]);setMediaMessage('');}
     catch(e){setMediaMessage(e instanceof Error?e.message:'Propriedades inválidas');}
   }
+  async function exportArchive(){
+    setMediaMessage('Preparando pacote audiovisual local...');
+    try{
+      await ensureServiceCompatible();
+      const response=await fetch(endpoint+'/v1/archive/export',{method:'POST',
+        headers:{'Content-Type':'application/json'},body:JSON.stringify(project)});
+      if(!response.ok){
+        const err=await response.json() as {error?:string};
+        throw new Error(err.error||'Não foi possível criar o pacote');
+      }
+      const blob=await response.blob();
+      const url=URL.createObjectURL(blob),link=document.createElement('a');
+      link.href=url;link.download=project.name.replace(/[^a-zA-Z0-9_-]/g,'_').slice(0,65)+'.darkstudio';
+      link.click();setTimeout(()=>URL.revokeObjectURL(url),2000);
+      setMediaMessage('Pacote .darkstudio criado com as mídias importadas, suas fontes e legendas.');
+    }catch(e){setMediaMessage(e instanceof Error?e.message:'Falha ao exportar pacote');}
+  }
+  async function reviewRaster(){
+    setRasterBusy(true);setRasterReport(null);
+    try{
+      await ensureServiceCompatible();
+      const response=await fetch(endpoint+'/v1/qa/frames',{method:'POST',
+        headers:{'Content-Type':'application/json'},body:JSON.stringify(project)});
+      const data=await response.json() as {error?:string;frames:number[];
+        issues:Array<{frame:number;code:string;severity:string;message:string}>;method:string};
+      if(!response.ok)throw new Error(data.error||'Revisão de frames indisponível');
+      setRasterReport(data);
+    }catch(e){setMediaMessage(e instanceof Error?e.message:'Erro de QA raster');}
+    finally{setRasterBusy(false);}
+  }
+  function updateAssetRights(asset:Asset,changes:Partial<Asset['rights']>){
+    try{apply([{type:'updateAsset',assetId:asset.id,changes:{rights:{...asset.rights,...changes}}}]);
+      setMediaMessage('');}
+    catch(e){setMediaMessage(e instanceof Error?e.message:'Licença ou fonte inválida');}
+  }
   async function exportVideo(){
     setExportState('Preparando...');setExportId(null);setExportProgress(0);
     try{
@@ -186,9 +226,9 @@ export function Editor({onHome,syncStatus,onReload}:{onHome:()=>void,syncStatus:
   }
   function jumpTo(index:number) {select(project.scenes[index].id);player.current?.seekTo(sceneStart(project,index));}
   return <div className="shell">
-    <header className="topbar"><div className="brand"><span className="brandmark">D</span><div><strong>DARK STUDIO</strong><small>ANIMATION STUDIO v0.14</small></div></div>
+    <header className="topbar"><div className="brand"><span className="brandmark">D</span><div><strong>DARK STUDIO</strong><small>MOTION ENGINE v0.16</small></div></div>
       <div className="projectName"><span className="dot"/>{project.name}</div>
-      <div className="topActions"><button onClick={onHome}>← Projetos</button><button onClick={undo} disabled={!past.length} title="Desfazer">↶ Desfazer</button><button onClick={redo} disabled={!future.length} title="Refazer">↷ Refazer</button><button onClick={()=>mediaFile.current?.click()} disabled={importing}>{importing?'Importando...':'Importar mídia'}</button><button className="primary" onClick={()=>void exportVideo()}>Exportar MP4</button><button onClick={()=>saveJson(project)}>Exportar JSON ↧</button></div>
+      <div className="topActions"><button onClick={onHome}>← Projetos</button><button onClick={undo} disabled={!past.length} title="Desfazer">↶ Desfazer</button><button onClick={redo} disabled={!future.length} title="Refazer">↷ Refazer</button><button onClick={()=>mediaFile.current?.click()} disabled={importing}>{importing?'Importando...':'Importar mídia'}</button><button className="primary" onClick={()=>void exportVideo()}>Exportar MP4</button><button onClick={()=>saveJson(project)}>Exportar JSON ↧</button><button onClick={()=>void exportArchive()}>Exportar .darkstudio</button></div>
       <input className="hidden" ref={captionFile} type="file" accept=".srt,.txt" onChange={e=>void importSubtitles(e)}/>
       <input className="hidden" ref={mediaFile} type="file" multiple accept=".png,.jpg,.jpeg,.webp,.mp4,.webm,.mov,.mp3,.wav,.m4a,.ogg" onChange={uploadMedia}/>
     </header>
@@ -212,7 +252,24 @@ export function Editor({onHome,syncStatus,onReload}:{onHome:()=>void,syncStatus:
       <div className="libraryNote"><b>ARQUIVOS DE MÍDIA · {project.assets.length}</b><p>Importe imagens, vídeo e narração pelo serviço local. Depois adicione-os a uma trilha.</p>
       <div className="assetList">{project.assets.map(a=><div className="assetRow" key={a.id}><strong title={a.name}>{a.kind==='image'?'▣':a.kind==='video'?'▶':'♫'} {a.name}</strong><div className="assetActions">
       {a.kind==='audio'?<><button onClick={()=>insertAsset(a,'narration')}>+ Narração</button><button onClick={()=>insertAsset(a,'music')}>+ Música</button><button onClick={()=>insertAsset(a,'sfx')}>+ Efeito</button></>:<button onClick={()=>insertAsset(a,'visual')}>+ Visual</button>}
-      </div></div>)}</div>{mediaMessage&&<p className="warning" role="alert">{mediaMessage}</p>}</div>
+        {a.kind!=='audio'&&<details><summary>Licença e atribuição · {a.rights.status}</summary>
+          <div className="field"><label>Status da licença (confirmação humana)</label>
+            <select value={a.rights.status} onChange={e=>updateAssetRights(a,{
+              status:e.target.value as Asset['rights']['status']})}>
+              <option value="unknown">Desconhecida</option>
+              <option value="cleared">Autorizada / conferida</option>
+              <option value="restricted">Restrita</option>
+            </select></div>
+          <div className="field"><label>Origem URL</label><input defaultValue={a.rights.sourceUrl}
+            onBlur={e=>updateAssetRights(a,{sourceUrl:e.target.value})}/></div>
+          <div className="field"><label>Autor</label><input defaultValue={a.rights.creator}
+            onBlur={e=>updateAssetRights(a,{creator:e.target.value})}/></div>
+          <div className="field"><label>Licença / termos</label><input defaultValue={a.rights.licenseName}
+            onBlur={e=>updateAssetRights(a,{licenseName:e.target.value})}/></div>
+          <div className="field"><label>Atribuição</label><input defaultValue={a.rights.attribution}
+            onBlur={e=>updateAssetRights(a,{attribution:e.target.value})}/></div>
+        </details>}
+      </div>)}</div>{mediaMessage&&<p className="warning" role="alert">{mediaMessage}</p>}</div>
       <div className="libraryNote"><b>LEGENDAS SINCRONIZADAS · {project.captions.length}</b>
         <p>Importe um SRT com timestamps (gerado por ferramenta local ou pelo Codex) e revise o timing em relação à narração.</p>
         <div className="projectActions"><button onClick={()=>captionFile.current?.click()}>Importar SRT</button>
@@ -222,6 +279,17 @@ export function Editor({onHome,syncStatus,onReload}:{onHome:()=>void,syncStatus:
       </aside>
       <main className="stage"><div className="panelTitle">PRÉ-VISUALIZAÇÃO <span>1920 × 1080 • 30 FPS</span></div>
         <div className="preview"><Player ref={player} component={Documentary} inputProps={{project}} fps={project.fps} durationInFrames={Math.max(1,total)} compositionWidth={project.width} compositionHeight={project.height} controls clickToPlay style={{width:'100%',aspectRatio:'16/9'}}/></div>
+        <div className="projectActions">
+          <button disabled={rasterBusy} onClick={()=>void reviewRaster()}>
+            {rasterBusy?'Analisando pixels renderizados...':'Revisar frames renderizados (QA)'}</button>
+        </div>
+        {rasterReport&&<div className="libraryNote" role="status">
+          <strong>REVISÃO VISUAL AUTOMÁTICA · {rasterReport.frames.length} FRAMES</strong>
+          <p>{rasterReport.method}</p>
+          <p>{rasterReport.issues.length} alerta(s) de revisão, sem garantir ausência de erros.</p>
+          {rasterReport.issues.slice(0,24).map((issue,i)=><p key={i}>
+            Frame {issue.frame} · {issue.severity} · {issue.message}</p>)}
+        </div>}
         <div className="projectSync" role="status"><span>{syncStatus}</span>{onReload&&<button onClick={onReload}>Recarregar projeto do disco</button>}</div>
         <div className="stageFooter"><div>● PREVIEW LOCAL <span>Cenas, clipes, narração e música pelo Remotion Player.</span></div><strong>{seconds(total,project.fps)} total</strong></div>
         {project.visualMode==='shots'&&<ShotTimeline shots={project.shots} totalFrames={total}

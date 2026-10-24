@@ -75,8 +75,14 @@ export function ShotVisual({shot,asset,kit,evidence,assets,captions}:{
         </AbsoluteFill>:
       shot.kind==='graphic'?(investigativeStyles.some(s=>s===shot.style)?
         <InvestigationVisual shot={shot} evidence={evidence}/>:<Design shot={shot} frame={frame} kit={kit}/>):
-        asset?.kind==='image'?<Img src={asset.url} style={{width:'100%',height:'100%',objectFit:'cover'}}/>:
-        asset?.kind==='video'?<OffthreadVideo src={asset.url} startFrom={shot.trimStartFrames} muted style={{width:'100%',height:'100%',objectFit:'cover'}}/>:null}
+        asset?.kind==='image'?<Img src={asset.url} style={{width:'100%',height:'100%',
+          objectFit:shot.framing.fit,objectPosition:shot.framing.focusX+'% '+shot.framing.focusY+'%',
+          transform:'scale('+shot.framing.zoom+')'}}/>:
+        asset?.kind==='video'?<OffthreadVideo src={asset.url}
+          startFrom={shot.trimStartFrames+shot.framing.trimStartFrames} muted
+          style={{width:'100%',height:'100%',objectFit:shot.framing.fit,
+            objectPosition:shot.framing.focusX+'% '+shot.framing.focusY+'%',
+            transform:'scale('+shot.framing.zoom+')'}}/>:null}
       </AbsoluteFill>
       {shot.kind!=='graphic'&&shot.title&&<AbsoluteFill style={{justifyContent:'flex-end',padding:'0 120px 175px'}}>
         <div style={{maxWidth:1260,background:'#000000b5',borderLeft:'9px solid '+accent,padding:'25px 38px'}}>

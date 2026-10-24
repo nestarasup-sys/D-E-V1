@@ -23,7 +23,9 @@ import {ProposalRepository} from '../apps/agent/src/proposals';
 import {ProductionCoordinator} from '../apps/agent/src/production';
 import {assertServiceCompatibility} from '../src/model/service-contract';
 import {diagnoseProject,runtimeDiagnostics} from '../apps/agent/src/diagnostics';
-import {mediaExistsFor,importGeneratedWave} from '../apps/agent/src/media';
+import {mediaExistsFor,importGeneratedWave,readRegisteredMedia} from '../apps/agent/src/media';
+import {buildPortableArchive} from '../apps/agent/src/portable';
+import {inspectRenderedFrames} from '../apps/agent/src/frame-qa';
 import {makeSfxWave,SFX_TYPES,type SfxType} from '../apps/agent/src/sfx';
 import {applyOperations} from '../src/model/operations';
 import {parseProject} from '../src/model/project';
@@ -132,6 +134,34 @@ async function main() {
       const created=await repository.import(input);
       console.log('Projeto importado localmente: '+created.path);
       console.log('ID: '+created.project.id);
+      return;
+    }
+    case 'pack': {
+      const id=requireArgument(args[0],'UUID do projeto');
+      const path=resolve(requireArgument(args[1],'saida .darkstudio'));
+      if(!path.toLowerCase().endsWith('.darkstudio'))throw new Error('Use extensão .darkstudio');
+      const record=await repository.read(id);
+      await writeFile(path,await buildPortableArchive(record.project,readRegisteredMedia),{flag:'wx'});
+      console.log('Pacote único com todas as mídias salvo localmente: '+path);
+      return;
+    }
+    case 'unpack': {
+      const file=resolve(requireArgument(args[0],'arquivo .darkstudio'));
+      if(!file.toLowerCase().endsWith('.darkstudio'))throw new Error('Use arquivo .darkstudio');
+      await requireServiceCompatible();
+      const result=await fetch(api+'/v1/archive/import',{method:'POST',
+        headers:{'Content-Type':'application/vnd.darkstudio+zip'},body:await readFile(file)});
+      const data=await result.json() as {error?:string;project?:{id:string};path?:string};
+      if(!result.ok||!data.project)throw new Error(data.error||'Falha ao importar pacote');
+      console.log('Projeto portátil importado com mídias e novos IDs: '+data.path);
+      return;
+    }
+    case 'raster-qa': {
+      const id=requireArgument(args[0],'UUID do projeto');
+      const {project}=await repository.read(id);
+      const report=await inspectRenderedFrames(project);
+      console.log(JSON.stringify(report,null,2));
+      if(report.issues.some(i=>i.severity==='warning'))process.exitCode=2;
       return;
     }
     case 'service-info': {
@@ -338,7 +368,7 @@ async function main() {
       return;
     }
     default:
-      throw new Error('Comandos locais: sfx [list|<tipo> <UUID> <revisao> <frame> [volume]] | presets [categoria] | composition-example <preset> <destino.json> | service-info | production <id> [status|checkpoint|continue] | direction-template <id> <destino> | direct <id> <direcao.json> <revisao> | auto-direct <id> <revisao> | direction-report <id> | path | list | create "Título" | info <id> | show <id> | validate <id> | import <json> | apply <id> <ops.json> [revisao] | replace <id> <json> <revisao> | render <id>');
+      throw new Error('Comandos locais: pack <UUID> <saida.darkstudio> | unpack <arquivo.darkstudio> | raster-qa <UUID> | sfx [list|<tipo> <UUID> <revisao> <frame> [volume]] | presets [categoria] | composition-example <preset> <destino.json> | service-info | production <id> [status|checkpoint|continue] | direction-template <id> <destino> | direct <id> <direcao.json> <revisao> | auto-direct <id> <revisao> | direction-report <id> | path | list | create "Título" | info <id> | show <id> | validate <id> | import <json> | apply <id> <ops.json> [revisao] | replace <id> <json> <revisao> | render <id>');
   }
 }
 main().catch(error=>{

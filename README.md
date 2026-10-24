@@ -1,4 +1,4 @@
-# Dark Studio v0.15 — Motion Engine 2D declarativo + Codex Local
+# Dark Studio v0.16 — Motion Engine: personagens, gráficos, B-roll, QA raster e arquivo único
 
 O **Dark Studio** é um editor de documentários para Windows 11. A interface usa Tauri 2 + React + TypeScript, o preview utiliza Remotion e a exportação MP4 acontece via Remotion Renderer/FFmpeg em processo separado.
 
@@ -6,6 +6,16 @@ O **Dark Studio** é um editor de documentários para Windows 11. A interface us
 
 GitHub serve apenas para hospedar o **código-fonte do aplicativo**, sem roteiros, mídia ou projetos reais de usuários.
 
+
+## v0.16 — Cinco frentes agora integradas
+
+- **Rigs articulados:** poses independentes para braços/pernas/cabeça/olhos e sorriso por quadro-chave, editáveis em camada de personagem.
+- **Gráficos econômicos:** fluxo de dinheiro, waterfall/cascata, contador e valores que evoluem por frames, sempre com evidência para números factuais.
+- **B-roll guiado por IA:** `mediaPlan` documenta intenção, busca e licença pretendida; imagens/vídeos **já importados** podem ser reenquadrados com foco e zoom. A biblioteca registra origem e licença; não verifica direitos automaticamente.
+- **QA raster:** botão no editor renderiza amostras PNG reais e analisa movimento brusco, bordas, contrastes aproximados e riscos de sobreposição/corte. Alertas, não uma garantia de qualidade; sem OCR.
+- **`.darkstudio`:** arquivo ZIP único com projeto JSON, mídia, narração, SFX, músicas, legendas e evidências, manifesto com hashes SHA-256. Importação cria IDs de mídia novos e não sobrescreve arquivos locais. Até 512 MB / 250 mídias. Botões no app e comandos locais `pack`/`unpack`.
+
+[Detalhes, limites e fluxo para IA da v0.16](docs/MOTION_ENGINE_016.md). A v0.15 e os 50 presets continuam compatíveis. **A direção da IA segue sendo um `direction.json` revisável, mas o transporte audiovisual completo passa a ser um `.darkstudio`.**
 
 ## v0.15 — Motion Engine: criatividade autoral e planos editáveis
 

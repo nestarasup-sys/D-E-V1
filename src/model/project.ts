@@ -18,6 +18,15 @@ export const sceneSchema = z.object({
 }).strict();
 
 export const assetKindSchema = z.enum(['image', 'video', 'audio']);
+/** Licença é metadado cadastrado pelo editor; nunca prova licença automaticamente. */
+export const assetRightsSchema=z.object({
+  status:z.enum(['unknown','cleared','restricted']).default('unknown'),
+  sourceUrl:z.union([z.literal(''),z.string().url().max(2000)]).default(''),
+  creator:z.string().max(160).default(''),
+  licenseName:z.string().max(160).default(''),
+  attribution:z.string().max(360).default(''),
+  notes:z.string().max(500).default(''),
+}).strict().default({});
 export const assetSchema = z.object({
   id: z.string().uuid(),
   name: z.string().min(1).max(240),
@@ -25,6 +34,7 @@ export const assetSchema = z.object({
   mime: z.string().min(3).max(100),
   url: z.string().max(512).url(),
   durationFrames: z.number().int().positive().max(30 * 60 * 60).optional(),
+  rights:assetRightsSchema,
 }).strict().refine(a => a.url === `http://127.0.0.1:4317/media/${a.id}`, 'URL de mídia inválida');
 export const laneSchema = z.enum(['visual', 'narration', 'music', 'sfx']);
 export const clipSchema = z.object({
@@ -122,7 +132,7 @@ export const projectSchema = z.object({
         p.evidence.find(e=>e.id===layer.sourceEvidenceId):undefined;
       if(layer.sourceEvidenceId&&!linked)ctx.addIssue({code:'custom',
         path:['shots',i,'layers',j,'sourceEvidenceId'],message:'Elemento cita fonte não cadastrada'});
-      if(layer.kind==='chart'&&layer.values.length&&!layer.sourceEvidenceId)
+      if(layer.kind==='chart'&&(layer.values.length||layer.chartStages.length)&&!layer.sourceEvidenceId)
         ctx.addIssue({code:'custom',path:['shots',i,'layers',j],message:'Gráfico factual sem evidência'});
       if(layer.kind==='image'){
         const asset=layer.assetId?assetById.get(layer.assetId):undefined;
@@ -145,6 +155,8 @@ export const projectSchema = z.object({
       ctx.addIssue({code:'custom',path:['shots',i,'investigation','points'],
         message:'Gráfico com valores precisa de origem cadastrada; não invente estatísticas'});
 
+    if(shot.mediaPlan&&!shot.assetId&&shot.kind!=='graphic')
+      ctx.addIssue({code:'custom',path:['shots',i,'mediaPlan'],message:'B-roll exige arquivo importado'});
     if(shot.kind!=='graphic'){
       const asset=shot.assetId?assetById.get(shot.assetId):undefined;
       if(!asset||asset.kind!==shot.kind)ctx.addIssue({code:'custom',path:['shots',i,'assetId'],message:'Plano exige imagem ou vídeo importado no computador'});

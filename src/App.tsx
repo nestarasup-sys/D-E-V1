@@ -181,6 +181,16 @@ export function App(){
     event.target.value='';
     if(!file)return;
     await act(async()=>{
+      if(file.name.toLowerCase().endsWith('.darkstudio')){
+        await ensureServiceCompatible();
+        const response=await fetch('http://127.0.0.1:4317/v1/archive/import',{
+          method:'POST',headers:{'Content-Type':'application/vnd.darkstudio+zip'},body:file,
+        });
+        const result=await response.json() as ProjectRecord & {error?:string};
+        if(!response.ok||!result.project)throw new Error(result.error||'Pacote .darkstudio inválido');
+        useEditor.getState().openProject(result.project);setActive(result);
+        return;
+      }
       const project=parseProject(JSON.parse(await file.text()));
       const existing=entries.find(p=>p.id===project.id);
       if(existing){
@@ -250,9 +260,9 @@ export function App(){
       <div className="homeCreate">
         <input aria-label="Nome do novo projeto" placeholder="Nome do novo documentário" maxLength={120} value={newName} onChange={e=>setNewName(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')void create();}}/>
         <button className="primary" disabled={busy||!newName.trim()} onClick={()=>void create()}>+ Criar projeto</button>
-        <button disabled={busy} onClick={()=>importRef.current?.click()}>Importar JSON</button>
+        <button disabled={busy} onClick={()=>importRef.current?.click()}>Importar JSON / .darkstudio</button>
         <button disabled={busy} onClick={()=>void createPilot()}>▶ Criar piloto audiovisual 30s</button>
-        <input ref={importRef} className="hidden" type="file" accept=".json,application/json" onChange={e=>void importFile(e)}/>
+        <input ref={importRef} className="hidden" type="file" accept=".json,.darkstudio,application/json,application/vnd.darkstudio+zip" onChange={e=>void importFile(e)}/>
       </div>
     </section>
     <section className="homeProjects">

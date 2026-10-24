@@ -47,6 +47,41 @@ export async function importGeneratedWave(wav:Buffer,options?:{
   }
   return {id,name,kind:'audio',mime:entry.mime,url:entry.url,durationFrames};
 }
+/** Portable archives may only read registered media; never arbitrary user paths. */
+export async function readRegisteredMedia(id:string):Promise<{bytes:Buffer;ext:string;mime:string;kind:'image'|'video'|'audio';name:string}>{
+  const entry=(await index())[id];
+  if(!entry)throw new Error('Mídia registrada não encontrada: '+id);
+  const bytes=await readFile(join(MEDIA_DIR,entry.id+entry.ext));
+  if(bytes.length!==entry.bytes||!bytes.length)throw new Error('Mídia ausente ou alterada: '+entry.name);
+  return {bytes,ext:entry.ext,mime:entry.mime,kind:entry.kind,name:entry.name};
+}
+/** Add a validated binary as a NEW ID, preventing overwrites on import. */
+export async function importArchiveMedia(input:{
+  name:string;kind:'image'|'video'|'audio';mime:string;ext:string;bytes:Uint8Array;
+}):Promise<Stored>{
+  const spec=allowed[input.ext];
+  if(!spec||spec.kind!==input.kind||spec.mime!==input.mime)
+    throw new Error('Formato de mídia do pacote incompatível.');
+  if(input.bytes.length<1||input.bytes.length>MAX_FILE)
+    throw new Error('Mídia de pacote vazia ou muito grande.');
+  if(input.name.length>240||/[\\/\u0000-\u001f]/.test(input.name))
+    throw new Error('Nome de mídia inválido no pacote.');
+  const id=randomUUID(),record:Stored={id,name:input.name,kind:input.kind,mime:input.mime,
+    ext:input.ext,bytes:input.bytes.length,url:'http://127.0.0.1:4317/media/'+id};
+  await mkdir(MEDIA_DIR,{recursive:true});
+  const path=join(MEDIA_DIR,id+input.ext);
+  try{
+    await writeFile(path,input.bytes,{flag:'wx'});
+    (await index())[id]=record;await persist();
+    return record;
+  }catch(e){delete (await index())[id];await unlink(path).catch(()=>{});throw e;}
+}
+export async function rollbackArchiveMedia(id:string):Promise<void>{
+  const entry=(await index())[id];
+  if(!entry)return;
+  delete (await index())[id];await persist();
+  await unlink(join(MEDIA_DIR,entry.id+entry.ext)).catch(()=>{});
+}
 export async function mediaExistsFor(id:string):Promise<boolean>{
   const entry=(await index())[id];
   if(!entry)return false;
