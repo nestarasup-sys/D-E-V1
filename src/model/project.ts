@@ -101,6 +101,9 @@ export const projectSchema = z.object({
       ctx.addIssue({code:'custom',path:['shots',i,'investigation','sourceEvidenceId'],message:'Plano cita evidência inexistente'});
     if(shot.investigation.representation==='source-excerpt'&&!evidenceId)
       ctx.addIssue({code:'custom',path:['shots',i,'investigation'],message:'Trecho apresentado como fonte precisa do ID da evidência'});
+    if(shot.style==='chart'&&shot.investigation.points.length&&!evidenceId)
+      ctx.addIssue({code:'custom',path:['shots',i,'investigation','points'],
+        message:'Gráfico com valores precisa de origem cadastrada; não invente estatísticas'});
 
     if(shot.kind!=='graphic'){
       const asset=shot.assetId?assetById.get(shot.assetId):undefined;

@@ -6,6 +6,7 @@ export interface ChangePreview {
   changedClips:{id:string;changedFields:string[]}[];addedClips:number;removedClips:number;
   addedAssets:number;removedAssets:number;addedCaptions:number;addedEvidence:number;
   addedShots:string[];removedShots:string[];changedShots:{id:string;changedFields:string[]}[];
+  visualAudit?:{coveragePercent:number;warnings:number;errors:number;unverifiedVisuals:number};
 }
 export interface ProposalView {
   id:string;projectId:string;createdAt:string;baseRevision:string;

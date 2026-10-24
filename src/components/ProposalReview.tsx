@@ -36,13 +36,18 @@ export function ProposalReview({projectId,onClose,onChanged}:{projectId:string,o
             {p.preview.changedScenes.map(item=><li key={item.id}>Cena alterada: {item.before} → {item.after} (campos: {item.changedFields.join(', ')})</li>)}
             {p.preview.changedClips.map(item=><li key={item.id}>Clipe {item.id.slice(0,8)}: {item.changedFields.join(', ')}</li>)}
             <li>Clipes adicionados: {p.preview.addedClips} · removidos: {p.preview.removedClips}</li>
-            {p.preview.addedShots.map((name,i)=><li key={'as'+i}>Plano visual novo: {name}</li>)}
+            {p.preview.visualAudit&&<li><strong>Qualidade da montagem:</strong> {p.preview.visualAudit.coveragePercent}% de cobertura;
+              {p.preview.visualAudit.errors} erros de ritmo/cobertura, {p.preview.visualAudit.warnings} alertas,
+              {p.preview.visualAudit.unverifiedVisuals} visuais com fonte pendente</li>}
+            {p.preview.addedShots.slice(0,16).map((name,i)=><li key={'as'+i}>Plano visual novo: {name}</li>)}
+            {p.preview.addedShots.length>16&&<li>+ {p.preview.addedShots.length-16} outros planos para revisão na timeline após aprovação</li>}
             {p.preview.removedShots.map((name,i)=><li key={'rs'+i}>Plano removido: {name}</li>)}
-            {p.preview.changedShots.map(s=><li key={s.id}>Plano {s.id.slice(0,8)}: campos {s.changedFields.join(', ')}</li>)}
+            {p.preview.changedShots.slice(0,12).map(s=><li key={s.id}>Plano {s.id.slice(0,8)}: campos {s.changedFields.join(', ')}</li>)}
+            {p.preview.changedShots.length>12&&<li>+ {p.preview.changedShots.length-12} outros planos alterados</li>}
             <li>Legendas: {p.preview.addedCaptions>=0?'+':''}{p.preview.addedCaptions} · Fontes: {p.preview.addedEvidence>=0?'+':''}{p.preview.addedEvidence}</li>
           </ul>}
           <div className="projectActions">
-            <button className="primary" disabled={busy||p.stale||!p.preview} onClick={()=>void decide(p.id,'accept')}>Aprovar</button>
+            <button className="primary" disabled={busy||p.stale||!p.preview||(p.preview.visualAudit?.errors??0)>0} onClick={()=>void decide(p.id,'accept')}>Aprovar</button>
             <button disabled={busy} onClick={()=>void decide(p.id,'reject')}>Descartar</button>
           </div>
         </div>)}

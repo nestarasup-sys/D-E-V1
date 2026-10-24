@@ -183,9 +183,9 @@ function Footer({shot,evidence}:{shot:Shot;evidence?:Evidence}){
   const verified=linked&&evidence?.reviewStatus==='verified';
   const map=shot.style==='map';
   const status=map?'ESQUEMA ILUSTRATIVO — NÃO É MAPA GEOGRÁFICO':
-    d.representation==='source-excerpt'&&!verified?'TRECHO NÃO VERIFICADO':
-    verified?'FONTE CONFERIDA PELO EDITOR':
-    d.representation==='reconstruction'?'RECONSTITUIÇÃO EDITORIAL':'ILUSTRAÇÃO / NÃO É PROVA';
+    d.representation==='source-excerpt'?(verified?'TRECHO TRANSCRITO · ORIGEM CONFERIDA':'TRECHO TRANSCRITO · PENDENTE'):
+    d.representation==='reconstruction'?(verified?'RECONSTITUIÇÃO · FONTE CONFERIDA':'RECONSTITUIÇÃO EDITORIAL'):
+    verified?'ILUSTRAÇÃO EDITORIAL · DADOS CONFERIDOS':'ILUSTRAÇÃO / NÃO É PROVA';
   return <div style={{position:'absolute',bottom:24,left:110,right:110,display:'flex',
     alignItems:'end',justifyContent:'space-between',gap:30,fontSize:22,fontWeight:700,letterSpacing:1.7,
     color:verified?'#a0d3df':'#d5b178'}}>

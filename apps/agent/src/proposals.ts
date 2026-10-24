@@ -5,6 +5,7 @@ import {z} from 'zod';
 import {operationSchema,applyOperations} from '../../../src/model/operations';
 import type {Project} from '../../../src/model/project';
 import {ProjectRepository,ProjectError} from './project-store';
+import {reviewVisualDirection} from '../../../src/model/direction';
 
 const UUID=z.string().uuid();
 const operationList=z.array(operationSchema).min(1).max(40);
@@ -19,6 +20,7 @@ export interface ChangePreview {
   changedClips:{id:string;changedFields:string[]}[];addedClips:number;removedClips:number;
   addedAssets:number;removedAssets:number;addedCaptions:number;addedEvidence:number;
   addedShots:string[];removedShots:string[];changedShots:{id:string;changedFields:string[]}[];
+  visualAudit?:{coveragePercent:number;warnings:number;errors:number;unverifiedVisuals:number};
 }
 export function describeChanges(before:Project,after:Project):ChangePreview {
   const a=new Map(before.scenes.map(s=>[s.id,s]));
@@ -55,6 +57,14 @@ export function describeChanges(before:Project,after:Project):ChangePreview {
     removedAssets:Math.max(0,before.assets.length-after.assets.length),
     addedCaptions:after.captions.length-before.captions.length,
     addedEvidence:after.evidence.length-before.evidence.length,
+    ...(after.visualMode==='shots'?(()=>{
+      const review=reviewVisualDirection(after);
+      return {visualAudit:{coveragePercent:review.coveragePercent,
+        warnings:review.issues.filter(x=>x.severity==='warning').length,
+        errors:review.issues.filter(x=>x.severity==='error').length,
+        unverifiedVisuals:review.unverifiedVisuals}};
+    })():{}),
+
   };
 }
 export interface ProposalView extends ProposedChange {preview:ChangePreview|null;stale?:boolean}
@@ -118,6 +128,9 @@ export class ProposalRepository {
     const proposal=await this.get(projectId,proposalId);
     const original=await this.projects.read(projectId);
     const changed=applyOperations(original.project,proposal.operations);
+    const review=reviewVisualDirection(changed);
+    if(!review.readyForEditorialReview)
+      throw new ProjectError('Direção visual incompleta: cubra os espaços vazios e gere uma proposta corrigida.',422);
     const result=await this.projects.save(projectId,changed,proposal.baseRevision);
     await rm(this.path(projectId,proposalId),{force:true});
     return result;
