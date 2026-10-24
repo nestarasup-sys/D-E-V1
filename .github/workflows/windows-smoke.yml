@@ -51,3 +51,5 @@ jobs:
         run: npm run smoke:pilot
       - name: Render 12-second vector animation studio across six preset families
         run: npm run smoke:motion
+      - name: Inspect rendered frames from v0.16 articulated and economic scenes
+        run: npm run smoke:advanced

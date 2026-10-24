@@ -18,7 +18,8 @@
     "smoke:pilot": "tsx scripts/smoke-pilot.ts",
     "smoke:service": "tsx scripts/smoke-service.ts",
     "smoke:motion": "tsx scripts/smoke-motion.ts",
-    "preview:frames": "tsx scripts/preview-frames.ts"
+    "preview:frames": "tsx scripts/preview-frames.ts",
+    "smoke:advanced": "tsx scripts/smoke-advanced.ts"
   },
   "dependencies": {
     "@remotion/player": "^4.0.360",
