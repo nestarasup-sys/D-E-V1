@@ -20,7 +20,7 @@ const allowed:Record<string,{mime:string,kind:'image'|'video'|'audio'|'font'}>={
   '.woff2':{mime:'font/woff2',kind:'font'},'.woff':{mime:'font/woff',kind:'font'},
   '.ttf':{mime:'font/ttf',kind:'font'},'.otf':{mime:'font/otf',kind:'font'},
 };
-type Stored={id:string,name:string,kind:'image'|'video'|'audio',mime:string,ext:string,bytes:number,url:string};
+type Stored={id:string,name:string,kind:'image'|'video'|'audio'|'font',mime:string,ext:string,bytes:number,url:string};
 let mediaIndex:Record<string,Stored>|null=null;
 async function index(){if(mediaIndex)return mediaIndex;await mkdir(MEDIA_DIR,{recursive:true});try{mediaIndex=JSON.parse(await readFile(INDEX,'utf8')) as Record<string,Stored>;}catch{mediaIndex={};}return mediaIndex;}
 async function persist(){const tmp=INDEX+'.tmp';await writeFile(tmp,JSON.stringify(mediaIndex,null,2),'utf8');await rename(tmp,INDEX);}
@@ -153,7 +153,7 @@ export async function handleMedia(req:IncomingMessage,res:ServerResponse,url:URL
     if(Number(req.headers['content-length'])>MAX_FILE){json(res,413,{error:'Arquivo acima do limite de 16 GB'});return true;}
     const id=randomUUID();const path=join(MEDIA_DIR,id+ext);let bytes=0;
     try{
-      const limit=new Transform({transform(chunk:Buffer,_enc,cb){bytes+=chunk.length;if(bytes>MAX_FILE)cb(new Error('Arquivo acima de 512 MB'));else cb(null,chunk);}});
+      const limit=new Transform({transform(chunk:Buffer,_enc,cb){bytes+=chunk.length;if(bytes>MAX_FILE)cb(new Error('Arquivo acima de 16 GB'));else cb(null,chunk);}});
       await pipeline(req,limit,createWriteStream(path,{flags:'wx'}));
       if(bytes===0)throw new Error('Arquivo vazio');
       if(spec.kind==='font')await validateFontFile(path,ext);

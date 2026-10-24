@@ -5,7 +5,7 @@
  */
 import {createHash} from 'node:crypto';
 import {createReadStream,createWriteStream} from 'node:fs';
-import {mkdtemp,readFile,rm,stat,writeFile} from 'node:fs/promises';
+import {mkdtemp,readFile,rm,stat} from 'node:fs/promises';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {Transform} from 'node:stream';
