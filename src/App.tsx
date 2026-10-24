@@ -1,5 +1,5 @@
-import {useCallback,useEffect,useRef,useState,type ChangeEvent} from 'react';
-import {Editor} from './Editor';
+import {useCallback,useEffect,useRef,useState,lazy,Suspense,type ChangeEvent} from 'react';
+const Editor=lazy(async()=>({default:(await import('./Editor')).Editor}));
 import {ProjectHistory} from './components/ProjectHistory';
 import {ProposalReview} from './components/ProposalReview';
 import {ProjectDiagnostics} from './components/ProjectDiagnostics';
@@ -105,7 +105,10 @@ function ProjectSession({initial,onClose}: {initial:ProjectRecord;onClose:()=>vo
     const success=await save();
     if(success)onClose();
   };
-  return <Editor onHome={()=>void leave()} syncStatus={sync} onReload={reloadAvailable?()=>void reload():undefined}/>;
+  return <Suspense fallback={<div className="appLoading" role="status">Carregando o editor e os módulos de animação…</div>}>
+    <Editor onHome={()=>void leave()} syncStatus={sync}
+      onReload={reloadAvailable?()=>void reload():undefined}/>
+  </Suspense>;
 }
 
 export function App(){

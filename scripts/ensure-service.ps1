@@ -4,8 +4,8 @@
 param()
 $ErrorActionPreference = 'Stop'
 $repo = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..')).TrimEnd([char[]]@('\','/'))
-$expectedBuild = 'dark-studio-v0.14-motion-contract-5'
-$expectedProtocol = 5
+$expectedBuild = 'dark-studio-v0.14-motion-contract-6'
+$expectedProtocol = 6
 $healthUrl = 'http://127.0.0.1:4317/health'
 
 function Get-ServiceHealth {

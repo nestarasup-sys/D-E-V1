@@ -4,6 +4,7 @@ import {type Operation,applyOperations} from './operations';
 import {type Shot,shotSchema,channelKitObjectSchema,type Motion,investigationSchema} from './shots';
 import {layerSchema,layerObjectSchema} from './layers';
 import {PRESET_CATALOG,getPreset,instantiatePreset} from './presets';
+import {examineShot} from './visual-qa';
 
 const duration=z.number().int().min(1).max(18000);
 const purpose=z.enum(['hook','context','proof','data','contrast','location','transition','conclusion']);
@@ -230,6 +231,9 @@ export function reviewVisualDirection(project:Project):DirectionReport{
           message:'Gráfico visual sem dados, identificado como marcador ilustrativo.'});
       }
     }
+    for(const finding of examineShot(shot))
+      issues.push({severity:finding.severity,code:finding.code,shotId:shot.id,
+        message:finding.message});
     if(shot.layers.length>28)issues.push({severity:'warning',code:'heavy-scene',shotId:shot.id,
       message:'Plano com '+shot.layers.length+' camadas: teste desempenho no hardware.'});
     const reference=shot.investigation.sourceEvidenceId?

@@ -107,3 +107,10 @@ Relatório recebido: projeto local de ~4m50, cinco capítulos, 60 legendas, 60 p
 5. QA visual com OCR/comparação perceptual e reconhecimento de cortes/textos, editor de thumbnails e pipeline de publicação para YouTube. Sem atestado automático de veracidade.
 
 A v0.14 não é uma ferramenta final de animação 3D/fotorrealismo. O Codex continua responsável por roteirizar, pesquisar e dirigir; o Dark Studio interpreta o plano visual determinístico e você revisa e aprova.
+
+
+### Complementos do corte v0.14
+- **SFX offline:** nove sons sintéticos curtos com WAV local, proposta revisável e trilha SFX; não são efeitos de cinema fotorrealistas.
+- **Legenda por palavra:** opcional \`words[]\` com tempo absoluto, realce em render; timing precisa vir de alinhador externo e ser conferido na escuta.
+- **QA visual inicial:** heurísticas de contraste, tamanho de texto e margem em \`direction-report\` e tela de revisão; sem OCR ou garantia de legibilidade.
+- **Performance inicial:** editor carregado sob demanda; cache de thumbnails estáticos por revisão. Ainda faltam benchmarks do PC e exportação segmentada/resumível por frame.

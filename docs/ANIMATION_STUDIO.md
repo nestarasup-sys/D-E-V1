@@ -127,3 +127,10 @@ O WAV é criado apenas em \`%USERPROFILE%\DarkStudio\media\`, adicionado à bibl
 Legendas podem opcionalmente conter \`words: [{text,startFrame,endFrame}]\`, com frames absolutos do projeto, não relativos à legenda. O renderizador destaca visualmente a palavra ativa; quando não há timings reais, mantém a legenda normal. O schema rejeita palavras fora dos limites ou sobrepostas. Se o usuário editar o texto/tempo da legenda, o editor limpa \`words[]\` para não manter dados de alinhamento incorretos.
 
 A v0.14 **não tem transcrição forçada embutida**. O Codex precisa produzir timestamps de um alinhador local apropriado com áudio real, testá-los e usar as operações de legenda existentes. Não insira tempos simulados fingindo sincronismo fonético.
+
+
+## QA visual e carregamento eficiente
+
+O \`src/model/visual-qa.ts\` calcula contraste aproximado entre cor de texto e fundo do plano, alerta para títulos que podem exceder a caixa e elementos próximos da borda/sobreposição de legendas. Esses avisos entram no \`direction-report\` e na revisão visual do Codex. **São heurísticas de geometria**, não OCR nem prova de legibilidade (uma forma atrás do texto pode alterar o contraste real). O editor principal é importado sob demanda na tela de projetos para reduzir o JS inicial, mas o Player ainda precisa ser medido em episódios longos.
+
+Depois de renderizar frames locais com \`preview:frames\`, o Codex deve inspeccionar a prévia real e ajustar objetos com problemas. Uma auditoria de pixels/áudio completa segue pendente.
