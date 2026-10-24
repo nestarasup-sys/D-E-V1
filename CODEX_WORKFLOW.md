@@ -1,6 +1,6 @@
 # Codex local ↔ Dark Studio
 
-> **Instrução prioritária:** antes de montar qualquer episódio, leia o [Guia Diretor por JSON](docs/GUIA_DIRETOR_POR_JSON.md) (v0.14 e versões futuras), confira os schemas atuais e execute `npm run project -- presets`. Ele contém tutoriais completos de direção, 50 presets, cenas autorais em layers, fontes, áudio, propostas e QA. Este arquivo trata principalmente da **integração operacional**, não substitui o guia.
+> **Instrução prioritária:** antes de montar qualquer episódio, leia o [Guia Studio Dark](docs/GUIA_STUDIO_DARK.md) (manual atual v0.18; este fluxo Codex é opcional), confira os schemas atuais e execute `npm run project -- presets`. Ele contém tutoriais completos de direção, 50 presets, cenas autorais em layers, fontes, áudio, propostas e QA. Este arquivo trata principalmente da **integração operacional**, não substitui o guia.
 
 **Todo o projeto do usuário fica no filesystem Windows.** Não use GitHub como transporte. O Codex é usado na interface **Codex do ChatGPT Desktop**, em modo **Local / Este computador**. Não há chat no Dark Studio.
 

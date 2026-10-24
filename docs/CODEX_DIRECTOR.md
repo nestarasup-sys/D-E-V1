@@ -1,6 +1,6 @@
 # Codex Local como diretor de montagem — modo investigação
 
-> Para dirigir **qualquer categoria de vídeo** (investigação, educativo, economia, ciência, personagens etc.), leia primeiro o **[Guia Diretor por JSON](GUIA_DIRETOR_POR_JSON.md)**. Este documento é um complemento de investigação. O guia central traz todos os enums e tutoriais atualizáveis.
+> Para dirigir **qualquer categoria de vídeo** (investigação, educativo, economia, ciência, personagens etc.), leia primeiro o **[Guia Studio Dark](GUIA_STUDIO_DARK.md)**. Este documento é um complemento de investigação: o caminho principal da v0.18 usa produção IA importada no dashboard e não exige Codex. O guia central traz todos os enums e tutoriais atualizáveis.
 
 ## Fluxo sem chat dentro do Dark Studio
 

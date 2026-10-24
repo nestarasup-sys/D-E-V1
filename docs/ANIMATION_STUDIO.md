@@ -1,6 +1,6 @@
 # Dark Studio v0.14 — Estúdio de animação controlado pelo Codex
 
-> **Documento principal para IA diretora:** [Guia Diretor por JSON](GUIA_DIRETOR_POR_JSON.md). O guia é atualizado conforme o editor evolui; esta página aprofunda o motor Motion Studio v0.14.
+> **Documento principal para IA diretora:** [Guia Studio Dark](GUIA_STUDIO_DARK.md). O guia mestre já inclui a v0.18; este documento histórico descreve a base da v0.14 e esta página aprofunda o motor Motion Studio v0.14.
 
 ## O que existe AGORA
 

@@ -9,19 +9,51 @@ import {directionSchema,compileDirection} from './direction';
 import {starterProject,projectSchema} from './project';
 import {applyOperations} from './operations';
 import {SFX_TYPES} from '../../apps/agent/src/sfx';
+import {productionSchema} from './ai-production';
+import {SERVICE_PROTOCOL,SERVICE_VERSION} from './service-contract';
 
 const root=process.cwd();
 const read=(path:string)=>readFileSync(join(root,path),'utf8');
-const guide=read('docs/GUIA_DIRETOR_POR_JSON.md');
+const guide=read('docs/GUIA_STUDIO_DARK.md');
 const direction=JSON.parse(read('docs/examples/GUIA_DIRECAO_12S.example.json')) as unknown;
 const operations=JSON.parse(read('docs/examples/GUIA_OPERACOES.example.json')) as unknown;
 
-describe('Guia Diretor por JSON v0.16 (documentação viva)',()=>{
-  it('possui 20 seções e metadados de versão do contrato',()=>{
+describe('Guia Studio Dark v0.18 (manual vivo do produto)',()=>{
+  it('mantém o nome fixo, a versão atual e 20 seções históricas válidas',()=>{
+    expect(guide).toContain('# Guia Studio Dark — versão '+SERVICE_VERSION);
     expect(guide).toContain('Dark Studio');
-    expect(guide).toContain('v0.16');
-    expect(guide).toContain('protocolo 7');
+    expect(guide).toContain('protocolo '+SERVICE_PROTOCOL);
+    expect(guide).not.toContain('GUIA_DIRETOR_POR_JSON.md');
+    expect(guide).toContain('## 0. Manual atual v0.18');
     for(let i=1;i<=20;i++)expect(guide).toMatch(new RegExp('^## '+i+'\\. ','m'));
+  });
+  it('explica o fluxo real de produção IA, áudio acústico, direitos e portabilidade',()=>{
+    const example=JSON.parse(read('docs/examples/PRODUCAO_018.example.json')) as unknown;
+    expect(productionSchema.parse(example).format).toBe('darkstudio-production');
+    for(const token of [
+      'darkstudio-production','project.json','direction.json','operacoes.json',
+      'plannedFrames','narration','wordCue','cueWord','SpeakProgress','wordAlignment',
+      'soundDesign','soundEffects','ducking','sfx','NARRADOR AUTOMÁTICO',
+      'Pexels','allowAutomaticSelection','licenseConfirmed','0,77',
+      'rights.status','redistributionAllowed','DSFont-','@font-face',
+      'OCR','96','24','ZIP64','64 GiB','16 GiB','12.000 mídias',
+      'Importar JSON','Exportar MP4','Exportar .darkstudio',
+      'src/model/ai-production.ts','src/model/service-contract.ts',
+      'scripts/tts-production.ps1','npm run smoke:ai-production',
+    ])expect(guide,'ausente no Guia Studio Dark: '+token).toContain(token);
+    expect(guide).toContain('## 18. Limites atuais');
+    expect(guide).toContain('## 19. Como atualizar');
+    expect(guide).toContain('## 20. Prompt avançado');
+  });
+  it('contém um JSON introdutório v0.18 parseável pelo contrato real',()=>{
+    const start=guide.indexOf('### 0.5 Exemplo mínimo completo de produção IA');
+    expect(start).toBeGreaterThan(0);
+    const sample=guide.slice(start).match(/```json\s*([\s\S]*?)\s*```/);
+    expect(sample).not.toBeNull();
+    const parsed=productionSchema.parse(JSON.parse(sample![1]) as unknown);
+    expect(parsed.beats).toHaveLength(2);
+    expect(parsed.beats[0].layers?.some(l=>'wordCue' in l)).toBe(true);
+    expect(parsed.beats[0].soundEffects).toHaveLength(1);
   });
   it('lista todos os 50 presets reais, categorias e sete estilos investigativos',()=>{
     expect(PRESET_CATALOG).toHaveLength(50);

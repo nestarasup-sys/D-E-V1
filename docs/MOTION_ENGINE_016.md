@@ -34,7 +34,7 @@ Também há comandos: `npm run project -- pack UUID caminho.darkstudio` e `npm r
 
 ## Fluxo completo com outra IA
 
-1. Consulte [Guia Diretor por JSON](GUIA_DIRETOR_POR_JSON.md), fontes e mídias já importadas.
+1. Consulte o [Guia Studio Dark atualizado à v0.18](GUIA_STUDIO_DARK.md), fontes e mídias já importadas.
 2. A IA prepara **um `direction.json`** com rigs, gráficos vinculados a evidências e escolhas de B-roll com `assetId` e licença a conferir.
 3. Com a revisão do projeto, execute `npm run project -- direct UUID direcao.json REVISAO` e **Revisar Codex**. A direção nunca troca narração/legendas silenciosamente.
 4. Veja a composição no editor; rode QA raster, corrija e confirme licenças/dados.

@@ -1,8 +1,15 @@
 # Dark Studio — instruções para Codex Local
 
-> **Leitura obrigatória para qualquer direção de vídeo:** [Guia Diretor por JSON](docs/GUIA_DIRETOR_POR_JSON.md). Antes de produzir `direction.json` ou `operacoes.json`, consulte o guia **e os schemas atuais**. Depois execute `npm run project -- presets` e use `direct`/`propose` para entregar uma **proposta revisável**, não mudanças destrutivas. Nunca ignore as 50 composições ou invente campos da API.
+> **Leitura obrigatória para qualquer produção audiovisual ou direção visual:** [Guia Studio Dark](docs/GUIA_STUDIO_DARK.md). Antes de produzir `darkstudio-production`, `project.json`, `direction.json` ou `operacoes.json`, consulte o guia **e os schemas atuais**. Depois execute `npm run project -- presets` e use `direct`/`propose` para entregar uma **proposta revisável**, não mudanças destrutivas. Nunca ignore as 50 composições ou invente campos da API.
 >
 > **Manutenção:** toda alteração de `src/model/direction.ts`, `project.ts`, `shots.ts`, `layers.ts`, `presets.ts`, `operations.ts`, comandos da CLI, voz/mídia/legendas ou renderização exige revisão correspondente do guia, dos exemplos e de `src/model/director-json-guide.test.ts` **no mesmo commit**. Não enfraquecer os testes para ocultar recursos não documentados. Link de atualização: seção 19 do guia.
+
+## Manual mestre v0.18 — nome estável e manutenção por versão
+
+- **Caminho canônico do guia:** `docs/GUIA_STUDIO_DARK.md`. O nome do arquivo permanece estável; a versão mais recente (`0.18.0` agora) fica **no título e cabeçalho**, não no filename.
+- A documentação **v0.18** deve começar por `darkstudio-production` no dashboard, com SAPI real, `SpeakProgress` condicional, som procedural, Pexels assistido/automático conservador, QA com OCR e ZIP64/fontes. Direção CLI por Codex é alternativa avançada, não pré-requisito.
+- Atualize o manual, exemplos, links `README.md` e teste `src/model/director-json-guide.test.ts` no mesmo commit de qualquer mudança funcional. A seção 0 é o estado atual; as seções 1–20 preservam instruções detalhadas com contexto histórico.
+- Versionamento atual: app `0.18.0`, protocolo local `10`, `project.version=2`, `direction.version=1`, `darkstudio-production.version=1`. Verifique em `src/model/service-contract.ts` na próxima release.
 
 ## Intenção
 - Dark Studio é um editor desktop de vídeo; ChatGPT Desktop/Codex é o ambiente **externo** onde o usuário pede montagens e alterações.
@@ -113,14 +120,14 @@ Em \`evidence[]\`, o Codex pode preencher \`sourceExcerpt\`, \`publicationDate\`
 - Gráficos com números exigem `sourceEvidenceId`. B-roll externo deve ser **importado** e ter licença revisada pelo usuário; `status:"cleared"` só é registrado por ação editorial, nunca inventado como automaticamente verificado.
 - QA raster executa somente em `127.0.0.1`, renderiza amostras e combina métricas dos pixels com geometria; **não** alegar OCR ou avaliação semântica se não existem.
 - Pacote `.darkstudio` deve conter todos os assets cadastrados com manifesto e SHA-256; validar IDs, MIME, nomes e limites antes de importar, sem extração de caminhos e sem sobrescrever mídia ou projeto do usuário. Limite 512 MB e 250 mídias neste primeiro formato.
-- `docs/MOTION_ENGINE_016.md` e `docs/GUIA_DIRETOR_POR_JSON.md` fazem parte do contrato de manutenção do JSON/render/editor/serviço; atualize também os testes de integridade.
+- `docs/MOTION_ENGINE_016.md` e `docs/GUIA_STUDIO_DARK.md` fazem parte do contrato de manutenção do JSON/render/editor/serviço; atualize também os testes de integridade.
 - `ATUALIZAR.bat` baixa a main; `INICIAR.bat` apenas a versão local. Não mexer nesse contrato.
 
 ## Motion Engine v0.15 — contrato de composição autoral
 
 - Manter `project.version:2` e `direction.version:1`; os 50 presets v0.14 continuam válidos. Não substituir dados de usuário nem migrar projetos silenciosamente.
 - Contrato: `layers` com `group`/`vector`, `parentId` no projeto e `key`/`parentKey` somente na direção, efeitos restritos, tipografia, `cameraPath` e `transitionIn`. Valide ausência de ciclos em grupos e limites de duração. Nenhum HTML, JS, CSS arbitrário ou arquivo de fonte externo no JSON.
-- O render `Documentary`/`ShotVisual`/`AnimatedLayer` é compartilhado por Player e MP4. Modificar JSON, render ou controles exige atualizar `docs/GUIA_DIRETOR_POR_JSON.md`, `docs/MOTION_ENGINE_015.md`, exemplos e testes no mesmo commit.
+- O render `Documentary`/`ShotVisual`/`AnimatedLayer` é compartilhado por Player e MP4. Modificar JSON, render ou controles exige atualizar `docs/GUIA_STUDIO_DARK.md`, `docs/MOTION_ENGINE_015.md`, exemplos e testes no mesmo commit.
 - Recurso liberado neste incremento: tipografia configurável, grupos+efeitos+SVG, câmera por pontos e transições 2D. **Não** afirmar que temos personagens com rigs articulados, física, rastreamento automático, B-roll licenciado, análise raster ou pacote `.darkstudio`; ficam no roadmap.
 - `INICIAR.bat` continua abrindo apenas o código local, e `ATUALIZAR.bat` continua seguindo apenas `origin/main` sem apagar dados.
 
