@@ -382,6 +382,8 @@ npm run project -- composition-example person-family "$env:TEMP\familia-camadas.
 
 ### F. Identidade e YouTube (6)
 
+Nome oficial da categoria no catálogo: **YouTube e identidade**.
+
 | ID | Composição |
 | --- | --- |
 | `youtube-intro` | Abertura cinematográfica |
