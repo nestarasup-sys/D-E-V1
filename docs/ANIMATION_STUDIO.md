@@ -1,5 +1,7 @@
 # Dark Studio v0.14 — Estúdio de animação controlado pelo Codex
 
+> **Documento principal para IA diretora:** [Guia Diretor por JSON](GUIA_DIRETOR_POR_JSON.md). O guia é atualizado conforme o editor evolui; esta página aprofunda o motor Motion Studio v0.14.
+
 ## O que existe AGORA
 
 O Dark Studio continua um editor Tauri/React + Remotion, com os projetos e áudios 100% no computador do usuário. A v0.14 acrescenta uma camada de motion design sobre os planos em \`shots[]\`. A versão de projeto continua \`2\` (novas propriedades têm defaults), mantendo documentários anteriores no modo \`legacy\` ou \`shots\` sem reconstrução destrutiva.

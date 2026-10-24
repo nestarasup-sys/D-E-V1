@@ -1,5 +1,9 @@
 # Dark Studio — instruções para Codex Local
 
+> **Leitura obrigatória para qualquer direção de vídeo:** [Guia Diretor por JSON](docs/GUIA_DIRETOR_POR_JSON.md). Antes de produzir `direction.json` ou `operacoes.json`, consulte o guia **e os schemas atuais**. Depois execute `npm run project -- presets` e use `direct`/`propose` para entregar uma **proposta revisável**, não mudanças destrutivas. Nunca ignore as 50 composições ou invente campos da API.
+>
+> **Manutenção:** toda alteração de `src/model/direction.ts`, `project.ts`, `shots.ts`, `layers.ts`, `presets.ts`, `operations.ts`, comandos da CLI, voz/mídia/legendas ou renderização exige revisão correspondente do guia, dos exemplos e de `src/model/director-json-guide.test.ts` **no mesmo commit**. Não enfraquecer os testes para ocultar recursos não documentados. Link de atualização: seção 19 do guia.
+
 ## Intenção
 - Dark Studio é um editor desktop de vídeo; ChatGPT Desktop/Codex é o ambiente **externo** onde o usuário pede montagens e alterações.
 - Usar **Codex Local / This computer**, sem Cloud e sem Worktree para edições compartilhadas ao vivo, a menos que o usuário configure acesso ao mesmo diretório.

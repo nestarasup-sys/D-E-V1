@@ -1,0 +1,20 @@
+[
+  {
+    "type": "updateChannelKit",
+    "changes": {
+      "brandName": "CANAL EXEMPLO",
+      "font": "sans",
+      "accentColor": "#F0BB66",
+      "captionStyle": "boxed"
+    }
+  },
+  {
+    "type": "updateScene",
+    "sceneId": "scene-1",
+    "changes": {
+      "title": "Uma pergunta sobre o futuro",
+      "subtitle": "Exemplo didático para projeto demonstrativo",
+      "kicker": "CAPÍTULO 01"
+    }
+  }
+]

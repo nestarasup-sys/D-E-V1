@@ -1,5 +1,7 @@
 # Codex Local como diretor de montagem — modo investigação
 
+> Para dirigir **qualquer categoria de vídeo** (investigação, educativo, economia, ciência, personagens etc.), leia primeiro o **[Guia Diretor por JSON](GUIA_DIRETOR_POR_JSON.md)**. Este documento é um complemento de investigação. O guia central traz todos os enums e tutoriais atualizáveis.
+
 ## Fluxo sem chat dentro do Dark Studio
 
 Você **continua conversando com o Codex pelo app ChatGPT**, em modo **Local / Este computador**, com acesso autorizado à pasta do código e à pasta \`%USERPROFILE%\DarkStudio\`. O Codex executa as ferramentas quando você manda uma mensagem; o usuário NÃO precisa digitar comandos manualmente.

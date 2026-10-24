@@ -7,6 +7,10 @@ O **Dark Studio** é um editor de documentários para Windows 11. A interface us
 GitHub serve apenas para hospedar o **código-fonte do aplicativo**, sem roteiros, mídia ou projetos reais de usuários.
 
 
+## Guia Diretor por JSON — comece aqui
+
+**[Abrir o Guia Diretor por JSON](docs/GUIA_DIRETOR_POR_JSON.md)** — manual vivo da v0.14, com os **3 tipos de JSON**, comandos reais, 50 composições, 7 visuais investigativos, personagens, camadas, movimentos, SFX, voz, legendas, evidências, propostas, exportação, limites e **20 tutoriais/seções**. Inclui [direção completa de 12 segundos](docs/examples/GUIA_DIRECAO_12S.example.json) e [operações de identidade](docs/examples/GUIA_OPERACOES.example.json), verificadas automaticamente em testes. **Toda próxima versão deve atualizar o guia e o teste de manutenção**; leia-o antes de pedir direção audiovisual à IA.
+
 ## Piloto de montagem dinâmica de 30 segundos (v0.11)
 
 **Novo:** na página inicial clique em **▶ Criar piloto audiovisual 30s**. O serviço local usa uma voz TTS instalada no Windows (System.Speech, sem geração de voz por IA) para montar uma locução WAV de 30s, cria um novo projeto com oito planos animados independentes e respectivas legendas, sem modificar seus projetos atuais.

@@ -1,0 +1,123 @@
+{
+  "version": 1,
+  "title": "Laboratório de direção por JSON — 12 segundos",
+  "brand": {
+    "brandName": "DARK STUDIO LAB",
+    "font": "sans",
+    "accentColor": "#F0BB66",
+    "captionStyle": "boxed"
+  },
+  "beats": [
+    {
+      "startFrame": 0,
+      "durationFrames": 120,
+      "purpose": "hook",
+      "title": "Uma pessoa e o sonho",
+      "subtitle": "O começo de uma pergunta",
+      "presetId": "person-worker",
+      "motionPreset": "subtle-zoom"
+    },
+    {
+      "startFrame": 120,
+      "durationFrames": 120,
+      "purpose": "context",
+      "title": "A cidade e seus caminhos",
+      "subtitle": "Cenário vetorial ilustrativo",
+      "presetId": "world-city",
+      "motionPreset": "pan-left"
+    },
+    {
+      "startFrame": 240,
+      "durationFrames": 60,
+      "purpose": "contrast",
+      "title": "A decisão",
+      "subtitle": "Cena montada em camadas pela IA",
+      "motionPreset": "still",
+      "layers": [
+        {
+          "kind": "shape",
+          "name": "Balão de pensamento",
+          "x": 760,
+          "y": 230,
+          "width": 830,
+          "height": 350,
+          "shapeType": "pill",
+          "color": "#26455A",
+          "behavior": "pulse",
+          "startFrame": 0,
+          "durationFrames": 60,
+          "zIndex": 1
+        },
+        {
+          "kind": "character",
+          "name": "Personagem pensativo",
+          "x": 1150,
+          "y": 355,
+          "width": 310,
+          "height": 555,
+          "characterType": "worker",
+          "expression": "thinking",
+          "behavior": "nod",
+          "startFrame": 0,
+          "durationFrames": 60,
+          "zIndex": 2
+        },
+        {
+          "kind": "object",
+          "name": "Casa desejada",
+          "x": 850,
+          "y": 385,
+          "width": 205,
+          "height": 205,
+          "objectType": "home",
+          "behavior": "float",
+          "startFrame": 8,
+          "durationFrames": 52,
+          "zIndex": 3
+        },
+        {
+          "kind": "text",
+          "name": "Pergunta que surge",
+          "x": 130,
+          "y": 140,
+          "width": 1000,
+          "height": 170,
+          "text": "COMO CONQUISTAR?",
+          "fontSize": 79,
+          "color": "#F6EEDD",
+          "behavior": "typewriter",
+          "startFrame": 10,
+          "durationFrames": 50,
+          "zIndex": 4,
+          "motion": {
+            "x": [],
+            "y": [],
+            "scale": [],
+            "rotation": [],
+            "opacity": [
+              {
+                "frame": 0,
+                "value": 0,
+                "easing": "ease-out"
+              },
+              {
+                "frame": 16,
+                "value": 1,
+                "easing": "linear"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "startFrame": 300,
+      "durationFrames": 60,
+      "purpose": "conclusion",
+      "title": "A história continua",
+      "subtitle": "Próximo capítulo",
+      "presetId": "youtube-chapter",
+      "motionPreset": "emphasis"
+    }
+  ]
+}
