@@ -60,3 +60,7 @@
 - O render deixa \`jobs/<id>.status.json\` no disco; após reinício, um worker morto é classificado como \`interrupted\`. Isso não significa render resumível pelo frame: para esse recurso precisamos pipeline segmentado.
 - Pesquisa e validação editorial humana permanecem necessárias. Nenhum estado técnico \`completed\` representa publicação ou veracidade aprovada.
 - **Nunca** executar reset hard/clean -fdx para descartar o trabalho local do Codex sem permissão explícita, sobretudo se o commit \`eeb6c37\` não estiver no GitHub. Não enviar \`project.json\`, \`jobs\`, \`production\`, fontes ou WAV para a main.
+
+### Campos jornalísticos opcionais
+
+Em \`evidence[]\`, o Codex pode preencher \`sourceExcerpt\`, \`publicationDate\` e \`accessedAt\` (\`YYYY-MM-DD\`), \`region\`, \`unit\` e \`rights\`. Deixe em branco/ausente se não verificar; não invente datas ou autorização de imagem. \`reviewStatus\` permanece \`pending\` até revisão humana. Projetos v2 anteriores continuam válidos sem esses campos.

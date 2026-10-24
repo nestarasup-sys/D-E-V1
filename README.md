@@ -196,3 +196,7 @@ Em vez de recriar uma proposta se o serviço não a exibe, confira o handshake e
 - Na tela inicial, botão **Produção** mostra as etapas, checkpoint e exportações concluídas/interrompidas. **Revisar Codex** é onde você aprova os planos.
 
 O registro de renders agora permanece em \`%USERPROFILE%\\DarkStudio\\jobs\`. O serviço distingue processos ativos de exportações interrompidas depois do reinício; não há retomada de render por frame ainda. Consulte [ROADMAP.md](ROADMAP.md) para o que realmente está implementado e o que falta validar.
+
+### Metadados de evidência para investigações
+
+Cada fonte pode registrar, sem obrigar antigos arquivos a mudar: trecho que sustenta a alegação, data de publicação, data da consulta, região/população, unidade usada em números e situação de direitos/licenciamento. A tela **Fontes e evidências** agora edita esses campos, sempre com revisão humana explícita. Um gráfico sem trecho, data ou região de referência recebe alerta editorial; um campo preenchido **não significa prova verificada**.

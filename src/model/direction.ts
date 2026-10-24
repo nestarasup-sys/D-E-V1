@@ -184,6 +184,10 @@ export function reviewVisualDirection(project:Project):DirectionReport{
       unverified++;issues.push({severity:'warning',code:'source-unverified',shotId:shot.id,
         message:'Plano factual não tem fonte confirmada por você: '+shot.title.slice(0,90)});
     }
+    if(data&&reference&&(!reference.sourceExcerpt||!reference.publicationDate||!reference.region)){
+      issues.push({severity:'warning',code:'data-provenance-incomplete',shotId:shot.id,
+        message:'Gráfico com origem cadastrada mas sem trecho, data ou região documentados.'});
+    }
     if(shot.style==='chart'&&!data){
       issues.push({severity:'info',code:'chart-placeholder',shotId:shot.id,
         message:'Gráfico sem valores registrados; aparece como ilustração, não como dado real.'});

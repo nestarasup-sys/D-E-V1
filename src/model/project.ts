@@ -57,6 +57,12 @@ export const evidenceSchema=z.object({
   sourceTitle:z.string().trim().min(1).max(200),
   sourceUrl:z.union([z.literal(''),z.string().url().max(2000).refine(s=>s.startsWith('https://'),'Fonte online precisa usar HTTPS')]).default(''),
   notes:z.string().max(600).default(''),
+  sourceExcerpt:z.string().max(1000).optional(),
+  publicationDate:z.union([z.literal(''),z.string().regex(/^\d{4}-\d{2}-\d{2}$/)]).optional(),
+  accessedAt:z.union([z.literal(''),z.string().regex(/^\d{4}-\d{2}-\d{2}$/)]).optional(),
+  region:z.string().max(120).optional(),
+  unit:z.string().max(60).optional(),
+  rights:z.string().max(160).optional(),
   reviewStatus:z.enum(['pending','verified','rejected']).default('pending'),
 }).strict();
 

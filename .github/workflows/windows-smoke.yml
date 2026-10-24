@@ -19,6 +19,13 @@ jobs:
           npm run check
           npm test
           npm run build
+      - name: Check Windows launcher supervisor syntax
+        shell: powershell
+        run: |
+          $tokens=$null
+          $errors=$null
+          [System.Management.Automation.Language.Parser]::ParseFile("$PWD/scripts/ensure-service.ps1",[ref]$tokens,[ref]$errors) | Out-Null
+          if($errors.Count -gt 0) { $errors | ForEach-Object { Write-Error $_.Message }; exit 1 }
       - name: Local service API contract smoke
         run: npm run smoke:service
       - uses: dtolnay/rust-toolchain@stable
