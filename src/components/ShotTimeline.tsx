@@ -1,5 +1,5 @@
 import {useRef,useState,type PointerEvent} from 'react';
-import {retimeMotion,type Shot} from '../model/shots';
+import {retimeMotion,retimeShotLayers,type Shot} from '../model/shots';
 
 type Mode='move'|'trim-start'|'trim-end';
 interface Drag{shot:Shot;mode:Mode;clientX:number;width:number}
@@ -50,6 +50,7 @@ export function ShotTimeline({shots,totalFrames,selectedId,onSelect,onEdit}:{
     if(span.durationFrames!==current.shot.durationFrames){
       changes.durationFrames=span.durationFrames;
       changes.motion=retimeMotion(current.shot.motion,current.shot.durationFrames,span.durationFrames);
+      changes.layers=retimeShotLayers(current.shot.layers,current.shot.durationFrames,span.durationFrames);
     }
     if(Object.keys(changes).length)onEdit(current.shot.id,changes);
   }

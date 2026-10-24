@@ -129,3 +129,39 @@ font-size:10px;text-align:left;padding:7px;background:#654c2d;color:#fff4d6;bord
 .productionStep strong{font-weight:700;color:#ecedf4}
 .productionStep span{float:right;color:#d7c08e;font-size:11px}
 .productionStep p{clear:both;color:#a9bac9;line-height:1.55;margin:5px 0}
+
+/* Dark Studio v0.14: declarative animation studio, 50 recipes and per-layer tracks. */
+.presetBrowser{margin:17px 0;background:#122239;border:1px solid #3f5770;border-radius:9px;padding:12px}
+.presetBrowser>summary{list-style:disclosure-closed;cursor:pointer;color:#efc988;margin-bottom:9px}
+.presetBrowser[open]>summary{list-style:disclosure-open}
+.presetBrowser input,.presetBrowser select{margin:5px 0 7px}
+.presetResults{max-height:270px;overflow-y:auto;display:flex;flex-direction:column;gap:6px}
+.presetChoice{display:grid;text-align:left;gap:4px;padding:9px 11px;border:1px solid #334c64;background:#1c3046}
+.presetChoice strong{font-size:12px;color:#f0e7d8}
+.presetChoice span{font-size:10px;color:#e4c382}
+.presetChoice small{font-size:10px;color:#b0c8d8}
+.presetChoice em{font-size:10px;color:#8fd8b3;font-style:normal}
+.layerEditor{padding:16px 0;border-top:1px solid #3b4d62;margin-top:12px}
+.layerEditor .panelTitle{margin-bottom:9px}
+.layerAdd{display:flex;gap:7px;align-items:center;margin:9px 0}
+.layerAdd select{flex:1}
+.layerAdd button{white-space:nowrap;font-size:11px}
+.layerEntries{max-height:210px;overflow-y:auto;display:grid;gap:6px;margin:10px 0 15px}
+.layerEntry{text-align:left;display:grid;gap:4px;padding:8px 10px;border-left:4px solid #779cb3}
+.layerEntry span{font-size:11px;white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
+.layerEntry small{font-size:10px;color:#91acc3}
+.layerEntrySelected{border-left-color:#f0bb66;outline:1px solid #e3bb72}
+.layerTimeline{margin:13px 0 0;padding:13px 8px;background:#111d2b;border:1px solid #2b435d;border-radius:8px}
+.layerTimeline>.help{margin:6px 0 12px}
+.layerTimeTracks{max-height:230px;overflow-y:auto;position:relative;padding:3px 0;touch-action:none}
+.layerTimeRow{position:relative;height:30px;margin:2px 0;background:#1b293a;border:1px solid #324354;border-radius:4px}
+.layerTimeClip{position:absolute;display:flex;align-items:center;height:25px;top:1px;border:1px solid;
+  padding:0;overflow:hidden;min-width:3px;cursor:grab;touch-action:none}
+.layerTimeActive{outline:2px solid #e6bc78;outline-offset:1px;z-index:2}
+.layerTimeName{font-size:10px;text-align:left;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;
+  flex:1;padding:0 5px;color:#f0eee7}
+.layerTrimHandle{height:100%;width:7px;min-width:7px;background:#ffffff60;cursor:ew-resize}
+@media(max-width:1200px){
+  .presetResults{max-height:210px}
+  .layerTimeTracks{max-height:160px}
+}

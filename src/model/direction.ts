@@ -2,15 +2,30 @@ import {z} from 'zod';
 import {type Project,projectDuration} from './project';
 import {type Operation,applyOperations} from './operations';
 import {type Shot,shotSchema,channelKitObjectSchema,type Motion,investigationSchema} from './shots';
+import {layerSchema,layerObjectSchema} from './layers';
+import {PRESET_CATALOG,getPreset,instantiatePreset} from './presets';
 
 const duration=z.number().int().min(1).max(18000);
 const purpose=z.enum(['hook','context','proof','data','contrast','location','transition','conclusion']);
 const preset=z.enum(['subtle-zoom','pan-left','pan-right','emphasis','still']);
+/** Codex authors scene geometry, not React source or executable JavaScript. */
+export const layerBlueprintSchema=layerObjectSchema.omit({id:true,durationFrames:true}).extend({
+  durationFrames:z.number().int().min(1).max(18000).optional(),
+});
+const dataSchema=z.object({
+  labels:z.array(z.string().max(48)).max(12),
+  values:z.array(z.number().finite().min(-1e9).max(1e9)).max(12),
+  unit:z.string().max(24).default(''),
+  sourceEvidenceId:z.string().uuid(),
+}).strict();
 const beatSchema=z.object({
   startFrame:z.number().int().min(0),
   durationFrames:duration,
   purpose,
   style:shotSchema.shape.style.optional(),
+  presetId:z.string().max(70).optional(),
+  layers:z.array(layerBlueprintSchema).max(48).optional(),
+  data:dataSchema.optional(),
   title:z.string().max(180),
   subtitle:z.string().max(400).default(''),
   kicker:z.string().max(100).default(''),
@@ -88,6 +103,22 @@ export function compileDirection(project:Project,raw:unknown,newId:()=>string):{
       throw new Error('Gráfico com valores reais exige sourceEvidenceId de uma evidência cadastrada.');
     if(investigation.sourceEvidenceId&&!project.evidence.some(e=>e.id===investigation.sourceEvidenceId))
       throw new Error('Plano '+(i+1)+' cita uma fonte não cadastrada no projeto.');
+    if(beat.presetId)getPreset(beat.presetId);
+    if(beat.presetId&&beat.assetId)
+      throw new Error('Composição procedural e plano de mídia inteira não podem ser usados juntos. Use uma camada image.');
+    const source=beat.data?.sourceEvidenceId;
+    if(source&&!project.evidence.some(e=>e.id===source))
+      throw new Error('Gráfico tem referência inexistente. Cadastre a evidência antes de montar.');
+    const layers=beat.layers?beat.layers.map((layer,j)=>{
+      const start=layer.startFrame??0;
+      if(start>=beat.durationFrames)throw new Error('A camada '+(j+1)+' começa depois do fim do plano.');
+      return layerSchema.parse({...layer,id:newId(),
+        durationFrames:layer.durationFrames??beat.durationFrames-start});
+    }):beat.presetId?instantiatePreset(beat.presetId,{
+      title:beat.title,subtitle:beat.subtitle,durationFrames:beat.durationFrames,
+      accentColor:beat.accentColor??project.channelKit.accentColor,
+      sourceEvidenceId:source,data:beat.data?{labels:beat.data.labels,values:beat.data.values,unit:beat.data.unit}:undefined,
+    },newId):[];
     return shotSchema.parse({
       id:newId(),kind:asset?asset.kind:'graphic',
       style:beat.style??styles[beat.purpose],
@@ -98,7 +129,7 @@ export function compileDirection(project:Project,raw:unknown,newId:()=>string):{
       trimStartFrames:0,zIndex:beat.zIndex,
       accentColor:beat.accentColor??project.channelKit.accentColor,
       backgroundColor:beat.backgroundColor??palette[i%palette.length],
-      investigation,
+      investigation,presetId:beat.presetId,layers,
       motion:motionFor(beat.motionPreset,beat.durationFrames),
       ...(asset?{assetId:asset.id}:{}),
     });
@@ -127,6 +158,8 @@ export function makeAutomaticDirection(project:Project):Direction{
   let frame=0,shotNumber=0;
   const rotation:DirectionPurpose[]=['hook','context','contrast','proof','transition','conclusion'];
   const basicStyle:Shot['style'][]=['dossier','headline','comparison','document','split','lower-third','evidence'];
+  const library=PRESET_CATALOG.filter(p=>p.category!=='YouTube e identidade');
+  // Codex can refine this first pass; all pictures are explicitly illustrative.
   for(const scene of project.scenes){
     const pieces=Math.max(1,Math.ceil(scene.durationFrames/120));
     const base=Math.floor(scene.durationFrames/pieces),extra=scene.durationFrames%pieces;
@@ -139,6 +172,7 @@ export function makeAutomaticDirection(project:Project):Direction{
       beats.push({
         startFrame:frame,durationFrames:length,
         purpose:rotation[shotNumber%rotation.length],style,
+        presetId:library[shotNumber%library.length].id,
         title,subtitle:overlapping?readableTitle(scene.title):'Visual editorial ilustrativo — confira fontes.',
         kicker:scene.kicker,
         motionPreset:shotNumber%4===0?'subtle-zoom':shotNumber%4===1?'pan-left':shotNumber%4===2?'pan-right':'still',
@@ -176,6 +210,28 @@ export function reviewVisualDirection(project:Project):DirectionReport{
       shortShots++;issues.push({severity:'info',code:'fast-shot',shotId:shot.id,
         message:'Plano muito rápido ('+(shot.durationFrames/30).toFixed(1)+' s). Confira a legibilidade.'});
     }
+    for(const layer of shot.layers){
+      if(layer.kind==='text'&&(layer.x+layer.width>2020||layer.y+layer.height>1120)){
+        issues.push({severity:'warning',code:'text-safe-area',shotId:shot.id,
+          message:'Texto próximo ou além da margem: '+layer.name});
+      }
+      if(layer.kind==='text'&&layer.y>860&&layer.fontSize>30){
+        issues.push({severity:'info',code:'caption-zone',shotId:shot.id,
+          message:'Texto baixo pode disputar espaço com as legendas: '+layer.name});
+      }
+      if(layer.kind==='chart'&&layer.values.length&&
+         !project.evidence.some(e=>e.id===layer.sourceEvidenceId&&e.reviewStatus==='verified')){
+        unverified++;
+        issues.push({severity:'warning',code:'layer-data-unverified',shotId:shot.id,
+          message:'Gráfico da composição ainda depende de verificação da fonte: '+layer.name});
+      }
+      if(layer.kind==='chart'&&!layer.values.length){
+        issues.push({severity:'info',code:'layer-chart-placeholder',shotId:shot.id,
+          message:'Gráfico visual sem dados, identificado como marcador ilustrativo.'});
+      }
+    }
+    if(shot.layers.length>28)issues.push({severity:'warning',code:'heavy-scene',shotId:shot.id,
+      message:'Plano com '+shot.layers.length+' camadas: teste desempenho no hardware.'});
     const reference=shot.investigation.sourceEvidenceId?
       project.evidence.find(e=>e.id===shot.investigation.sourceEvidenceId):undefined;
     const data=shot.investigation.points.length>0;
@@ -194,7 +250,7 @@ export function reviewVisualDirection(project:Project):DirectionReport{
     }
     if(shot.style==='map')issues.push({severity:'info',code:'schematic-map',shotId:shot.id,
       message:'Mapa é um esquema ilustrativo. Para mapa geográfico real, importe arte com fonte verificável.'});
-    if(i>=3&&shots.slice(i-3,i).every(s=>s.style===shot.style))
+    if(i>=3&&shots.slice(i-3,i).every(s=>(s.presetId||s.style)===(shot.presetId||shot.style)))
       issues.push({severity:'warning',code:'repetitive-style',shotId:shot.id,
         message:'Quatro planos consecutivos com a mesma composição visual.'});
   }

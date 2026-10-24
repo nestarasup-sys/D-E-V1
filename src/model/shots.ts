@@ -1,4 +1,6 @@
 import {z} from 'zod';
+import {layerSchema,type SceneLayer,retimeLayer} from './layers';
+import {PRESET_CATALOG} from './presets';
 
 const hex=z.string().regex(/^#[0-9a-fA-F]{6}$/);
 export const easingSchema=z.enum(['linear','ease-in','ease-out','ease-in-out']);
@@ -43,6 +45,8 @@ export const shotSchema=z.object({
   style:z.enum(['headline','split','number','quote','chapter','timeline',...investigativeStyles]).default('headline'),
   purpose:z.enum(investigationPurposes).optional(),
   investigation:investigationSchema,
+  presetId:z.string().max(70).refine(id=>PRESET_CATALOG.some(p=>p.id===id),'Composição inexistente').optional(),
+  layers:z.array(layerSchema).max(48).default([]),
   title:z.string().max(180).default(''),
   subtitle:z.string().max(400).default(''),
   kicker:z.string().max(100).default(''),
@@ -123,6 +127,15 @@ export function evaluateMotion(shot:Shot,frame:number){
 export function frameAt(seconds:number,fps=30){return Math.round(seconds*fps);}
 
 /** Preserva os quadros-chave quando um plano é redimensionado na timeline. */
+export function retimeShotLayers(layers:SceneLayer[],oldDuration:number,newDuration:number):SceneLayer[]{
+  return layers.map(layer=>{
+    const ratio=oldDuration>1?(newDuration-1)/(oldDuration-1):1;
+    const start=Math.min(newDuration-1,Math.round(layer.startFrame*ratio));
+    const remaining=Math.max(1,newDuration-start);
+    const scaled=Math.max(1,Math.min(remaining,Math.round(layer.durationFrames*newDuration/oldDuration)));
+    return {...retimeLayer(layer,scaled),startFrame:start};
+  });
+}
 export function retimeMotion(motion:Motion,oldDuration:number,newDuration:number):Motion {
   const result=structuredClone(motion);
   for(const property of motionPropertySchema.options){

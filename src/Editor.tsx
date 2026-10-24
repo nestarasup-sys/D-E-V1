@@ -7,6 +7,7 @@ import type { Operation } from './model/operations';
 import {parseSrt,exportSrt} from './model/captions';
 import {ensureServiceCompatible} from './services/service-guard';
 import {ShotTimeline} from './components/ShotTimeline';
+import {LayerTimeline} from './components/LayerTimeline';
 import {ShotInspector} from './components/ShotInspector';
 import {CaptionInspector} from './components/CaptionInspector';
 import {ChannelKitPanel} from './components/ChannelKitPanel';
@@ -29,6 +30,7 @@ export function Editor({onHome,syncStatus,onReload}:{onHome:()=>void,syncStatus:
   const player = useRef<PlayerRef>(null);
   const [message,setMessage] = useState('');
   const [selectedShotId,setSelectedShotId]=useState<string|null>(null);
+  const [selectedLayerId,setSelectedLayerId]=useState<string|null>(null);
   const [selectedCaptionId,setSelectedCaptionId]=useState<string|null>(null);
   const [imageDraft,setImageDraft] = useState('');
   const [importing,setImporting] = useState(false);
@@ -146,12 +148,12 @@ export function Editor({onHome,syncStatus,onReload}:{onHome:()=>void,syncStatus:
       id:crypto.randomUUID(),kind:'graphic',style:'headline',startFrame:start,durationFrames:duration,
       trimStartFrames:0,zIndex:1,title:'NOVO PLANO',subtitle:'Edite este plano na timeline.',
       kicker:'DARK STUDIO',accentColor:project.channelKit.accentColor,backgroundColor:'#111e2c',
-      motion:{x:[],y:[],scale:[],rotation:[],opacity:[]},investigation:investigationSchema.parse({}),
+      motion:{x:[],y:[],scale:[],rotation:[],opacity:[]},investigation:investigationSchema.parse({}),layers:[],
     };
     try{
       const ops:Operation[]=project.visualMode==='shots'?[]:[{type:'setVisualMode',visualMode:'shots'}];
       apply([...ops,{type:'addShot',shot}]);
-      setSelectedShotId(shot.id);setSelectedCaptionId(null);setMessage('');
+      setSelectedShotId(shot.id);setSelectedLayerId(null);setSelectedCaptionId(null);setMessage('');
     }catch(e){setMessage(e instanceof Error?e.message:'Falha ao criar plano');}
   }
   function editVolumeKeyframe(index:number,changes:Partial<MediaClip['volumeKeyframes'][number]>){
@@ -223,7 +225,7 @@ export function Editor({onHome,syncStatus,onReload}:{onHome:()=>void,syncStatus:
         <div className="stageFooter"><div>● PREVIEW LOCAL <span>Cenas, clipes, narração e música pelo Remotion Player.</span></div><strong>{seconds(total,project.fps)} total</strong></div>
         {project.visualMode==='shots'&&<ShotTimeline shots={project.shots} totalFrames={total}
           selectedId={selectedShotId} onSelect={id=>{
-            setSelectedShotId(id);setSelectedCaptionId(null);selectClip(null);
+            setSelectedShotId(id);setSelectedLayerId(null);setSelectedCaptionId(null);selectClip(null);
             const shot=project.shots.find(s=>s.id===id);
             if(shot)player.current?.seekTo(shot.startFrame);
           }}
@@ -231,6 +233,11 @@ export function Editor({onHome,syncStatus,onReload}:{onHome:()=>void,syncStatus:
             updateShot(id,changes);
             if(changes.startFrame!==undefined)player.current?.seekTo(changes.startFrame);
           }}/>}
+        {selectedShot&&project.visualMode==='shots'&&<LayerTimeline
+          shot={selectedShot} captions={project.captions} selectedId={selectedLayerId}
+          onSelect={setSelectedLayerId}
+          onEdit={changes=>updateShot(selectedShot.id,changes)}
+          onSeek={frame=>player.current?.seekTo(frame)}/>}
         <div className="timelineTop"><strong>TIMELINE MULTITRILHA</strong><span>{project.clips.length} clipes · ajuste início e duração nas propriedades</span></div>
         <div className="timeline multiTimeline">
           <div className="track"><span className="trackLabel">CENAS</span><div className="clips">{project.scenes.map((s,i)=><button key={s.id} onClick={()=>jumpTo(i)} className={`clip ${s.id===scene.id?'active':''}`} style={{flex:s.durationFrames}} title={s.title}><span>{i+1}. {s.title}</span></button>)}</div></div>
@@ -248,8 +255,9 @@ export function Editor({onHome,syncStatus,onReload}:{onHome:()=>void,syncStatus:
       </main>
       <aside className="inspector">
         {selectedShot&&<ShotInspector shot={selectedShot} assets={project.assets} evidence={project.evidence}
+          captions={project.captions} selectedLayerId={selectedLayerId} onSelectedLayer={setSelectedLayerId}
           onEdit={changes=>updateShot(selectedShot.id,changes)}
-          onRemove={()=>{action([{type:'removeShot',shotId:selectedShot.id}]);setSelectedShotId(null);}}/>}
+          onRemove={()=>{action([{type:'removeShot',shotId:selectedShot.id}]);setSelectedShotId(null);setSelectedLayerId(null);}}/>}
         {selectedCaption&&<CaptionInspector caption={selectedCaption}
           onEdit={changes=>action([{type:'updateCaption',captionId:selectedCaption.id,changes}])}
           onClose={()=>setSelectedCaptionId(null)}/>}

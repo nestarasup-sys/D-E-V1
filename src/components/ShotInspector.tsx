@@ -1,14 +1,18 @@
 import {useState} from 'react';
-import {motionPropertySchema,motionBounds,retimeMotion,type Shot,type MotionProperty,type Keyframe} from '../model/shots';
-import type {Asset,Evidence} from '../model/project';
+import {motionPropertySchema,motionBounds,retimeMotion,retimeShotLayers,type Shot,type MotionProperty,type Keyframe} from '../model/shots';
+import type {Asset,Evidence,Caption} from '../model/project';
+import {PresetBrowser} from './PresetBrowser';
+import {LayerEditor} from './LayerEditor';
 import {investigativeStyles} from '../model/shots';
 import {InvestigationInspector} from './InvestigationInspector';
 
 const names:Record<MotionProperty,string>={x:'Posição X (%)',y:'Posição Y (%)',scale:'Zoom (escala)',rotation:'Rotação (°)',opacity:'Opacidade'};
 const properties=motionPropertySchema.options;
 const seconds=(frames:number)=>(frames/30).toFixed(2);
-export function ShotInspector({shot,assets,evidence,onEdit,onRemove}:{
-  shot:Shot;assets:Asset[];evidence:Evidence[];onEdit:(changes:Partial<Omit<Shot,'id'>>)=>void;onRemove:()=>void;
+export function ShotInspector({shot,assets,evidence,captions,selectedLayerId,onSelectedLayer,onEdit,onRemove}:{
+  shot:Shot;assets:Asset[];evidence:Evidence[];captions:Caption[];
+  selectedLayerId:string|null;onSelectedLayer:(id:string|null)=>void;
+  onEdit:(changes:Partial<Omit<Shot,'id'>>)=>void;onRemove:()=>void;
 }){
   const [property,setProperty]=useState<MotionProperty>('scale');
   const frames=shot.motion[property];
@@ -73,7 +77,8 @@ export function ShotInspector({shot,assets,evidence,onEdit,onRemove}:{
       <input type="number" step=".1" min={1/30} value={seconds(shot.durationFrames)}
         onChange={e=>{
           const next=Math.max(1,Math.round(Number(e.target.value)*30));
-          if(Number.isFinite(next))onEdit({durationFrames:next,motion:retimeMotion(shot.motion,shot.durationFrames,next)});
+          if(Number.isFinite(next))onEdit({durationFrames:next,motion:retimeMotion(shot.motion,shot.durationFrames,next),
+            layers:retimeShotLayers(shot.layers,shot.durationFrames,next)});
         }}/>
     </div></div>
     <div className="twoCols"><div className="field"><label>Cor de destaque</label>
@@ -83,7 +88,10 @@ export function ShotInspector({shot,assets,evidence,onEdit,onRemove}:{
     </div></div>
     {shot.kind==='graphic'&&investigativeStyles.some(s=>s===shot.style)&&
       <InvestigationInspector shot={shot} evidence={evidence} onEdit={onEdit}/>}
-    <div className="shotMotion"><div className="panelTitle">ANIMAÇÃO POR KEYFRAMES</div>
+    <PresetBrowser shot={shot} onEdit={onEdit} onSelected={onSelectedLayer}/>
+    <LayerEditor shot={shot} selectedId={selectedLayerId} onSelected={onSelectedLayer}
+      assets={assets} captions={captions} evidence={evidence} onEdit={onEdit}/>
+    <div className="shotMotion"><div className="panelTitle">ANIMAÇÃO DO PLANO INTEIRO</div>
       <p className="help">Quadros relativos ao início deste plano (30 FPS). A curva pertence ao quadro-chave de partida.</p>
       <div className="projectActions">
         <button onClick={()=>preset('zoom')}>Zoom suave</button>

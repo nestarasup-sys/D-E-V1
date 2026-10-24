@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import {shotSchema,chapterSchema,channelKitSchema,keyframeSchema,validateMotion} from './shots';
+import {validateLayers} from './layers';
 
 export const FPS = 30;
 export const sceneKindSchema = z.enum(['title', 'stat', 'quote']);
@@ -102,6 +103,28 @@ export const projectSchema = z.object({
   p.shots.forEach((shot,i)=>{
     if(shot.startFrame+shot.durationFrames>total)ctx.addIssue({code:'custom',path:['shots',i],message:'Plano ultrapassa a duração do episódio'});
     validateMotion(shot.motion,shot.durationFrames,ctx,['shots',i,'motion']);
+    for(const message of validateLayers(shot.layers,shot.durationFrames)){
+      ctx.addIssue({code:'custom',path:['shots',i,'layers'],message});
+    }
+    shot.layers.forEach((layer,j)=>{
+      const linked=layer.sourceEvidenceId?
+        p.evidence.find(e=>e.id===layer.sourceEvidenceId):undefined;
+      if(layer.sourceEvidenceId&&!linked)ctx.addIssue({code:'custom',
+        path:['shots',i,'layers',j,'sourceEvidenceId'],message:'Elemento cita fonte não cadastrada'});
+      if(layer.kind==='chart'&&layer.values.length&&!layer.sourceEvidenceId)
+        ctx.addIssue({code:'custom',path:['shots',i,'layers',j],message:'Gráfico factual sem evidência'});
+      if(layer.kind==='image'){
+        const asset=layer.assetId?assetById.get(layer.assetId):undefined;
+        if(asset?.kind!=='image')ctx.addIssue({code:'custom',path:['shots',i,'layers',j,'assetId'],
+          message:'Imagem da camada precisa ser mídia local cadastrada'});
+      }
+      if(layer.cueCaptionId){
+        const caption=p.captions.find(c=>c.id===layer.cueCaptionId);
+        if(!caption)ctx.addIssue({code:'custom',path:['shots',i,'layers',j,'cueCaptionId'],message:'Legenda de sincronismo não existe'});
+        else if(caption.startFrame>=shot.startFrame+shot.durationFrames||caption.endFrame<=shot.startFrame)
+          ctx.addIssue({code:'custom',path:['shots',i,'layers',j,'cueCaptionId'],message:'Legenda fora do intervalo deste plano'});
+      }
+    });
     const evidenceId=shot.investigation.sourceEvidenceId;
     if(evidenceId&&!p.evidence.some(e=>e.id===evidenceId))
       ctx.addIssue({code:'custom',path:['shots',i,'investigation','sourceEvidenceId'],message:'Plano cita evidência inexistente'});
