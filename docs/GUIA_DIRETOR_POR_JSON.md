@@ -1,7 +1,7 @@
 # Guia Diretor por JSON — Dark Studio
 
 > **Manual operacional e referência de capacidades para humanos, ChatGPT e Codex Local.**
-> **Estado documentado:** Dark Studio **v0.17.0 (Intelligent Production — OCR, streaming e fontes)** · `project.json` **schema v2** · `direction.json` **schema v1** · serviço local **protocolo 7**.
+> **Estado documentado:** Dark Studio **v0.18.0 (AI Production Engine — JSON direto, voz SAPI e sincronização por bloco)** · `project.json` **schema v2** · `direction.json` **schema v1** · serviço local **protocolo 7**.
 > **Branch de código:** `main`. **Última revisão editorial deste guia:** 2026-10-24.
 > **Contrato de manutenção:** este guia é **vivo**. Toda nova funcionalidade ou alteração de schema/comando deve atualizar este documento, seus exemplos e os testes do guia no mesmo PR/commit. Consulte [Como manter atualizado](#19-como-atualizar-este-guia-nas-próximas-versões).
 
@@ -913,6 +913,14 @@ Consulte a [especificação completa v0.16](MOTION_ENGINE_016.md), também obrig
 - **Projetos grandes `.darkstudio`:** novo ZIP64 versão 2 em streaming até 64 GiB / 12 mil mídias (16 GiB por arquivo), com validação de caminho, CRC no ZIP e SHA-256 no manifesto. Transferência retomável em blocos no dashboard; download com HTTP Range. Importador v1 anterior preservado.
 - **Fontes incorporadas:** envie WOFF2/WOFF/TTF/OTF na biblioteca, selecione a família `DSFont-UUID` em Tipografia. Prévia e MP4 usam @font-face local; somente fontes `rights.redistributionAllowed: true` com `licenseName` preenchido entram no `.darkstudio`. Licenças comerciais sem redistribuição continuam locais e não são empacotadas.
 - O fluxo da IA ainda produz `direction.json` para revisão, ou um `.darkstudio` completo para compartilhar todos os arquivos permitidos. Nenhum arquivo do computador é enviado para o GitHub.
+
+### 14.11 AI Production Engine v0.18 — JSON cria vídeo com narração sem Codex
+
+A importação direta do Dashboard aceita `format:"darkstudio-production",version:1` e `beats[]` com `plannedFrames`, `narration` e todo o vocabulário de camadas, rigs, gráficos, câmera e efeitos v0.17. A IA **não** envia UUIDs internos nem WAV; o aplicativo gera áudio real por Windows SAPI, mede as durações e monta os planos no mesmo renderizador de prévia/MP4. A voz é alterável e a timeline por trecho é ressincronizada no editor. B-roll opcional `broll:{query,description,purpose,provider,licenseNote}` gera **pedido pendente**, nunca download presumido. Veja [Guia v0.18](AI_PRODUCTION_018.md) e [JSON autoral exemplo](examples/PRODUCAO_018.example.json).
+
+**Validação:** `POST /v1/productions/validate` devolve diagnósticos de estrutura. **Vozes:** `GET /v1/productions/voices`; `POST /v1/productions/import` importa após sintetizar; `POST /v1/productions/:id/regenerate` troca voz com revisão `If-Match`. As palavras individuais não têm alinhamento acústico preciso no SAPI: legendas medem trechos inteiros, não cada palavra.
+
+O `direction.json` v1 e suas propostas Codex continuam disponíveis para quem quiser, assim como `project.json` v2 e os pacotes `.darkstudio`; **Codex e terminal deixam de ser obrigatórios no caminho principal**.
 
 ## 15. Referência completa dos comandos locais
 

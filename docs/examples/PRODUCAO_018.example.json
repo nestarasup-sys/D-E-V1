@@ -1,0 +1,128 @@
+{
+  "format": "darkstudio-production",
+  "version": 1,
+  "title": "Por que o salário parece desaparecer?",
+  "voice": {
+    "engine": "windows-sapi",
+    "voice": "",
+    "rate": 1,
+    "pauseMs": 350
+  },
+  "beats": [
+    {
+      "title": "A rotina",
+      "narration": "O brasileiro acorda cedo e trabalha o mês inteiro.",
+      "plannedFrames": 120,
+      "purpose": "hook",
+      "motionPreset": "subtle-zoom",
+      "layers": [
+        {
+          "kind": "text",
+          "name": "Rotina de trabalho",
+          "text": "TRABALHO TODOS OS DIAS",
+          "x": 170,
+          "y": 150,
+          "width": 1400,
+          "height": 240,
+          "fontSize": 76,
+          "behavior": "word-reveal",
+          "color": "#ffffff"
+        },
+        {
+          "kind": "character",
+          "name": "Trabalhador",
+          "x": 700,
+          "y": 330,
+          "width": 390,
+          "height": 620,
+          "behavior": "walk"
+        }
+      ],
+      "broll": {
+        "query": "worker commuting brazil city",
+        "description": "Pessoa indo ao trabalho em ambiente urbano",
+        "purpose": "Ilustrar a rotina",
+        "provider": "pexels",
+        "licenseNote": "Conferir a licença e a pertinência antes do download"
+      }
+    },
+    {
+      "title": "O dinheiro chega",
+      "narration": "Mas quando o salário chega, as contas começam a aparecer.",
+      "plannedFrames": 120,
+      "purpose": "context",
+      "motionPreset": "still",
+      "layers": [
+        {
+          "kind": "object",
+          "name": "Carteira",
+          "objectType": "wallet",
+          "x": 240,
+          "y": 250,
+          "width": 520,
+          "height": 570,
+          "behavior": "pulse"
+        },
+        {
+          "kind": "text",
+          "name": "Salário",
+          "text": "SALÁRIO  →  CONTAS",
+          "x": 840,
+          "y": 370,
+          "width": 940,
+          "height": 230,
+          "fontSize": 80,
+          "behavior": "word-reveal",
+          "color": "#f0bb66"
+        }
+      ]
+    },
+    {
+      "title": "Compras e despesas",
+      "narration": "No supermercado, cada preço parece maior que o anterior.",
+      "plannedFrames": 120,
+      "purpose": "contrast",
+      "motionPreset": "subtle-zoom",
+      "layers": [
+        {
+          "kind": "scene",
+          "name": "Supermercado ilustrado",
+          "sceneType": "supermarket",
+          "x": 0,
+          "y": 0,
+          "width": 1920,
+          "height": 1080
+        }
+      ],
+      "broll": {
+        "query": "supermarket shopping prices",
+        "description": "Corredores de mercado, pessoa observando preços",
+        "purpose": "Ilustrar compras",
+        "provider": "pexels",
+        "licenseNote": "Não utilizar sem conferência da licença e autorização"
+      }
+    },
+    {
+      "title": "Conclusão",
+      "narration": "Entender para onde o dinheiro vai é o primeiro passo para recuperar o controle.",
+      "plannedFrames": 150,
+      "purpose": "conclusion",
+      "motionPreset": "still",
+      "layers": [
+        {
+          "kind": "text",
+          "name": "Conclusão",
+          "text": "PARA ONDE VAI O DINHEIRO?",
+          "x": 180,
+          "y": 330,
+          "width": 1500,
+          "height": 320,
+          "fontSize": 86,
+          "fontWeight": 900,
+          "behavior": "word-reveal",
+          "color": "#ffffff"
+        }
+      ]
+    }
+  ]
+}

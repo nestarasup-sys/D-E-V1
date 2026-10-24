@@ -100,6 +100,24 @@ function ProjectSession({initial,onClose}: {initial:ProjectRecord;onClose:()=>vo
       setSync('Recarregado do computador');
     }catch(e){setSync('Falha ao recarregar: '+asError(e));}
   };
+  async function regenerateVoice(voice:{voice:string;rate:number;pauseMs:number}){
+    if(!await save())throw new Error('Salve o projeto antes de regenerar a narração.');
+    if(saving.current||conflicted.current)throw new Error('Projeto ocupado ou com conflito.');
+    saving.current=true;setSync('Gerando nova voz real e recalculando a timeline...');
+    try{
+      const response=await fetch('http://127.0.0.1:4317/v1/productions/'+id+'/regenerate',{
+        method:'POST',headers:{'Content-Type':'application/json','If-Match':revision.current},
+        body:JSON.stringify({voice}),
+      });
+      const result=await response.json() as ProjectRecord & {error?:string};
+      if(!response.ok||!result.project)throw new Error(result.error||'Falha ao regenerar.');
+      revision.current=result.revision;
+      baseline.current=JSON.stringify(result.project);
+      useEditor.getState().openProject(result.project);
+      setSync('Nova voz gerada, cenas e legendas atualizadas. Revise os cortes no preview.');
+    }catch(e){setSync('Falha ao regenerar: '+asError(e));throw e;}
+    finally{saving.current=false;}
+  }
   const leave=async()=>{
     if(JSON.stringify(useEditor.getState().project)===baseline.current){onClose();return;}
     const success=await save();
@@ -107,7 +125,8 @@ function ProjectSession({initial,onClose}: {initial:ProjectRecord;onClose:()=>vo
   };
   return <Suspense fallback={<div className="appLoading" role="status">Carregando o editor e os módulos de animação…</div>}>
     <Editor onHome={()=>void leave()} syncStatus={sync}
-      onReload={reloadAvailable?()=>void reload():undefined}/>
+      onReload={reloadAvailable?()=>void reload():undefined}
+      onRegenerateVoice={regenerateVoice}/>
   </Suspense>;
 }
 
@@ -223,7 +242,30 @@ export function App(){
         useEditor.getState().openProject(result.project);setActive(result);
         return;
       }
-      const project=parseProject(JSON.parse(await file.text()));
+      const raw=JSON.parse(await file.text()) as unknown;
+      if(raw&&typeof raw==='object'&&'format' in raw&&raw.format==='darkstudio-production'){
+        setNotice('Validando o roteiro audiovisual por JSON...');
+        const validation=await fetch('http://127.0.0.1:4317/v1/productions/validate',{
+          method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(raw),
+        });
+        const report=await validation.json() as {valid?:boolean;issues?:Array<{path:string;description:string}>;error?:string};
+        if(!validation.ok)throw new Error(report.issues?.slice(0,8)
+          .map(x=>x.path+': '+x.description).join('\n')||report.error||'JSON de produção inválido.');
+        setNotice('Gerando arquivos reais de narração no Windows e sincronizando as cenas...');
+        const response=await fetch('http://127.0.0.1:4317/v1/productions/import',{
+          method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(raw),
+        });
+        const produced=await response.json() as ProjectRecord & {error?:string;
+          unresolvedBroll?:Array<{index:number;query:string}>};
+        if(!response.ok||!produced.project)throw new Error(produced.error||'Produção não criada.');
+        setNotice((produced.unresolvedBroll?.length||0)>0?
+          'Narração e composição prontas. B-roll aguardando seleção e licença.':
+          'Produção audiovisual criada com voz real e legendas.');
+        useEditor.getState().openProject(produced.project);
+        setActive(produced);
+        return;
+      }
+      const project=parseProject(raw);
       const existing=entries.find(p=>p.id===project.id);
       if(existing){
         if(!window.confirm('O JSON tem o mesmo ID de '+existing.name+'. Atualizar este projeto? O Dark Studio fará backup da versão anterior.'))return;
@@ -281,18 +323,18 @@ export function App(){
   return <main className="homeScreen">
     <header className="homeHeader">
       <div className="brand"><span className="brandmark">D</span><div><strong>DARK STUDIO</strong><small>ESTÚDIO DE DOCUMENTÁRIOS</small></div></div>
-      <span className="homeVersion">PROJETOS · WINDOWS · v0.14
+      <span className="homeVersion">PROJETOS · WINDOWS · v0.18
         {service?' · SERVIÇO COMPATÍVEL '+service.appVersion:' · VERIFIQUE O SERVIÇO'}
       </span>
     </header>
     <section className="homeHero">
       <p className="homeEyebrow">SEU ESTÚDIO INVESTIGATIVO</p>
       <h1>Seus projetos, em um só lugar.</h1>
-      <p>Crie um episódio, peça ao Codex local uma direção investigativa completa e revise os planos, movimentos, fontes e a narração no mesmo computador. Nenhum chat ou sincronização com GitHub é necessário.</p>
+      <p>Importe um JSON de produção do ChatGPT: o Dark Studio monta cenas editáveis, gera a narração real por voz do Windows, sincroniza legendas e abre a prévia. Codex e terminal não são necessários.</p>
       <div className="homeCreate">
         <input aria-label="Nome do novo projeto" placeholder="Nome do novo documentário" maxLength={120} value={newName} onChange={e=>setNewName(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')void create();}}/>
         <button className="primary" disabled={busy||!newName.trim()} onClick={()=>void create()}>+ Criar projeto</button>
-        <button disabled={busy} onClick={()=>importRef.current?.click()}>Importar JSON / .darkstudio</button>
+        <button disabled={busy} onClick={()=>importRef.current?.click()}>Importar produção IA / JSON / .darkstudio</button>
         <button disabled={busy} onClick={()=>void createPilot()}>▶ Criar piloto audiovisual 30s</button>
         <input ref={importRef} className="hidden" type="file" accept=".json,.darkstudio,application/json,application/vnd.darkstudio+zip" onChange={e=>void importFile(e)}/>
       </div>
@@ -313,7 +355,7 @@ export function App(){
       </div>}
       {notice && <p role="status" className="syncSuccess">{notice}</p>}
       {!loaded && <p>Consultando projetos locais...</p>}
-      {loaded && entries.length===0 && <div className="homeEmpty"><strong>Nenhum projeto nesta pasta.</strong><p>Crie o primeiro documentário ou importe um projeto JSON. O Codex local também pode criar arquivos de projeto aqui.</p></div>}
+      {loaded && entries.length===0 && <div className="homeEmpty"><strong>Nenhum projeto nesta pasta.</strong><p>Crie o primeiro documentário ou importe um projeto JSON. O ChatGPT pode entregar um JSON de produção compatível para importar diretamente.</p></div>}
       <div className="projectGrid">{entries.map(entry=><article className="projectTile" key={entry.id}>
         <div className="projectArt"><span>D</span><small>{entry.sceneCount} CENA{entry.sceneCount===1?'':'S'}</small></div>
         <div className="projectInfo"><h3 title={entry.name}>{entry.name}</h3>

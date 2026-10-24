@@ -1,94 +1,93 @@
+/** v0.18: self-contained audiovisual JSON -> real Windows voice -> saved native project. */
+import type {IncomingMessage,ServerResponse} from 'node:http';
 import {randomUUID} from 'node:crypto';
-import {mkdir,readFile,rename,rm,writeFile} from 'node:fs/promises';
-import {join} from 'node:path';
-import {compileDirection,makeAutomaticDirection} from '../../../src/model/direction';
-import {describeProduction,nextProductionAction,type ProductionOverview} from '../../../src/model/production';
-import {diagnoseProject} from './diagnostics';
-import {mediaExistsFor} from './media';
-import {listJobs,type JobStatus} from './job-registry';
-import {ProjectRepository,ProjectError} from './project-store';
-import {ProposalRepository} from './proposals';
+import {z} from 'zod';
+import {json,readJson} from './http';
+import {ProjectRepository} from './project-store';
+import {productionSchema,compileProduction,resyncProduction,productionPlanSchema} from '../../../src/model/production';
+import {listLocalVoices,synthesizeNarration,rollbackNarration} from './narration';
+import type {NarratedAudio} from '../../../src/model/production';
 
-export class ProductionCoordinator {
-  constructor(
-    private readonly projects:ProjectRepository,
-    private readonly proposals:ProposalRepository,
-    private readonly hasMedia:(id:string)=>Promise<boolean>=mediaExistsFor,
-    private readonly jobs:(id:string)=>Promise<JobStatus[]>=listJobs,
-  ){}
-  async assess(projectId:string):Promise<ProductionOverview>{
-    const saved=await this.projects.read(projectId);
-    const [proposals,diagnostic,jobs]=await Promise.all([
-      this.proposals.list(projectId),
-      diagnoseProject(saved.project,this.hasMedia),
-      this.jobs(projectId),
-    ]);
-    const voiceClips=saved.project.clips.filter(c=>c.lane==='narration');
-    const availableNarration=voiceClips.length>0&&
-      (await Promise.all(voiceClips.map(c=>this.hasMedia(c.assetId)))).every(Boolean);
-    const steps=describeProduction({
-      project:saved.project,availableNarration,
-      pendingProposals:proposals.filter(p=>!p.stale).length,
-      diagnosticErrors:diagnostic.counts.errors,
-      diagnosticWarnings:diagnostic.counts.warnings,
-      completedRenders:jobs.filter(job=>job.state==='completed').length,
-      interruptedRenders:jobs.filter(job=>job.state==='interrupted').length,
-    });
-    return {
-      projectId,revision:saved.revision,updatedAt:new Date().toISOString(),
-      steps,nextAction:nextProductionAction(steps),
-      pendingProposals:proposals.filter(p=>!p.stale).length,
-      completedRenders:jobs.filter(job=>job.state==='completed').length,
-      interruptedRenders:jobs.filter(job=>job.state==='interrupted').length,
-    };
+const projects=new ProjectRepository();
+let active=false;
+function problems(error:z.ZodError){
+  return error.issues.map(issue=>({
+    path:issue.path.join('.')||'(raiz)',code:issue.code,
+    description:issue.message,suggestion:'Confira o campo e o Guia JSON v0.18.',
+  }));
+}
+export async function handleProduction(req:IncomingMessage,res:ServerResponse,url:URL):Promise<boolean>{
+  if(url.pathname==='/v1/productions/voices'&&req.method==='GET'){
+    try{json(res,200,{engine:'windows-sapi',voices:await listLocalVoices()});}
+    catch(e){json(res,503,{error:e instanceof Error?e.message:'Vozes não disponíveis'});}
+    return true;
   }
-  private path(id:string){
-    // Repository.read validates that this ID is a valid UUID and in the local root.
-    return join(this.projects.root,id,'production','checkpoint.json');
-  }
-  async checkpoint(projectId:string):Promise<ProductionOverview>{
-    const state=await this.assess(projectId);
-    const folder=join(this.projects.root,projectId,'production');
-    const file=this.path(projectId);
-    const tmp=join(folder,'.checkpoint-'+randomUUID()+'.tmp');
-    await mkdir(folder,{recursive:true});
+  if(url.pathname==='/v1/productions/validate'&&req.method==='POST'){
     try{
-      await writeFile(tmp,JSON.stringify(state,null,2)+'\n',{flag:'wx'});
-      await rename(tmp,file);
-    }finally{await rm(tmp,{force:true}).catch(()=>{});}
-    return state;
+      const raw=await readJson(req,4_000_000);
+      const result=productionSchema.safeParse(raw);
+      json(res,result.success?200:422,result.success?{
+        valid:true,beats:result.data.beats.length,
+        plannedFrames:result.data.beats.reduce((n,b)=>n+b.plannedFrames,0),
+        unresolvedBroll:result.data.beats.filter(b=>!!b.broll).map((b,i)=>({
+          query:b.broll!.query,index:i,action:'Selecionar mídia licenciada na biblioteca',
+        })),
+      }:{valid:false,issues:problems(result.error)});
+    }catch(e){json(res,400,{valid:false,error:e instanceof Error?e.message:'JSON inválido'});}
+    return true;
   }
-  async readCheckpoint(projectId:string):Promise<ProductionOverview|null>{
-    await this.projects.read(projectId);
-    try{return JSON.parse(await readFile(this.path(projectId),'utf8')) as ProductionOverview;}
-    catch(e){if((e as NodeJS.ErrnoException).code==='ENOENT')return null;throw e;}
+  if(url.pathname==='/v1/productions/import'&&req.method==='POST'){
+    if(active){json(res,409,{error:'Já existe uma produção em geração. Conclua antes de iniciar outra.'});return true;}
+    active=true;let audio:NarratedAudio[]=[];
+    try{
+      const parsed=productionSchema.parse(await readJson(req,4_000_000));
+      audio=await synthesizeNarration(parsed);
+      const project=compileProduction(parsed,audio,randomUUID);
+      const record=await projects.adopt(project);
+      json(res,201,{...record,voiceCreated:true,unresolvedBroll:parsed.beats
+        .flatMap((beat,index)=>beat.broll?[{index,query:beat.broll.query}]:[])});
+    }catch(e){
+      await rollbackNarration(audio);
+      json(res,e instanceof z.ZodError?422:400,{
+        error:e instanceof Error?e.message:'Não foi possível montar a produção',
+        ...(e instanceof z.ZodError?{issues:problems(e)}:{}),
+      });
+    }finally{active=false;}
+    return true;
   }
-  async continue(projectId:string):Promise<ProductionOverview>{
-    const current=await this.projects.read(projectId);
-    const currentProposals=await this.proposals.list(projectId);
-    if(currentProposals.some(item=>!item.stale)){
-      const state=await this.checkpoint(projectId);
-      return {...state,nextAction:'Já existe uma proposta pendente. Use Revisar Codex; nenhuma foi duplicada.'};
-    }
-    if(current.project.visualMode==='shots'&&current.project.shots.length){
-      const state=await this.checkpoint(projectId);
-      return {...state,nextAction:'Planos já estão no projeto salvo. Revise e execute o diagnóstico.'};
-    }
-    const narration=current.project.clips.filter(c=>c.lane==='narration');
-    if(narration.length===0||current.project.captions.length===0||
-      !(await Promise.all(narration.map(c=>this.hasMedia(c.assetId)))).every(Boolean)){
-      const state=await this.checkpoint(projectId);
-      return {...state,nextAction:'Faltam narração local e/ou legendas reais. O sistema não fabrica timestamps.'};
-    }
-    const hasNarrative=current.project.scenes.some(s=>s.title.trim()!=='NOVO DOCUMENTÁRIO');
-    if(!hasNarrative)throw new ProjectError('Preencha o roteiro antes de automatizar a direção visual.',422);
-    const direction=makeAutomaticDirection(current.project);
-    const compiled=compileDirection(current.project,direction,randomUUID);
-    if(!compiled.report.readyForEditorialReview)
-      throw new ProjectError('A direção tem buracos; ajuste o storyboard antes de gerar proposta.',422);
-    const proposal=await this.proposals.create(projectId,compiled.operations,current.revision);
-    const state=await this.checkpoint(projectId);
-    return {...state,proposedId:proposal.id,
-      nextAction:'Proposta ilustrativa preparada. Abra Revisar Codex e confira cenas, dados e fontes.'};
+  const regenerate=/^\/v1\/productions\/([0-9a-f-]{36})\/regenerate$/.exec(url.pathname);
+  if(regenerate&&req.method==='POST'){
+    if(active){json(res,409,{error:'Outra geração está em andamento.'});return true;}
+    active=true;let audio:NarratedAudio[]=[];
+    try{
+      const current=await projects.read(regenerate[1]);
+      const revision=String(req.headers['if-match']||'');
+      if(current.revision!==revision){
+        json(res,409,{error:'Projeto foi alterado. Reabra a versão atual antes de regenerar.'});
+        return true;
+      }
+      const plan=current.project.productionPlan?
+        productionPlanSchema.parse(current.project.productionPlan):null;
+      if(!plan)throw new Error('Este projeto não possui o roteiro original da produção JSON v0.18.');
+      const body=z.object({voice:z.object({
+        voice:z.string().trim().max(140).optional(),
+        rate:z.number().int().min(-10).max(10).optional(),
+        pauseMs:z.number().int().min(0).max(2500).optional(),
+      }).strict()}).strict().parse(await readJson(req,3000));
+      const source=productionSchema.parse({...plan.source,
+        voice:{...plan.source.voice,...body.voice}});
+      audio=await synthesizeNarration(source);
+      const rebuilt=resyncProduction(current.project,audio,randomUUID,source);
+      const saved=await projects.save(current.project.id,rebuilt,revision);
+      json(res,200,{...saved,voiceRegenerated:true});
+    }catch(e){
+      await rollbackNarration(audio);
+      json(res,e instanceof z.ZodError?422:400,{
+        error:e instanceof Error?e.message:'Falha ao regenerar a voz',
+        ...(e instanceof z.ZodError?{issues:problems(e)}:{}),
+      });
+    }finally{active=false;}
+    return true;
   }
+  return false;
 }

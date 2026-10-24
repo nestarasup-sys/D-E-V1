@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import {productionSchema} from './model/production';
 import { Player, type PlayerRef } from '@remotion/player';
 import { Documentary } from './video/Documentary';
 import { useEditor } from './model/store';
@@ -25,7 +26,10 @@ function saveJson(project:Project) {
 function newScene(after:Scene):Scene {
   return {...after, id:`scene-${crypto.randomUUID()}`, title:'NOVA CENA', productionNotes:'', subtitle:'Edite este texto no painel à direita.', kicker:'NOVO BLOCO', imageUrl:''};
 }
-export function Editor({onHome,syncStatus,onReload}:{onHome:()=>void,syncStatus:string,onReload?:()=>void}) {
+export function Editor({onHome,syncStatus,onReload,onRegenerateVoice}:{
+  onHome:()=>void;syncStatus:string;onReload?:()=>void;
+  onRegenerateVoice?:(voice:{voice:string;rate:number;pauseMs:number})=>Promise<void>;
+}) {
   const {project,selectedSceneId,select,apply,undo,redo,past,future} = useEditor();
   const player = useRef<PlayerRef>(null);
   const [message,setMessage] = useState('');
@@ -46,6 +50,32 @@ export function Editor({onHome,syncStatus,onReload}:{onHome:()=>void,syncStatus:
     frames:number[];issues:Array<{frame:number;seconds?:number;code:string;severity:string;message:string;recommendation?:string}>;
     method:string;ocr?:{status:string;language:string;framesAnalyzed:number;error?:string};
   }|null>(null);
+  const production=useMemo(()=>project.productionPlan?
+    productionSchema.safeParse(project.productionPlan.source):null,[project.productionPlan]);
+  const source=production?.success?production.data:null;
+  const [voices,setVoices]=useState<Array<{name:string;culture:string;gender:string}>>([]);
+  const [voiceName,setVoiceName]=useState('');
+  const [voiceRate,setVoiceRate]=useState(1);
+  const [voicePause,setVoicePause]=useState(350);
+  const [ttsError,setTtsError]=useState('');
+  const [ttsBusy,setTtsBusy]=useState(false);
+  useEffect(()=>{
+    if(!source)return;
+    setVoiceName(source.voice.voice);setVoiceRate(source.voice.rate);setVoicePause(source.voice.pauseMs);
+    void fetch(endpoint+'/v1/productions/voices').then(async response=>{
+      const data=await response.json() as {voices?:Array<{name:string;culture:string;gender:string}>;error?:string};
+      if(!response.ok)throw new Error(data.error||'Vozes locais indisponíveis');
+      setVoices(data.voices||[]);
+    }).catch(e=>setTtsError(e instanceof Error?e.message:'Falha ao consultar voz'));
+  },[source?.voice.voice,source?.voice.rate,source?.voice.pauseMs,!!source]);
+  async function regenerateNarration(){
+    if(!onRegenerateVoice)return;
+    if(!window.confirm('Gerar nova voz e atualizar os tempos das cenas e legendas? Os elementos continuam editáveis. O Dark Studio fará backup do projeto salvo.'))return;
+    setTtsBusy(true);setTtsError('');
+    try{await onRegenerateVoice({voice:voiceName,rate:voiceRate,pauseMs:voicePause});}
+    catch(e){setTtsError(e instanceof Error?e.message:'Falha ao regenerar narrador');}
+    finally{setTtsBusy(false);}
+  }
   const {selectedClipId,selectClip}=useEditor();
   const selectedClip=project.clips.find(c=>c.id===selectedClipId)||null;
   const selectedShot=project.shots.find(s=>s.id===selectedShotId)||null;
@@ -236,7 +266,7 @@ export function Editor({onHome,syncStatus,onReload}:{onHome:()=>void,syncStatus:
   }
   function jumpTo(index:number) {select(project.scenes[index].id);player.current?.seekTo(sceneStart(project,index));}
   return <div className="shell">
-    <header className="topbar"><div className="brand"><span className="brandmark">D</span><div><strong>DARK STUDIO</strong><small>INTELLIGENT PRODUCTION v0.17</small></div></div>
+    <header className="topbar"><div className="brand"><span className="brandmark">D</span><div><strong>DARK STUDIO</strong><small>AI PRODUCTION ENGINE v0.18</small></div></div>
       <div className="projectName"><span className="dot"/>{project.name}</div>
       <div className="topActions"><button onClick={onHome}>← Projetos</button><button onClick={undo} disabled={!past.length} title="Desfazer">↶ Desfazer</button><button onClick={redo} disabled={!future.length} title="Refazer">↷ Refazer</button><button onClick={()=>mediaFile.current?.click()} disabled={importing}>{importing?'Importando...':'Importar mídia'}</button><button className="primary" onClick={()=>void exportVideo()}>Exportar MP4</button><button onClick={()=>saveJson(project)}>Exportar JSON ↧</button><button onClick={()=>void exportArchive()}>Exportar .darkstudio</button></div>
       <input className="hidden" ref={captionFile} type="file" accept=".srt,.txt" onChange={e=>void importSubtitles(e)}/>
@@ -287,6 +317,36 @@ export function Editor({onHome,syncStatus,onReload}:{onHome:()=>void,syncStatus:
             onBlur={e=>updateAssetRights(a,{attribution:e.target.value})}/></div>
         </details>}
       </div></div>)}</div>{mediaMessage&&<p className="warning" role="alert">{mediaMessage}</p>}</div>
+      {source&&<div className="libraryNote">
+        <b>NARRADOR AUTOMÁTICO · PRODUÇÃO JSON v0.18</b>
+        <p>Áudio PCM real gerado no Windows para {source.beats.length} fala(s).
+          As legendas seguem as durações medidas do WAV. Tempos por palavra ainda são aproximados.</p>
+        <div className="field"><label>Voz instalada no Windows</label>
+          <select value={voiceName} onChange={e=>setVoiceName(e.target.value)}>
+            <option value="">Automática (preferir português brasileiro)</option>
+            {voices.map(v=><option value={v.name} key={v.name}>{v.name} · {v.culture}</option>)}
+          </select></div>
+        <div className="twoCols">
+          <div className="field"><label>Velocidade (-10 a 10)</label><input type="number"
+            min={-10} max={10} step={1} value={voiceRate}
+            onChange={e=>setVoiceRate(Number(e.target.value))}/></div>
+          <div className="field"><label>Pausa entre cenas (ms)</label><input type="number"
+            min={0} max={2500} step={50} value={voicePause}
+            onChange={e=>setVoicePause(Number(e.target.value))}/></div>
+        </div>
+        <button disabled={ttsBusy||!onRegenerateVoice} className="wide"
+          onClick={()=>void regenerateNarration()}>
+          {ttsBusy?'Gerando narração e sincronizando...':'Regenerar voz e sincronização'}
+        </button>
+        {ttsError&&<p className="warning" role="alert">{ttsError}</p>}
+      </div>}
+      {source?.beats.some(b=>!!b.broll)&&<div className="libraryNote">
+        <b>B-ROLL PLANEJADO PELO CHATGPT</b>
+        <p>O aplicativo preservou pedidos de filmagem. Eles permanecem como cenas procedurais
+          até você escolher e autorizar vídeos reais.</p>
+        {source.beats.flatMap((beat,i)=>beat.broll?[<p key={i}>
+          {i+1}. {beat.broll.query} · {beat.broll.licenseNote}</p>]:[])}
+      </div>}
       <div className="libraryNote"><b>LEGENDAS SINCRONIZADAS · {project.captions.length}</b>
         <p>Importe um SRT com timestamps (gerado por ferramenta local ou pelo Codex) e revise o timing em relação à narração.</p>
         <div className="projectActions"><button onClick={()=>captionFile.current?.click()}>Importar SRT</button>

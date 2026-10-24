@@ -99,6 +99,16 @@ export const projectSchema = z.object({
   chapters:z.array(chapterSchema).max(100).default([]),
   shots:z.array(shotSchema).max(4000).default([]),
   channelKit:channelKitSchema,
+  /** JSON-driven production: original direction and real synthesized segment boundaries. */
+  productionPlan:z.object({
+    version:z.literal(1),
+    source:z.unknown(),
+    segments:z.array(z.object({
+      durationFrames:z.number().int().min(15).max(1800),
+      narrationFrames:z.number().int().positive().max(1800),
+      captionId:z.string().uuid(),clipId:z.string().uuid(),
+    }).strict()).min(1).max(200),
+  }).strict().optional(),
 }).strict().superRefine((p, ctx) => {
   if (new Set(p.scenes.map(s => s.id)).size !== p.scenes.length) ctx.addIssue({code:'custom', message:'IDs de cenas duplicados'});
   if(new Set(p.shots.map(s=>s.id)).size!==p.shots.length)ctx.addIssue({code:'custom',message:'IDs de planos duplicados'});

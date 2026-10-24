@@ -3,15 +3,16 @@
  * Sempre incremente PROTOCOL_BUILD ao alterar rotas ou formato de respostas.
  * Isso detecta um serviço antigo que continua vivo depois de atualizar o código.
  */
-export const SERVICE_PROTOCOL = 8;
-export const SERVICE_VERSION = '0.17.0';
-export const SERVICE_BUILD = 'dark-studio-v0.17-ocr-stream-fonts-8';
+export const SERVICE_PROTOCOL = 9;
+export const SERVICE_VERSION = '0.18.0';
+export const SERVICE_BUILD = 'dark-studio-v0.18-ai-audiovisual-import-9';
 export const PROJECT_SCHEMA_VERSION = 2;
 export const REQUIRED_CAPABILITIES = [
   'projects-v2','proposals-v1','project-history-v1','diagnostics-v1',
   'render-jobs-v2','media-local-v1','production-checkpoint-v1',
   'portable-darkstudio-v1','raster-qa-v1','broll-rights-v1',
   'portable-stream-v2','archive-resumable-upload-v1','portable-fonts-v1','ocr-por-offline-v1',
+  'ai-production-json-v1','windows-sapi-narration-v1','voice-resync-v1',
 ] as const;
 
 export interface ServiceHealth {

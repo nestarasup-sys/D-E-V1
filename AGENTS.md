@@ -89,6 +89,13 @@ Em \`evidence[]\`, o Codex pode preencher \`sourceExcerpt\`, \`publicationDate\`
 - Alterar manualmente texto/tempos de uma legenda invalida seus \`words[]\`; regenerar a sincronização a partir do áudio, não copiá-la cegamente.
 
 
+## AI Production v0.18 — contrato audiovisual
+- O caminho principal da v0.18 é `ChatGPT -> arquivo darkstudio-production JSON -> importação no dashboard -> voz SAPI real -> duração medida -> cenas/planos/captions -> preview -> MP4`, sem Codex/terminal. Voz sem arquivo real deve resultar em erro, nunca vídeo silencioso disfarçado.
+- `productionSchema` v1, `projectSchema` v2 com `productionPlan` opcional; não mover dados dos usuários, não reescrever vozes antigas, não apagar WAVs locais. Revisão da narração deve preservar cenas e IDs quando possível.
+- B-roll não é gerado a partir de palavras. Requisições sem material permanecem pendentes com fallback procedural e confirmação de licença.
+- Compatibilidade com todos os projetos v0.17 e pacotes .darkstudio obrigatória; cada mudança deve atualizar testes e guia.
+- Somente branch `main`, sem reset/clean destrutivo, com `ATUALIZAR.bat` e `INICIAR.bat` preservados.
+
 ## Intelligent Production v0.17 — OCR, ZIP64 e licenças de fonte
 
 - Nenhum dado do usuário deve entrar na main. Projetos continuam `version:2` e direções `version:1`.
