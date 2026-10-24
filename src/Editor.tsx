@@ -166,7 +166,7 @@ export function Editor({onHome,syncStatus,onReload}:{onHome:()=>void,syncStatus:
     if(frame>last)frame=Array.from({length:last+1},(_,i)=>i).find(i=>!occupied.has(i))??-1;
     if(frame<0)return;
     updateClip({volumeKeyframes:[...selectedClip.volumeKeyframes,
-      {frame,value:selectedClip.volume,easing:'ease-in-out'}].sort((a,b)=>a.frame-b.frame)});
+      {frame,value:selectedClip.volume,easing:'ease-in-out' as const}].sort((a,b)=>a.frame-b.frame)});
   }
   function setVolumeFade(kind:'in'|'out'|'reset'){
     if(!selectedClip)return;
