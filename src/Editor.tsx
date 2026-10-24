@@ -269,7 +269,7 @@ export function Editor({onHome,syncStatus,onReload}:{onHome:()=>void,syncStatus:
           <div className="field"><label>Atribuição</label><input defaultValue={a.rights.attribution}
             onBlur={e=>updateAssetRights(a,{attribution:e.target.value})}/></div>
         </details>}
-      </div>)}</div>{mediaMessage&&<p className="warning" role="alert">{mediaMessage}</p>}</div>
+      </div></div>)}</div>{mediaMessage&&<p className="warning" role="alert">{mediaMessage}</p>}</div>
       <div className="libraryNote"><b>LEGENDAS SINCRONIZADAS · {project.captions.length}</b>
         <p>Importe um SRT com timestamps (gerado por ferramenta local ou pelo Codex) e revise o timing em relação à narração.</p>
         <div className="projectActions"><button onClick={()=>captionFile.current?.click()}>Importar SRT</button>
