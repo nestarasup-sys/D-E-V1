@@ -162,10 +162,10 @@ if defined DARK_STUDIO_REPO_DIR call :CHECK_REPO "%DARK_STUDIO_REPO_DIR%"
 if not defined PROJECT_DIR call :CHECK_REPO "%BASE%"
 if not defined PROJECT_DIR call :CHECK_REPO "%BASE%.."
 if not defined PROJECT_DIR call :CHECK_REPO "%BASE%D-E-V1"
-if not defined PROJECT_DIR call :CHECK_REPO "%CD%"
 if not defined PROJECT_DIR if defined LOCALAPPDATA if exist "%LOCALAPPDATA%\DarkStudio\code-path.txt" (
   for /f "usebackq delims=" %%R in ("%LOCALAPPDATA%\DarkStudio\code-path.txt") do if not defined PROJECT_DIR call :CHECK_REPO "%%R"
 )
+if not defined PROJECT_DIR call :CHECK_REPO "%CD%"
 if not defined PROJECT_DIR call :PROMPT_PATH
 exit /b 0
 
