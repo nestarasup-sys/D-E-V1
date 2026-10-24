@@ -30,7 +30,7 @@ No editor, **Regenerar voz e sincronização** oferece selecionar voz, velocidad
 
 ## Smart B-roll — etapa inicial
 
-O JSON pode planejar B-roll vinculado a um bloco narrativo. **Na primeira etapa, a solicitação é guardada como pendência e o motor usa a composição procedural fornecida como fallback.** O aplicativo nunca afirma que uma fotografia/filmagem inexistente foi importada. A etapa de pesquisa em catálogos, candidatos com proveniência e download autorizado será expandida separadamente, sem retirar prioridade de voz e sincronização. Direitos e créditos dos arquivos efetivamente importados continuam cadastrados em `assets[].rights`.
+O JSON pode planejar B-roll vinculado a um bloco narrativo. **O pedido começa como pendência e usa a composição procedural fornecida como fallback.** No editor, painel **Smart B-roll**, informe a chave Pexels API (ou configure `PEXELS_API_KEY` no serviço local) e pesquise o assunto. O programa acessa apenas o endpoint oficial `GET https://api.pexels.com/v1/videos/search`, lista candidatos com autor, duração, prévia, página original e link de licença. Depois da **confirmação humana** da licença, o serviço verifica o ID na API oficial, baixa o MP4 selecionado via HTTPS autorizado (limite 256 MB) e cadastra origem/autor/atribuição. Com um plano selecionado, o vídeo é associado ao plano e as camadas animadas permanecem sobrepostas. Sem chave, resultados adequados ou autorização, **não** substitui a composição por filmagem arbitrária. Direitos continuam em `assets[].rights`, sem afirmar verificação jurídica automática.
 
 ## Diagnóstico e segurança
 
@@ -42,4 +42,6 @@ O JSON pode planejar B-roll vinculado a um bloco narrativo. **Na primeira etapa,
 
 ## Estado honesto desta versão
 
-Esta etapa resolve o bloqueio básico **JSON sem WAV → voz real → áudio na timeline**. Ainda não contempla seleção/download automático de todo B-roll, verificação jurídica de direitos por IA, precisão fonética por palavra, sincronização semanticamente inteligente de SFX/música por palavra, cache incremental de documentários extensos ou editor universal de todos os atributos do JSON. Os exemplos e o guia descrevem esses limites sem tratá-los como implementados.
+Esta etapa resolve o bloqueio básico **JSON sem WAV → voz real → áudio na timeline**. Ainda não contempla seleção totalmente autônoma de todo B-roll, verificação jurídica de direitos por IA, precisão fonética por palavra, sincronização semanticamente inteligente de SFX/música por palavra, cache incremental de documentários extensos ou editor universal de todos os atributos do JSON. Os exemplos e o guia descrevem esses limites sem tratá-los como implementados.
+
+Consulte também as [diretrizes da API Pexels](https://www.pexels.com/api/documentation/) e [licença Pexels](https://www.pexels.com/license/). Esta integração requer chave do usuário, usa os resultados oficiais e apresenta os créditos do fornecedor.

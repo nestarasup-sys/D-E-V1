@@ -5,6 +5,7 @@ import {handleArchive} from './archive';
 import {handleFrameQa} from './qa';
 import {handleProjects} from './projects';
 import {handleProduction} from './production';
+import {handleBroll} from './broll';
 import {json} from './http';
 import {runtimeDiagnostics} from './diagnostics';
 import {DEFAULT_PROJECTS_ROOT} from './project-store';
@@ -31,7 +32,7 @@ const server=createServer(async(req,res)=>{
   if(origin){res.setHeader('Access-Control-Allow-Origin',origin);res.setHeader('Vary','Origin');}
   if(req.method==='OPTIONS'){
     res.writeHead(204,{'Access-Control-Allow-Methods':'GET,POST,PUT,DELETE,OPTIONS',
-      'Access-Control-Allow-Headers':'Content-Type,X-File-Name,X-Upload-Offset,If-Match'});
+      'Access-Control-Allow-Headers':'Content-Type,X-File-Name,X-Upload-Offset,If-Match,X-Pexels-Key'});
     res.end();
     return;
   }
@@ -49,6 +50,7 @@ const server=createServer(async(req,res)=>{
     const url=new URL(req.url||'/', 'http://127.0.0.1:4317');
     if(req.method==='GET'&&url.pathname==='/v1/diagnostics'){json(res,200,runtimeDiagnostics());return;}
     if(await handleProduction(req,res,url))return;
+    if(await handleBroll(req,res,url))return;
     if(await handleProjects(req,res,url))return;
     if(await handleMedia(req,res,url))return;
     if(await handleArchive(req,res,url))return;

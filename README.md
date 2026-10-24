@@ -13,7 +13,7 @@ Na tela inicial, **Importar produção IA / JSON / .darkstudio** aceita um arqui
 
 O mesmo botão continua aceitando `project.json` v2 e pacotes `.darkstudio` com mídia já pronta. Se o TTS falhar, nenhum vídeo silencioso é criado como se fosse completo.
 
-B-roll descrito no JSON fica planejado e sinalizado enquanto a filmagem e licença não forem aprovadas; a composição procedural pode continuar na prévia. O TTS fornece sincronização por **blocos de narração**, não timestamps fonéticos por palavra. Consulte [a especificação e limitações v0.18](docs/AI_PRODUCTION_018.md) e [um JSON de exemplo para ChatGPT](docs/examples/PRODUCAO_018.example.json).
+B-roll descrito no JSON fica planejado até que a filmagem e a licença sejam aprovadas. No editor, o painel **Smart B-roll** pesquisa candidatos via API oficial Pexels com chave informada na sessão, exibe origem/autor/licença e permite importar MP4 confirmado; as animações continuam sobre o vídeo. O TTS fornece sincronização por **blocos de narração**, não timestamps fonéticos por palavra. Consulte [a especificação e limitações v0.18](docs/AI_PRODUCTION_018.md) e [um JSON de exemplo para ChatGPT](docs/examples/PRODUCAO_018.example.json).
 
 ## v0.17 — Intelligent Production
 

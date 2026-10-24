@@ -13,6 +13,7 @@ export const REQUIRED_CAPABILITIES = [
   'portable-darkstudio-v1','raster-qa-v1','broll-rights-v1',
   'portable-stream-v2','archive-resumable-upload-v1','portable-fonts-v1','ocr-por-offline-v1',
   'ai-production-json-v1','windows-sapi-narration-v1','voice-resync-v1',
+  'pexels-broll-assisted-v1',
 ] as const;
 
 export interface ServiceHealth {

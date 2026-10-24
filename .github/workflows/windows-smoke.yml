@@ -39,6 +39,8 @@ jobs:
           if($errors.Count -gt 0) { $errors | ForEach-Object { Write-Error $_.Message }; exit 1 }
       - name: Local service API contract smoke
         run: npm run smoke:service
+      - name: AI production JSON with real Windows narration and regeneration
+        run: npm run smoke:ai-production
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:

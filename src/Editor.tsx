@@ -79,6 +79,57 @@ export function Editor({onHome,syncStatus,onReload,onRegenerateVoice}:{
   const {selectedClipId,selectClip}=useEditor();
   const selectedClip=project.clips.find(c=>c.id===selectedClipId)||null;
   const selectedShot=project.shots.find(s=>s.id===selectedShotId)||null;
+  const [pexelsKey,setPexelsKey]=useState('');
+  const [brollQuery,setBrollQuery]=useState('');
+  const [brollBusy,setBrollBusy]=useState(false);
+  const [brollError,setBrollError]=useState('');
+  const [brollCandidates,setBrollCandidates]=useState<Array<{
+    id:number;source:string;page:string;thumbnail:string;creator:string;
+    durationSeconds:number;width:number;height:number;licenseUrl:string;
+  }>>([]);
+  useEffect(()=>{
+    if(selectedShot?.mediaPlan?.query)setBrollQuery(selectedShot.mediaPlan.query);
+  },[selectedShot?.id]);
+  async function searchBroll(){
+    if(brollQuery.trim().length<2){setBrollError('Informe a descrição da filmagem.');return;}
+    setBrollBusy(true);setBrollError('');setBrollCandidates([]);
+    try{
+      const response=await fetch(endpoint+'/v1/broll/search?query='+encodeURIComponent(brollQuery),{
+        headers:pexelsKey?{'X-Pexels-Key':pexelsKey}:{},
+      });
+      const data=await response.json() as {error?:string;candidates?:typeof brollCandidates};
+      if(!response.ok)throw new Error(data.error||'Falha na pesquisa Pexels.');
+      setBrollCandidates(data.candidates||[]);
+      if(!data.candidates?.length)setBrollError('Nenhum resultado adequado. Mantenha animação procedural ou importe mídia manual.');
+    }catch(e){setBrollError(e instanceof Error?e.message:'Erro ao pesquisar');}
+    finally{setBrollBusy(false);}
+  }
+  async function attachBroll(videoId:number){
+    if(!window.confirm('Você conferiu a filmagem, a licença do Pexels e sua adequação ao uso? Confirmar download para a biblioteca local?'))return;
+    setBrollBusy(true);setBrollError('');
+    try{
+      const response=await fetch(endpoint+'/v1/broll/import',{method:'POST',
+        headers:{'Content-Type':'application/json',...(pexelsKey?{'X-Pexels-Key':pexelsKey}:{})},
+        body:JSON.stringify({videoId,licenseConfirmed:true}),
+      });
+      const data=await response.json() as {error?:string;asset?:Asset};
+      if(!response.ok||!data.asset)throw new Error(data.error||'Download indisponível.');
+      const asset=data.asset;
+      if(selectedShot){
+        if(asset.durationFrames!==undefined&&asset.durationFrames<selectedShot.durationFrames){
+          apply([{type:'addAsset',asset}]);
+          setBrollError('Filmagem importada, mas é curta demais para o plano. Ajuste o plano ou escolha outra mídia.');
+        }else{
+          apply([{type:'addAsset',asset},
+            {type:'updateShot',shotId:selectedShot.id,changes:{kind:'video',assetId:asset.id,trimStartFrames:0}}]);
+          setBrollError('Filmagem incorporada ao plano e à biblioteca; a narração foi preservada.');
+        }
+      }else{apply([{type:'addAsset',asset}]);setBrollError('Filmagem importada à biblioteca. Selecione um plano para aplicar.');}
+      setBrollCandidates([]);
+    }catch(e){setBrollError(e instanceof Error?e.message:'Não foi possível importar');}
+    finally{setBrollBusy(false);}
+  }
+
   const selectedCaption=project.captions.find(c=>c.id===selectedCaptionId)||null;
   const clipAsset=selectedClip?project.assets.find(a=>a.id===selectedClip.assetId):null;
   const selectedIndex = Math.max(0,project.scenes.findIndex(s=>s.id===selectedSceneId));
@@ -347,6 +398,36 @@ export function Editor({onHome,syncStatus,onReload,onRegenerateVoice}:{
         {source.beats.flatMap((beat,i)=>beat.broll?[<p key={i}>
           {i+1}. {beat.broll.query} · {beat.broll.licenseNote}</p>]:[])}
       </div>}
+      <div className="libraryNote">
+        <b>SMART B-ROLL · PESQUISA OFICIAL PEXELS</b>
+        <p>Consulte clipes reais que ilustrem o roteiro, revise a licença e importe para um plano.
+          A voz, os efeitos e os objetos sobrepostos continuam na timeline.</p>
+        <div className="field"><label>Chave da API Pexels (opcional se configurada no serviço)</label>
+          <input type="password" autoComplete="off" value={pexelsKey}
+            placeholder="Chave usada apenas nesta sessão"
+            onChange={e=>setPexelsKey(e.target.value)}/></div>
+        <div className="field"><label>Filme desejado (selecionar um plano antes de aplicar)</label>
+          <input value={brollQuery} maxLength={180} placeholder="Ex.: pessoa no supermercado"
+            onChange={e=>setBrollQuery(e.target.value)}/></div>
+        <div className="projectActions">
+          <button disabled={brollBusy} onClick={()=>void searchBroll()}>
+            {brollBusy?'Consultando / importando...':'Pesquisar filmagens'}</button>
+          <a href="https://www.pexels.com/api/" target="_blank" rel="noreferrer">Obter chave oficial</a>
+          <a href="https://www.pexels.com/license/" target="_blank" rel="noreferrer">Verificar licença</a>
+        </div>
+        <small>Filmagens fornecidas pelo Pexels. Créditos do autor são preservados.
+          O download exige confirmação humana da licença.</small>
+        {brollError&&<p className="warning" role="status">{brollError}</p>}
+        {brollCandidates.map(c=><div key={c.id} className="assetRow">
+          <img src={c.thumbnail} alt={'Prévia de filme Pexels '+c.id}
+            width="100" height="64" loading="lazy" style={{objectFit:'cover'}}/>
+          <div><b>{c.creator}</b><small> {c.durationSeconds}s · {c.width}×{c.height}</small>
+            <a href={c.page} target="_blank" rel="noreferrer">Abrir vídeo e conferir licença</a>
+          </div>
+          <button disabled={brollBusy} onClick={()=>void attachBroll(c.id)}>
+            Conferi licença · importar</button>
+        </div>)}
+      </div>
       <div className="libraryNote"><b>LEGENDAS SINCRONIZADAS · {project.captions.length}</b>
         <p>Importe um SRT com timestamps (gerado por ferramenta local ou pelo Codex) e revise o timing em relação à narração.</p>
         <div className="projectActions"><button onClick={()=>captionFile.current?.click()}>Importar SRT</button>

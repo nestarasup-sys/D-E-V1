@@ -83,6 +83,11 @@ export function ShotVisual({shot,asset,kit,evidence,assets,captions}:{
           style={{width:'100%',height:'100%',objectFit:shot.framing.fit,
             objectPosition:shot.framing.focusX+'% '+shot.framing.focusY+'%',
             transform:'scale('+shot.framing.zoom+')'}}/>:null}
+      {shot.kind!=='graphic'&&shot.layers.length>0&&<AbsoluteFill>
+        {[...shot.layers].filter(layer=>!layer.parentId).sort((a,b)=>a.zIndex-b.zIndex)
+          .map(layer=><AnimatedLayer key={layer.id} layer={layer} frame={frame}
+            shotStart={shot.startFrame} captions={captions} assets={assets} allLayers={shot.layers}/>)}
+      </AbsoluteFill>}
       </AbsoluteFill>
       {shot.kind!=='graphic'&&shot.title&&<AbsoluteFill style={{justifyContent:'flex-end',padding:'0 120px 175px'}}>
         <div style={{maxWidth:1260,background:'#000000b5',borderLeft:'9px solid '+accent,padding:'25px 38px'}}>
