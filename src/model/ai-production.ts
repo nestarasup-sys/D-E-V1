@@ -1,8 +1,9 @@
 /** Declarative audiovisual interchange for ChatGPT -> Dark Studio (no Codex). */
 import {z} from 'zod';
-import {directionSchema,compileDirection} from './direction';
+import {directionSchema,compileDirection,layerBlueprintSchema} from './direction';
 import {projectSchema,starterProject,type Project,type Asset} from './project';
 import {retimeCamera,retimeMotion,retimeShotLayers} from './shots';
+import {type WordAlignment,matchSpokenWord} from './speech-alignment';
 
 export const narratorSchema=z.object({
   engine:z.literal('windows-sapi').default('windows-sapi'),
@@ -17,24 +18,50 @@ export const brollNeedSchema=z.object({
   provider:z.enum(['pexels','manual']).default('pexels'),
   licenseNote:z.string().max(300).default('Verificar direitos e atribuição antes de publicar'),
 }).strict();
+export const musicPlanSchema=z.object({
+  mood:z.enum(['documentary','tension','hope','calm']),
+  volume:z.number().min(.03).max(.4).default(.22),
+  ducking:z.number().min(.05).max(.8).default(.28),
+}).strict();
+export const soundEventSchema=z.object({
+  sound:z.enum(['soft-whoosh','page-turn','document-click','ambient-pulse',
+    'positive-chime','keyboard-tap','transition-sweep','notification-soft','impact-low']),
+  word:z.string().trim().min(1).max(80),
+  occurrence:z.number().int().min(1).max(20).default(1),
+  offsetFrames:z.number().int().min(-45).max(45).default(0),
+  volume:z.number().min(.05).max(.85).default(.45),
+}).strict();
 const beat=directionSchema.shape.beats.element.omit({
   startFrame:true,durationFrames:true,
 }).extend({
   plannedFrames:z.number().int().min(15).max(1800).default(120),
   narration:z.string().trim().min(1).max(1600),
+  layers:z.array(layerBlueprintSchema.extend({
+    wordCue:z.object({
+      word:z.string().trim().min(1).max(80),
+      occurrence:z.number().int().min(1).max(20).default(1),
+      offsetFrames:z.number().int().min(-120).max(120).default(0),
+    }).strict().optional(),
+  })).max(48).optional(),
   broll:brollNeedSchema.optional(),
+  music:musicPlanSchema.optional(),
+  soundEffects:z.array(soundEventSchema).max(8).default([]),
 });
 export const productionSchema=z.object({
   format:z.literal('darkstudio-production'),
   version:z.literal(1),
   title:z.string().trim().min(1).max(120),
   voice:narratorSchema,
+  soundDesign:z.enum(['auto','explicit','off']).default('auto'),
   brand:directionSchema.shape.brand,
   beats:z.array(beat).min(1).max(200),
 }).strict();
 export type AIProduction=z.infer<typeof productionSchema>;
 export type ProductionBeat=AIProduction['beats'][number];
-export type NarratedAudio={asset:Asset;frames:number};
+export type NarratedAudio={asset:Asset;frames:number;alignment?:WordAlignment};
+export type ProducedSound={asset:Asset;frames:number;beatIndex:number;
+  lane:'music'|'sfx';word?:string;occurrence?:number;offsetFrames?:number;
+  volume:number;ducking?:number};
 
 export const productionPlanSchema=z.object({
   version:z.literal(1),
@@ -43,6 +70,7 @@ export const productionPlanSchema=z.object({
     durationFrames:z.number().int().min(15).max(1800),
     narrationFrames:z.number().int().positive().max(1800),
     captionId:z.string().uuid(),clipId:z.string().uuid(),
+    wordAlignment:z.enum(['aligned','unavailable']).optional(),
   }).strict()).min(1).max(200),
 }).strict();
 export type ProductionPlan=z.infer<typeof productionPlanSchema>;
@@ -81,7 +109,7 @@ function adaptBeat(input:ProductionBeat,length:number){
     }),
   };
 }
-export function compileProduction(sourceInput:unknown,audio:NarratedAudio[],id:()=>string):Project{
+export function compileProduction(sourceInput:unknown,audio:NarratedAudio[],id:()=>string,sounds:ProducedSound[]=[]):Project{
   const source=productionSchema.parse(sourceInput);
   if(source.beats.length!==audio.length)
     throw new Error('A quantidade de áudios não corresponde às falas do JSON.');
@@ -99,24 +127,61 @@ export function compileProduction(sourceInput:unknown,audio:NarratedAudio[],id:(
     if(narrationFrames<1||durationFrames>1800)
       throw new Error('A fala '+(i+1)+' excede 60 segundos. Divida-a em trechos menores.');
     const captionId=id(),clipId=id();
-    segments.push({durationFrames,narrationFrames,captionId,clipId});
+    segments.push({durationFrames,narrationFrames,captionId,clipId,wordAlignment:item.alignment?.status??'unavailable'});
     captions.push({id:captionId,startFrame:start,endFrame:start+narrationFrames,
-      text:original.narration,words:[]});
+      text:original.narration,words:(item.alignment?.words.length??0)<=120?
+        (item.alignment?.words??[]).map(w=>({...w,
+          startFrame:start+w.startFrame,endFrame:start+w.endFrame})):[]});
     clips.push({id:clipId,assetId:item.asset.id,lane:'narration',startFrame:start,
       durationFrames:narrationFrames,trimStartFrames:0,volume:1,volumeKeyframes:[]});
     scenes.push({id:'scene-'+id(),kind:'title',title:original.title.slice(0,180),
       subtitle:original.subtitle,kicker:original.kicker,
       durationFrames,accentColor:original.accentColor??'#e2ad56',
       backgroundColor:original.backgroundColor??'#101827',imageUrl:''});
-    const {narration,plannedFrames,broll,...visual}=original;
+    const {narration,plannedFrames,broll,music,soundEffects,...visual}=original;
     const adapted=adaptBeat(original,durationFrames);
-    const {narration:drop1,plannedFrames:drop2,broll:drop3,...shotFields}=adapted;
-    void narration;void plannedFrames;void broll;void visual;void drop1;void drop2;void drop3;
-    beats.push({...shotFields,startFrame:start,durationFrames});
+    const {narration:drop1,plannedFrames:drop2,broll:drop3,music:drop4,soundEffects:drop5,...shotFields}=adapted;
+    void narration;void plannedFrames;void broll;void music;void soundEffects;void visual;void drop1;void drop2;void drop3;void drop4;void drop5;
+    beats.push({...shotFields,startFrame:start,durationFrames,
+      layers:shotFields.layers?.map(layer=>{
+        const {wordCue,...rest}=layer;
+        return wordCue?{...rest,cueCaptionId:captionId,cueWord:wordCue.word,
+          cueOccurrence:wordCue.occurrence,cueOffsetFrames:wordCue.offsetFrames}:rest;
+      }),
+    });
     start+=durationFrames;
   }
+  for(const sound of sounds){
+    const segment=segments[sound.beatIndex],narrated=audio[sound.beatIndex];
+    if(!segment||!narrated)throw new Error('Áudio procedural ligado a fala inexistente.');
+    const segmentStart=segments.slice(0,sound.beatIndex)
+      .reduce((n,seg)=>n+seg.durationFrames,0);
+    let relative=0;
+    if(sound.lane==='sfx'){
+      const found=matchSpokenWord(narrated.alignment?.words??[],sound.word??'',sound.occurrence??1);
+      if(found===null)continue; // never guess positions for inaudible or unmatched cues
+      relative=Math.max(0,found+(sound.offsetFrames??0));
+    }
+    if(relative>=segment.durationFrames)continue;
+    const frames=Math.min(sound.frames,segment.durationFrames-relative);
+    if(frames<=0)continue;
+    const volumeKeyframes:Project['clips'][number]['volumeKeyframes']=[];
+    if(sound.lane==='music'&&frames>=12){
+      const quiet=sound.volume*(sound.ducking??.28),last=frames-1;
+      volumeKeyframes.push({frame:0,value:quiet,easing:'linear'});
+      const spokenEnd=Math.min(last,segment.narrationFrames);
+      if(spokenEnd>=1&&spokenEnd<last-3){
+        volumeKeyframes.push({frame:spokenEnd,value:quiet,easing:'ease-out'});
+        volumeKeyframes.push({frame:Math.min(last-1,spokenEnd+3),value:sound.volume,easing:'linear'});
+      }
+      volumeKeyframes.push({frame:last,value:0,easing:'linear'});
+    }
+    clips.push({id:id(),assetId:sound.asset.id,lane:sound.lane,
+      startFrame:segmentStart+relative,durationFrames:frames,trimStartFrames:0,
+      volume:sound.volume,volumeKeyframes});
+  }
   const skeleton=projectSchema.parse({...structuredClone(starterProject),
-    id:id(),name:source.title,scenes,assets:audio.map(a=>a.asset),clips,captions,shots:[],
+    id:id(),name:source.title,scenes,assets:[...audio.map(a=>a.asset),...sounds.map(s=>s.asset)],clips,captions,shots:[],
     visualMode:'legacy',chapters:[],
     productionPlan:{version:1,source,segments},
   });
@@ -133,8 +198,7 @@ export function compileProduction(sourceInput:unknown,audio:NarratedAudio[],id:(
 }
 
 /** Re-time only matching segment-relative scene/shot/caption data. Do not scale whole MP4. */
-export function resyncProduction(current:Project,newAudio:NarratedAudio[],id:()=>string,newSource?:AIProduction):Project{
-  void id;
+export function resyncProduction(current:Project,newAudio:NarratedAudio[],id:()=>string,newSource?:AIProduction,newSounds:ProducedSound[]=[]):Project{
   const plan=current.productionPlan?productionPlanSchema.parse(current.productionPlan):null;
   if(!plan)throw new Error('Este projeto não veio de produção JSON v0.18.');
   if(plan.segments.length!==newAudio.length||current.scenes.length!==newAudio.length)
@@ -143,9 +207,9 @@ export function resyncProduction(current:Project,newAudio:NarratedAudio[],id:()=
   for(const seg of plan.segments){starts.push(total);total+=seg.durationFrames;}
   const newSeg=plan.segments.map((s,i)=>{
     const narrationFrames=newAudio[i].frames;
-    const length=Math.max(15,narrationFrames+Math.round(plan.source.voice.pauseMs*.03));
+    const length=Math.max(15,narrationFrames+Math.round((newSource??plan.source).voice.pauseMs*.03));
     if(length>1800||narrationFrames<1)throw new Error('Narração excede o limite de 60 segundos por trecho.');
-    return {...s,narrationFrames,durationFrames:length};
+    return {...s,narrationFrames,durationFrames:length,wordAlignment:newAudio[i].alignment?.status??'unavailable' as const};
   });
   const newStarts:number[]=[];let cursor=0;for(const s of newSeg){newStarts.push(cursor);cursor+=s.durationFrames;}
   const which=(frame:number)=>{
@@ -178,11 +242,18 @@ export function resyncProduction(current:Project,newAudio:NarratedAudio[],id:()=
   const captions=current.captions.map(c=>{
     const i=plan.segments.findIndex(s=>s.captionId===c.id);
     if(i>=0)return {...c,startFrame:newStarts[i],
-      endFrame:newStarts[i]+newSeg[i].narrationFrames,words:[]};
+      endFrame:newStarts[i]+newSeg[i].narrationFrames,
+      words:(newAudio[i].alignment?.words??[]).slice(0,120).map(w=>({
+        ...w,startFrame:newStarts[i]+w.startFrame,endFrame:newStarts[i]+w.endFrame,
+      }))};
     const begin=remap(c.startFrame),end=remap(c.endFrame);
     return {...c,startFrame:begin,endFrame:Math.max(begin+1,end),words:[]};
   });
-  const clips=current.clips.filter(c=>!narrationClips.has(c.id)).map(c=>{
+  // Built-in soundtrack clips are regenerated from semantic word cues, not stretched.
+  const proceduralAssets=new Set(current.assets.filter(a=>
+    a.rights.licenseName==='Dark Studio Procedural Audio').map(a=>a.id));
+  const clips=current.clips.filter(c=>!narrationClips.has(c.id)&&
+    !proceduralAssets.has(c.assetId)).map(c=>{
     const begin=remap(c.startFrame);
     return {...c,startFrame:begin,durationFrames:Math.max(1,Math.min(c.durationFrames,cursor-begin))};
   });
@@ -191,7 +262,33 @@ export function resyncProduction(current:Project,newAudio:NarratedAudio[],id:()=
       startFrame:newStarts[i],durationFrames:newSeg[i].narrationFrames,
       trimStartFrames:0,volume:1,volumeKeyframes:[]});
   }
-  const assets=current.assets.filter(a=>!narrationAssets.has(a.id)).concat(newAudio.map(a=>a.asset));
+  for(const sound of newSounds){
+    const segment=newSeg[sound.beatIndex],narrated=newAudio[sound.beatIndex];
+    if(!segment||!narrated)continue;
+    const segmentStart=newStarts[sound.beatIndex];
+    const cue=sound.lane==='sfx'?
+      matchSpokenWord(narrated.alignment?.words??[],sound.word??'',sound.occurrence??1):0;
+    if(cue===null)continue;
+    const relative=Math.max(0,cue+(sound.offsetFrames??0));
+    if(relative>=segment.durationFrames)continue;
+    const frames=Math.min(sound.frames,segment.durationFrames-relative);
+    const volumeKeyframes:Project['clips'][number]['volumeKeyframes']=[];
+    if(sound.lane==='music'&&frames>=12){
+      const quiet=sound.volume*(sound.ducking??.28),last=frames-1;
+      volumeKeyframes.push({frame:0,value:quiet,easing:'linear'});
+      const spokenEnd=Math.min(last,segment.narrationFrames);
+      if(spokenEnd>=1&&spokenEnd<last-3){
+        volumeKeyframes.push({frame:spokenEnd,value:quiet,easing:'ease-out'});
+        volumeKeyframes.push({frame:Math.min(last-1,spokenEnd+3),value:sound.volume,easing:'linear'});
+      }
+      volumeKeyframes.push({frame:last,value:0,easing:'linear'});
+    }
+    clips.push({id:id(),assetId:sound.asset.id,lane:sound.lane,
+      startFrame:segmentStart+relative,durationFrames:frames,
+      trimStartFrames:0,volume:sound.volume,volumeKeyframes});
+  }
+  const assets=current.assets.filter(a=>!narrationAssets.has(a.id)&&
+    !proceduralAssets.has(a.id)).concat([...newAudio.map(a=>a.asset),...newSounds.map(s=>s.asset)]);
   return projectSchema.parse({...current,scenes,shots,captions,clips,assets,
     productionPlan:{...plan,source:newSource??plan.source,segments:newSeg}});
 }

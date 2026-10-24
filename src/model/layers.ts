@@ -1,4 +1,5 @@
 import {z} from 'zod';
+import {matchSpokenWord} from './speech-alignment';
 
 /**
  * Declarative 2D scene graph. No user JavaScript or arbitrary HTML is executed.
@@ -88,6 +89,8 @@ export const layerObjectSchema=z.object({
   durationFrames:z.number().int().min(1).max(18000),
   cueCaptionId:z.string().uuid().optional(),
   cueOffsetFrames:z.number().int().min(-1800).max(1800).default(0),
+  cueWord:z.string().trim().min(1).max(80).optional(),
+  cueOccurrence:z.number().int().min(1).max(20).default(1),
   color:color.default('#f0bb66'),
   secondaryColor:color.default('#15304a'),
   text:z.string().max(400).default(''),
@@ -131,6 +134,8 @@ export const layerSchema=layerObjectSchema.superRefine((layer,ctx)=>{
     ctx.addIssue({code:'custom',path:['chartStages'],message:'Cada estágio deve ter a mesma quantidade de valores do gráfico.'});
   if(layer.kind!=='character'&&layer.rigKeys.length)
     ctx.addIssue({code:'custom',path:['rigKeys'],message:'Poses articuladas são exclusivas de personagens.'});
+  if(layer.cueWord&&!layer.cueCaptionId)
+    ctx.addIssue({code:'custom',path:['cueWord'],message:'Cue por palavra exige cueCaptionId válido.'});
   if(layer.parentId===layer.id)
     ctx.addIssue({code:'custom',path:['parentId'],message:'Uma camada não pode ser seu próprio grupo.'});
   if(layer.kind==='image'&&!layer.assetId)
@@ -214,10 +219,17 @@ export function retimeLayer(layer:SceneLayer,newDuration:number):SceneLayer{
   return {...out,durationFrames:newDuration};
 }
 export function layerAtCaption(layer:SceneLayer,shotStart:number,captions:readonly {
-  id:string,startFrame:number,endFrame:number
+  id:string,startFrame:number,endFrame:number;
+  words?:readonly {text:string;startFrame:number;endFrame:number}[];
 }[]):number {
   if(!layer.cueCaptionId)return layer.startFrame;
   const caption=captions.find(c=>c.id===layer.cueCaptionId);
-  if(!caption)return layer.startFrame;
+  if(!caption)return Number.POSITIVE_INFINITY;
+  if(layer.cueWord){
+    const frame=matchSpokenWord(caption.words??[],layer.cueWord,layer.cueOccurrence);
+    // Never fabricate the acoustic cue; hide it if this word was not aligned.
+    return frame===null?Number.POSITIVE_INFINITY:
+      Math.max(0,frame-shotStart+layer.cueOffsetFrames);
+  }
   return Math.max(0,caption.startFrame-shotStart+layer.cueOffsetFrames);
 }

@@ -81,6 +81,7 @@ export function Editor({onHome,syncStatus,onReload,onRegenerateVoice}:{
   const selectedShot=project.shots.find(s=>s.id===selectedShotId)||null;
   const [pexelsKey,setPexelsKey]=useState('');
   const [brollQuery,setBrollQuery]=useState('');
+  const [autoConsent,setAutoConsent]=useState(false);
   const [brollBusy,setBrollBusy]=useState(false);
   const [brollError,setBrollError]=useState('');
   const [brollCandidates,setBrollCandidates]=useState<Array<{
@@ -102,6 +103,46 @@ export function Editor({onHome,syncStatus,onReload,onRegenerateVoice}:{
       setBrollCandidates(data.candidates||[]);
       if(!data.candidates?.length)setBrollError('Nenhum resultado adequado. Mantenha animação procedural ou importe mídia manual.');
     }catch(e){setBrollError(e instanceof Error?e.message:'Erro ao pesquisar');}
+    finally{setBrollBusy(false);}
+  }
+  async function autoResolveBroll(){
+    if(!autoConsent){
+      setBrollError('Confirme a política do fornecedor antes de selecionar automaticamente.');
+      return;
+    }
+    const pending=project.shots.filter(s=>s.kind==='graphic'&&s.mediaPlan?.query)
+      .slice(0,10);
+    if(!pending.length){setBrollError('Nenhum B-roll pendente nesta produção.');return;}
+    setBrollBusy(true);setBrollError('');
+    let done=0;const skipped:string[]=[];
+    try{
+      for(const shot of pending){
+        const response=await fetch(endpoint+'/v1/broll/auto',{method:'POST',
+          headers:{'Content-Type':'application/json',
+            ...(pexelsKey?{'X-Pexels-Key':pexelsKey}:{})},
+          body:JSON.stringify({query:shot.mediaPlan!.query,
+            expectedSeconds:shot.durationFrames/project.fps,
+            allowAutomaticSelection:true,licenseConfirmed:true}),
+        });
+        const data=await response.json() as {error?:string;status?:string;reason?:string;
+          asset?:Asset;score?:number};
+        if(!response.ok){skipped.push(shot.title+': '+(data.error||'Erro de pesquisa'));continue;}
+        if(data.status!=='selected'||!data.asset){
+          skipped.push(shot.title+': '+(data.reason||'sem candidato elegível'));continue;
+        }
+        if((data.asset.durationFrames??0)<shot.durationFrames){
+          apply([{type:'addAsset',asset:data.asset}]);
+          skipped.push(shot.title+': mídia mais curta que o plano; mantida na biblioteca');continue;
+        }
+        apply([{type:'addAsset',asset:data.asset},
+          {type:'updateShot',shotId:shot.id,
+            changes:{kind:'video',assetId:data.asset.id,trimStartFrames:0}}]);
+        done++;
+      }
+      setBrollError(done+' B-roll(s) vinculados com seleção assistida por critérios automáticos. '+
+        skipped.join(' | ')+
+        (done?' Revise cada filmagem, pessoas/marcas e licença antes de publicar.':''));
+    }catch(e){setBrollError(e instanceof Error?e.message:'Falha no modo automático');}
     finally{setBrollBusy(false);}
   }
   async function attachBroll(videoId:number){
@@ -371,7 +412,7 @@ export function Editor({onHome,syncStatus,onReload,onRegenerateVoice}:{
       {source&&<div className="libraryNote">
         <b>NARRADOR AUTOMÁTICO · PRODUÇÃO JSON v0.18</b>
         <p>Áudio PCM real gerado no Windows para {source.beats.length} fala(s).
-          As legendas seguem as durações medidas do WAV. Tempos por palavra ainda são aproximados.</p>
+          Cada palavra recebe destaque no frame se a voz SAPI fornecer eventos acústicos suficientes; caso contrário, permanece o texto por frase.</p>
         <div className="field"><label>Voz instalada no Windows</label>
           <select value={voiceName} onChange={e=>setVoiceName(e.target.value)}>
             <option value="">Automática (preferir português brasileiro)</option>
@@ -417,6 +458,17 @@ export function Editor({onHome,syncStatus,onReload,onRegenerateVoice}:{
         </div>
         <small>Filmagens fornecidas pelo Pexels. Créditos do autor são preservados.
           O download exige confirmação humana da licença.</small>
+        <div className="field"><label>
+          <input type="checkbox" checked={autoConsent}
+            onChange={e=>setAutoConsent(e.target.checked)}/>
+          Li as condições do Pexels e autorizo seleção automática conservadora dos planos pendentes
+        </label><small>A seleção exige coincidência verificável no título do fornecedor, duração,
+          resolução e metadados da licença. Direitos de imagem/marca continuam para revisão humana;
+          sem candidato confiável, a animação original permanece.</small></div>
+        <button disabled={!autoConsent||brollBusy} onClick={()=>void autoResolveBroll()}>
+          {brollBusy?'Pesquisando B-roll...':'Selecionar automaticamente B-roll pendente (até 10 planos)'}
+        </button>
+
         {brollError&&<p className="warning" role="status">{brollError}</p>}
         {brollCandidates.map(c=><div key={c.id} className="assetRow">
           <img src={c.thumbnail} alt={'Prévia de filme Pexels '+c.id}

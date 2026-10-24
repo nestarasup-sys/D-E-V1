@@ -7,13 +7,13 @@ O **Dark Studio** é um editor de documentários para Windows 11. A interface us
 GitHub serve apenas para hospedar o **código-fonte do aplicativo**, sem roteiros, mídia ou projetos reais de usuários.
 
 
-## v0.18 — Criar vídeo do ChatGPT sem Codex ou terminal
+## v0.18 — Produção IA, alinhamento acústico, som e B-roll
 
 Na tela inicial, **Importar produção IA / JSON / .darkstudio** aceita um arquivo `darkstudio-production` v1 criado pelo ChatGPT, com narração por bloco, descrições de camadas, personagens, câmera e animações. O serviço local Windows sintetiza WAVs reais pela voz SAPI instalada, mede a duração, sincroniza cenas e legendas de cada trecho e abre tudo no editor para edição e MP4. Para trocar voz, velocidade ou pausa, use **Regenerar voz e sincronização**. Não se limita aos 50 presets.
 
 O mesmo botão continua aceitando `project.json` v2 e pacotes `.darkstudio` com mídia já pronta. Se o TTS falhar, nenhum vídeo silencioso é criado como se fosse completo.
 
-B-roll descrito no JSON fica planejado até que a filmagem e a licença sejam aprovadas. No editor, o painel **Smart B-roll** pesquisa candidatos via API oficial Pexels com chave informada na sessão, exibe origem/autor/licença e permite importar MP4 confirmado; as animações continuam sobre o vídeo. O TTS fornece sincronização por **blocos de narração**, não timestamps fonéticos por palavra. Consulte [a especificação e limitações v0.18](docs/AI_PRODUCTION_018.md) e [um JSON de exemplo para ChatGPT](docs/examples/PRODUCAO_018.example.json).
+B-roll descrito no JSON pode ser buscado automaticamente em lote após consentimento para o catálogo, sujeito a um filtro conservador de pertinência, duração e direitos. Itens incertos permanecem pendentes. No editor, o painel **Smart B-roll** pesquisa candidatos via API oficial Pexels com chave informada na sessão, exibe origem/autor/licença e permite importar MP4 confirmado; as animações continuam sobre o vídeo. O TTS utiliza eventos acústicos do SAPI para marcar palavras quando disponíveis; sem eventos confiáveis, preserva legendas por bloco. Música e efeitos procedurais podem ser disparados por palavras com timestamps reais. Consulte [a especificação e limitações v0.18](docs/AI_PRODUCTION_018.md) e [um JSON de exemplo para ChatGPT](docs/examples/PRODUCAO_018.example.json).
 
 ## v0.17 — Intelligent Production
 

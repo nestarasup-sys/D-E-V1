@@ -11,6 +11,7 @@ import {z} from 'zod';
 import {json,readJson} from './http';
 import {importArchiveMediaFile} from './media';
 import type {Asset} from '../../../src/model/project';
+import {scoreBroll} from '../../../src/model/broll-relevance';
 
 type VideoFile={id:number;quality?:string;file_type:string;width?:number;
   height?:number;link:string};
@@ -102,34 +103,8 @@ async function download(url:URL,output:string){
   }
   throw new Error('Muitos redirecionamentos no download da filmagem.');
 }
-const busy=new Set<number>();
-export async function handleBroll(req:IncomingMessage,res:ServerResponse,url:URL):Promise<boolean>{
-  if(url.pathname==='/v1/broll/search'&&req.method==='GET'){
-    try{
-      const q=z.string().trim().min(2).max(180).parse(url.searchParams.get('query'));
-      const data=await catalog(keyFrom(req),'search?'+new URLSearchParams({
-        query:q,per_page:'9',locale:'pt-BR',orientation:'landscape',
-      }));
-      const r=z.object({videos:z.array(z.unknown())}).passthrough().parse(data);
-      const options=r.videos.flatMap(v=>{
-        try{return [candidate(playable(v))];}catch{return [];}
-      });
-      json(res,200,{source:'Pexels',providerUrl:'https://www.pexels.com',
-        licenseUrl,query:q,candidates:options,advice:'Confira pertinência e direitos antes de importar.'});
-    }catch(e){json(res,400,{error:e instanceof Error?e.message:'Pesquisa de filmagens indisponível'});}
-    return true;
-  }
-  if(url.pathname==='/v1/broll/import'&&req.method==='POST'){
-    const request=z.object({
-      videoId:z.number().int().positive(),
-      licenseConfirmed:z.literal(true),
-    }).strict();
-    let id=0;
-    try{
-      const input=request.parse(await readJson(req,1000));id=input.videoId;
-      if(busy.has(id))throw new Error('Esta filmagem já está sendo importada.');
-      busy.add(id);
-      const info=playable(await catalog(keyFrom(req),'videos/'+id));
+async function importPexelsVideo(key:string,id:number,automatic=false):Promise<{asset:Asset;candidate:BrollCandidate}>{
+      const info=playable(await catalog(key,'videos/'+id));
       if(info.id!==id)throw new Error('ID do vídeo não confere com o catálogo.');
       const files=info.video_files.filter(file=>file.file_type==='video/mp4'&&
         file.width&&file.height&&file.width>=960&&file.width<=1920&&file.height<=1080);
@@ -147,13 +122,90 @@ export async function handleBroll(req:IncomingMessage,res:ServerResponse,url:URL
         });
         const asset:Asset={id:media.id,name:media.name,kind:'video',mime:'video/mp4',
           url:media.url,durationFrames:Math.floor(info.duration*30),
-          rights:{status:'cleared',sourceUrl:info.url,creator:info.user?.name||'',
-            licenseName:'Pexels License (verificada pelo usuário)',
+          rights:{status:automatic?'unknown':'cleared',sourceUrl:info.url,creator:info.user?.name||'',
+            licenseName:automatic?'Pexels License — revisão editorial pendente':'Pexels License (confirmada pelo usuário)',
             attribution:'Filmagem de '+(info.user?.name||'autor não identificado')+' / Pexels',
-            notes:'Pexels vídeo '+info.id+'; usuário confirmou revisão da licença em '+new Date().toISOString(),
+            notes:'Pexels vídeo '+info.id+'; '+(automatic?'selecionado por metadados, validar pessoas, marcas e conteúdo antes de publicar':'usuário confirmou termos em '+new Date().toISOString()),
           }};
-        json(res,201,{asset,candidate:candidate(info)});
+        return {asset,candidate:candidate(info)};
       }finally{await rm(temp,{force:true,recursive:true}).catch(()=>{});}
+  throw new Error('Importação inesperada.');
+}
+
+const busy=new Set<number>();
+export async function handleBroll(req:IncomingMessage,res:ServerResponse,url:URL):Promise<boolean>{
+  if(url.pathname==='/v1/broll/search'&&req.method==='GET'){
+    try{
+      const q=z.string().trim().min(2).max(180).parse(url.searchParams.get('query'));
+      const data=await catalog(keyFrom(req),'search?'+new URLSearchParams({
+        query:q,per_page:'9',locale:'pt-BR',orientation:'landscape',
+      }));
+      const r=z.object({videos:z.array(z.unknown())}).passthrough().parse(data);
+      const options=r.videos.flatMap(v=>{
+        try{return [candidate(playable(v))];}catch{return [];}
+      });
+      json(res,200,{source:'Pexels',providerUrl:'https://www.pexels.com',
+        licenseUrl,query:q,candidates:options,advice:'Confira pertinência e direitos antes de importar.'});
+    }catch(e){json(res,400,{error:e instanceof Error?e.message:'Pesquisa de filmagens indisponível'});}
+    return true;
+  }
+  if(url.pathname==='/v1/broll/auto'&&req.method==='POST'){
+    // Automatic choice ONLY after human opts in to provider policy. Individual legal
+    // clearance remains pending, especially for people, property and trademarks.
+    const request=z.object({
+      query:z.string().trim().min(2).max(180),
+      expectedSeconds:z.number().finite().min(.3).max(60),
+      allowAutomaticSelection:z.literal(true),
+      licenseConfirmed:z.literal(true),
+    }).strict();
+    let chosen=0;
+    try{
+      const input=request.parse(await readJson(req,3000));
+      const key=keyFrom(req);
+      const data=await catalog(key,'search?'+new URLSearchParams({
+        query:input.query,per_page:'15',orientation:'landscape',locale:'pt-BR',
+      }));
+      const response=z.object({videos:z.array(z.unknown())}).passthrough().parse(data);
+      const ranked=response.videos.flatMap(raw=>{
+        try{
+          const video=playable(raw),entry=candidate(video);
+          const rank=scoreBroll({
+            query:input.query,page:entry.page,seconds:entry.durationSeconds,
+            width:entry.width,height:entry.height,creator:entry.creator,
+            source:'pexels',licenseUrl:entry.licenseUrl,
+          },input.expectedSeconds);
+          return [{entry,rank}];
+        }catch{return [];}
+      }).sort((a,b)=>b.rank.score-a.rank.score);
+      const match=ranked.find(item=>item.rank.eligible&&!busy.has(item.entry.id));
+      if(!match){
+        json(res,200,{status:'pending',query:input.query,
+          reason:'Nenhuma filmagem confirmou relevância, duração, metadados de autor e licença na política automática.',
+          reviewed:ranked.slice(0,4)});
+        return true;
+      }
+      chosen=match.entry.id;busy.add(chosen);
+      const imported=await importPexelsVideo(key,chosen,true);
+      json(res,201,{status:'selected',...imported,
+        score:match.rank.score,semanticOverlap:match.rank.semanticOverlap,
+        licenseStatus:'requires-editorial-review',
+        editorialWarning:'A licença do catálogo não confirma direitos de imagem, marcas ou terceiros. Revise antes de publicar.'});
+    }catch(e){json(res,400,{error:e instanceof Error?e.message:'Seleção automática não concluída'});}
+    finally{if(chosen)busy.delete(chosen);}
+    return true;
+  }
+  if(url.pathname==='/v1/broll/import'&&req.method==='POST'){
+    const request=z.object({
+      videoId:z.number().int().positive(),
+      licenseConfirmed:z.literal(true),
+    }).strict();
+    let id=0;
+    try{
+      const input=request.parse(await readJson(req,1000));id=input.videoId;
+      if(busy.has(id))throw new Error('Esta filmagem já está sendo importada.');
+      busy.add(id);
+      const imported=await importPexelsVideo(keyFrom(req),id,false);
+      json(res,201,imported);
     }catch(e){json(res,400,{error:e instanceof Error?e.message:'Importação de B-roll não concluída'});}
     finally{if(id)busy.delete(id);}
     return true;

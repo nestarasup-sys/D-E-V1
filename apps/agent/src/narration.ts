@@ -5,6 +5,7 @@ import {tmpdir} from 'node:os';
 import {join,resolve} from 'node:path';
 import {importGeneratedWave,rollbackArchiveMedia} from './media';
 import {type NarratedAudio,type AIProduction} from '../../../src/model/ai-production';
+import {alignSpeechProgress} from '../../../src/model/speech-alignment';
 
 export interface LocalVoice {name:string;culture:string;gender:string}
 async function invoke(args:string[],timeout=480000){
@@ -64,11 +65,13 @@ export async function synthesizeNarration(source:AIProduction):Promise<NarratedA
       const wav=await readFile(join(folder,'part-'+i+'.wav'));
       const frames=wavFrames(wav);
       if(frames>1799)throw new Error('Fala '+(i+1)+' excede 60s. Divida o texto em mais cenas.');
+      const timing=await readFile(join(folder,'part-'+i+'.words.tsv'),'utf8').catch(()=>'');
+      const alignment=alignSpeechProgress(source.beats[i].narration,timing,frames);
       const asset=await importGeneratedWave(wav,{
         name:'narracao-'+String(i+1).padStart(3,'0')+'-'+Date.now()+'.wav',durationFrames:frames,
       });
       imported.push(asset.id);
-      results.push({asset,frames});
+      results.push({asset,frames,alignment});
     }
     return results;
   }catch(e){

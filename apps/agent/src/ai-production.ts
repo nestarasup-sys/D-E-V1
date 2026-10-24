@@ -6,7 +6,8 @@ import {json,readJson} from './http';
 import {ProjectRepository} from './project-store';
 import {productionSchema,compileProduction,resyncProduction,productionPlanSchema} from '../../../src/model/ai-production';
 import {listLocalVoices,synthesizeNarration,rollbackNarration} from './narration';
-import type {NarratedAudio} from '../../../src/model/ai-production';
+import type {NarratedAudio,ProducedSound} from '../../../src/model/ai-production';
+import {synthesizeSoundtrack,rollbackSoundtrack} from './soundtrack';
 
 const projects=new ProjectRepository();
 let active=false;
@@ -38,16 +39,22 @@ export async function handleProduction(req:IncomingMessage,res:ServerResponse,ur
   }
   if(url.pathname==='/v1/productions/import'&&req.method==='POST'){
     if(active){json(res,409,{error:'Já existe uma produção em geração. Conclua antes de iniciar outra.'});return true;}
-    active=true;let audio:NarratedAudio[]=[];
+    active=true;let audio:NarratedAudio[]=[],sounds:ProducedSound[]=[];
     try{
       const parsed=productionSchema.parse(await readJson(req,4_000_000));
       audio=await synthesizeNarration(parsed);
-      const project=compileProduction(parsed,audio,randomUUID);
+      const score=await synthesizeSoundtrack(parsed,audio);
+      sounds=score.sounds;
+      const project=compileProduction(parsed,audio,randomUUID,sounds);
       const record=await projects.adopt(project);
-      json(res,201,{...record,voiceCreated:true,unresolvedBroll:parsed.beats
+      json(res,201,{...record,voiceCreated:true,
+        alignment:audio.map((a,i)=>({beat:i,status:a.alignment?.status??'unavailable',
+          coverage:a.alignment?.coverage??0,reason:a.alignment?.reason??'Sem eventos de palavra'})),
+        soundtrackWarnings:score.warnings,unresolvedBroll:parsed.beats
         .flatMap((beat,index)=>beat.broll?[{index,query:beat.broll.query}]:[])});
     }catch(e){
       await rollbackNarration(audio);
+      await rollbackSoundtrack(sounds);
       json(res,e instanceof z.ZodError?422:400,{
         error:e instanceof Error?e.message:'Não foi possível montar a produção',
         ...(e instanceof z.ZodError?{issues:problems(e)}:{}),
@@ -58,7 +65,7 @@ export async function handleProduction(req:IncomingMessage,res:ServerResponse,ur
   const regenerate=/^\/v1\/productions\/([0-9a-f-]{36})\/regenerate$/.exec(url.pathname);
   if(regenerate&&req.method==='POST'){
     if(active){json(res,409,{error:'Outra geração está em andamento.'});return true;}
-    active=true;let audio:NarratedAudio[]=[];
+    active=true;let audio:NarratedAudio[]=[],sounds:ProducedSound[]=[];
     try{
       const current=await projects.read(regenerate[1]);
       const revision=String(req.headers['if-match']||'');
@@ -77,11 +84,17 @@ export async function handleProduction(req:IncomingMessage,res:ServerResponse,ur
       const source=productionSchema.parse({...plan.source,
         voice:{...plan.source.voice,...body.voice}});
       audio=await synthesizeNarration(source);
-      const rebuilt=resyncProduction(current.project,audio,randomUUID,source);
+      const score=await synthesizeSoundtrack(source,audio);
+      sounds=score.sounds;
+      const rebuilt=resyncProduction(current.project,audio,randomUUID,source,sounds);
       const saved=await projects.save(current.project.id,rebuilt,revision);
-      json(res,200,{...saved,voiceRegenerated:true});
+      json(res,200,{...saved,voiceRegenerated:true,
+        alignment:audio.map((a,i)=>({beat:i,status:a.alignment?.status??'unavailable',
+          coverage:a.alignment?.coverage??0,reason:a.alignment?.reason??'Sem eventos'})),
+        soundtrackWarnings:score.warnings});
     }catch(e){
       await rollbackNarration(audio);
+      await rollbackSoundtrack(sounds);
       json(res,e instanceof z.ZodError?422:400,{
         error:e instanceof Error?e.message:'Falha ao regenerar a voz',
         ...(e instanceof z.ZodError?{issues:problems(e)}:{}),

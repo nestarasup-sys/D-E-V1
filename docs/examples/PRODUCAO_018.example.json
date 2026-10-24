@@ -44,6 +44,11 @@
         "purpose": "Ilustrar a rotina",
         "provider": "pexels",
         "licenseNote": "Conferir a licença e a pertinência antes do download"
+      },
+      "music": {
+        "mood": "documentary",
+        "volume": 0.2,
+        "ducking": 0.25
       }
     },
     {
@@ -73,7 +78,19 @@
           "height": 230,
           "fontSize": 80,
           "behavior": "word-reveal",
-          "color": "#f0bb66"
+          "color": "#f0bb66",
+          "wordCue": {
+            "word": "salário",
+            "occurrence": 1,
+            "offsetFrames": 0
+          }
+        }
+      ],
+      "soundEffects": [
+        {
+          "sound": "document-click",
+          "word": "salário",
+          "volume": 0.35
         }
       ]
     },
@@ -124,5 +141,6 @@
         }
       ]
     }
-  ]
+  ],
+  "soundDesign": "auto"
 }

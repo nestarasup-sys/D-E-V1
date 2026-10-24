@@ -37,11 +37,15 @@ try{
   if(!voices?.length)throw new Error('Windows CI sem voz SAPI de teste');
   const plan={
     format:'darkstudio-production',version:1,title:'Teste audiovisual v0.18',
+    soundDesign:'explicit',
     voice:{engine:'windows-sapi',voice:voices[0].name,rate:3,pauseMs:200},
     beats:[{
-      title:'Pergunta',narration:'Uma história começa com uma pergunta.',plannedFrames:150,
+      title:'Salário',narration:'O salário chegou hoje.',plannedFrames:150,
+      music:{mood:'documentary',volume:.2,ducking:.25},
+      soundEffects:[{sound:'document-click',word:'salário'}],
       purpose:'hook',motionPreset:'still',
-      layers:[{kind:'text',name:'Título',text:'PERGUNTA',x:150,y:200,width:1300,height:210}],
+      layers:[{kind:'text',name:'Título',text:'SALÁRIO',x:150,y:200,width:1300,height:210,
+        wordCue:{word:'salário'}}],
     },{
       title:'Resposta',narration:'Os fatos ajudam a compreender.',plannedFrames:120,
       purpose:'conclusion',motionPreset:'still',
@@ -62,6 +66,17 @@ try{
     throw Error('O projeto não preservou as camadas ou o B-roll planejado.');
   if(project.scenes[0].durationFrames===150)
     throw Error('A cena manteve tempo fictício em vez de medir o áudio.');
+  if(project.captions[0].words.length<3)
+    throw Error('SAPI não retornou alinhamento acústico por palavra: '+JSON.stringify(
+      project.productionPlan?.segments.map(s=>s.wordAlignment)));
+  if(project.shots[0].layers[0].cueWord!=='salário')
+    throw Error('Animação por palavra não foi montada.');
+  if(!project.clips.some(c=>c.lane==='sfx')||!project.clips.some(c=>c.lane==='music'))
+    throw Error('Trilha e SFX semânticos não foram criados na timeline.');
+  const fx=project.clips.find(c=>c.lane==='sfx')!;
+  const word=project.captions[0].words.find(w=>w.text.toLowerCase().includes('salário'))!;
+  if(Math.abs(fx.startFrame-word.startFrame)>1)
+    throw Error('Efeito sonoro não está no timestamp real da palavra.');
   for(const clip of project.clips.filter(c=>c.lane==='narration')){
     const asset=project.assets.find(a=>a.id===clip.assetId);
     if(!asset)throw Error('Clipe de voz sem WAV real.');
