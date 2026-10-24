@@ -25,6 +25,13 @@ export async function buildPortableArchive(project:Project,
   lookup:(assetId:string)=>Promise<PortableMedia>):Promise<Uint8Array>{
   const parsed=projectSchema.parse(project);
   if(parsed.assets.length>MAX_FILES)throw new Error('Pacote excede 250 mídias; divida em projetos menores.');
+  const projectAssetIds=new Set(parsed.assets.map(a=>a.id));
+  for(const scene of parsed.scenes){
+    if(!scene.imageUrl)continue;
+    const found=/^http:\/\/127\.0\.0\.1:4317\/media\/([0-9a-f-]{36})$/.exec(scene.imageUrl);
+    if(!found||!projectAssetIds.has(found[1]))
+      throw new Error('Cena usa imagem externa ou sem asset cadastrado. Importe pela biblioteca antes de criar um pacote autossuficiente.');
+  }
   const files:Record<string,Uint8Array>={};
   const projectBytes=strToU8(JSON.stringify(parsed,null,2)+'\n');
   files['project.json']=projectBytes;

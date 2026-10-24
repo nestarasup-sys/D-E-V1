@@ -7,7 +7,7 @@ describe('diagnóstico do projeto local',()=>{
   it('alerta sobre mídia ausente e fontes pendentes sem inventar resultados',async()=>{
     const audioId=randomUUID();
     const base:Project={...structuredClone(starterProject),
-      assets:[{id:audioId,kind:'audio',name:'narração.wav',mime:'audio/wav',url:'http://127.0.0.1:4317/media/'+audioId}],
+      assets:[{id:audioId,kind:'audio',name:'narração.wav',mime:'audio/wav',url:'http://127.0.0.1:4317/media/'+audioId,rights:{status:'unknown',sourceUrl:'',creator:'',licenseName:'',attribution:'',notes:''}}],
       evidence:[{id:randomUUID(),sceneId:'scene-2',claim:'Verificar número',sourceTitle:'Fonte pública',
         sourceUrl:'',notes:'',reviewStatus:'pending'}],
     };

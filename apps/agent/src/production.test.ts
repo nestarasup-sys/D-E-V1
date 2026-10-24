@@ -30,7 +30,7 @@ describe('produção retomável local',()=>{
     const original=buildPilotProject({
       newId:randomUUID,
       voiceAsset:{id:audioId,kind:'audio',name:'voz.wav',mime:'audio/wav',
-        url:'http://127.0.0.1:4317/media/'+audioId,durationFrames:900},
+        url:'http://127.0.0.1:4317/media/'+audioId,durationFrames:900,rights:{status:'unknown',sourceUrl:'',creator:'',licenseName:'',attribution:'',notes:''}},
       speechFrames:pilotBeats.map(x=>x.end-x.start-8),
     });
     const saved=await projects.adopt({...original,visualMode:'legacy',shots:[]});
