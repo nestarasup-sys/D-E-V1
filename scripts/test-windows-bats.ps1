@@ -14,8 +14,16 @@ function Invoke-Git([string]$folder,[string[]]$parameters) {
 }
 function Invoke-Updater([string]$script,[int]$expectedExit) {
   # BAT ends with pause: redirected NUL avoids interactive input.
-  $result= & $env:ComSpec /d /c ('"' + $script + '" <nul') 2>&1
-  $exit=$LASTEXITCODE
+  # Windows PowerShell 5 turns native STDERR into ErrorRecord; Git prints
+  # harmless information there (e.g. "Already on 'main'"). Use real exit code.
+  $previous=$ErrorActionPreference
+  $ErrorActionPreference='Continue'
+  try {
+    $result= & $env:ComSpec /d /c ('"' + $script + '" <nul') 2>&1
+    $exit=$LASTEXITCODE
+  } finally {
+    $ErrorActionPreference=$previous
+  }
   Write-Output ($result -join [Environment]::NewLine)
   if($exit -ne $expectedExit){throw "BAT terminou com $exit, esperado $expectedExit"}
 }
