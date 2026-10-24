@@ -1,4 +1,4 @@
-# Dark Studio v0.12 (direção investigativa) — Editor desktop com Codex local
+# Dark Studio v0.13 (serviço compatível) — Editor desktop com Codex local
 
 O **Dark Studio** é um editor de documentários para Windows 11. A interface usa Tauri 2 + React + TypeScript, o preview utiliza Remotion e a exportação MP4 acontece via Remotion Renderer/FFmpeg em processo separado.
 
@@ -174,3 +174,14 @@ O Codex pelo **chat do ChatGPT Desktop em modo Local** pode analisar o roteiro e
 **Comece por:** [Bíblia visual e fundamentos pesquisados](docs/VISUAL_IDENTITY.md), [Como comandar pelo chat do Codex](docs/CODEX_DIRECTOR.md) e [Exemplo seguro de direção](docs/INVESTIGATION_BRIEF.example.json).
 
 Nenhuma mídia real é buscada, licenciada ou enviada ao GitHub automaticamente. O programa pode montar gráficos e fundos vetoriais por código, mas não deve inventar fatos: valores de gráficos com dados precisam estar ligados a uma evidência cadastrada. Mesmo fontes marcadas como conferidas exigem revisão humana antes de publicar.
+
+## v0.13 — Compatibilidade do serviço Windows e revisão do episódio
+
+O **BAT de abertura na raiz** agora usa \`scripts/ensure-service.ps1\`. O supervisor verifica a versão/API/build, a pasta do repositório e a identidade do serviço que ocupa \`127.0.0.1:4317\`. Se for um serviço Dark Studio antigo iniciado pelo mesmo usuário, com processo Node reconhecível, pode reiniciá-lo; nunca encerra um processo desconhecido. Se não conseguir identificar com segurança, **interrompe com orientação**, sem mexer em seus projetos.
+
+\`GET /health\` e \`GET /v1/health\` retornam appVersion, apiProtocol, build, projectSchemaVersion, capabilities, pid, startedAt, workspace e projectsDirectory. O frontend só aceita as rotas depois de confirmar o contrato, impedindo o erro real em que \`ready\` vinha de um servidor antigo sem rotas de propostas.
+
+A tela inicial mostra a versão do serviço e **o número de propostas que aguardam decisão**, além de avisar sobre JSON inválido ou de outra versão que antes sumia silenciosamente. A prévia de proposta diferencia **planos salvos** e **planos ainda não aprovados**. Não clique em aprovar sem inspecionar fontes e mídia.
+
+**Aviso para quem usa o Codex Local:** o commit \`eeb6c37\` descrito no relatório do Codex pode existir apenas no seu clone Windows, não neste GitHub. Faça backup e preserve essas alterações antes de atualizar; não execute \`git reset --hard\` ou \`git clean -fdx\` para forçar a sincronização. O supervisor atual foi implementado separadamente no GitHub e precisa ser testado no Windows real.
+

@@ -73,6 +73,7 @@ describe('Projetos locais para Codex externo',()=>{
     await writeFile(a.path,'{"version": 2, "id":','utf8');
     await expect(repo.read(a.project.id)).rejects.toMatchObject({status:422});
     expect(await repo.list()).toEqual([]);
+    expect(await repo.inspectInvalid()).toEqual([expect.objectContaining({id:a.project.id})]);
   }));
   it('duplica e arquiva sem apagar mídia',async()=>withRepo(async repo=>{
     const a=await repo.create('Caso');

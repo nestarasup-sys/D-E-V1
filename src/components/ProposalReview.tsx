@@ -22,6 +22,7 @@ export function ProposalReview({projectId,onClose,onChanged}:{projectId:string,o
   return <div className="historyOverlay" role="presentation">
     <section className="historyDialog" role="dialog" aria-modal="true" aria-label="Propostas do Codex">
       <div className="homeSectionTop"><h2>Propostas do Codex local</h2><button onClick={onClose}>Fechar</button></div>
+      <p className="homeNote">A contagem de planos do PROJETO SALVO pode ser zero enquanto a proposta contém 60 planos. Isso é esperado: a proposta é uma prévia e só será aplicada quando você aprovar.</p>
       <p className="homeNote">O Codex cria propostas pelo comando <code>npm run project -- propose</code>. O arquivo do projeto só muda quando você aprova. Uma proposta obsoleta deve ser descartada e gerada novamente.</p>
       <button onClick={()=>void refresh()}>↻ Atualizar propostas</button>
       {error&&<p className="warning" role="alert">{error}</p>}
@@ -30,6 +31,7 @@ export function ProposalReview({projectId,onClose,onChanged}:{projectId:string,o
           <strong>Proposta {p.id.slice(0,8)}</strong>
           <small>{new Date(p.createdAt).toLocaleString('pt-BR')}{p.stale?' — Projeto alterado depois da proposta':''}</small>
           {p.preview&&<ul>
+            <li><strong>Plano salvo:</strong> {p.preview.beforeShots} planos; <strong>Proposta do Codex:</strong> {p.preview.afterShots} planos.</li>
             <li>Cenas: {p.preview.beforeScenes} → {p.preview.afterScenes} · Clipes: {p.preview.beforeClips} → {p.preview.afterClips}</li>
             {p.preview.addedScenes.map((name,i)=><li key={'add'+i}>Nova cena: {name}</li>)}
             {p.preview.removedScenes.map((name,i)=><li key={'remove'+i}>Excluir cena: {name}</li>)}

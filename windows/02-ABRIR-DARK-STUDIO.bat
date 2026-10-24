@@ -2,17 +2,16 @@
 setlocal EnableExtensions DisableDelayedExpansion
 title Dark Studio - Abrir editor
 color 0B
-
 echo.
 echo =======================================================
-echo                 DARK STUDIO - ABRIR
+echo          DARK STUDIO - INICIALIZACAO SEGURA
 echo =======================================================
 echo.
 call :MAIN
 set "RESULT=%errorlevel%"
 if not "%RESULT%"=="0" (
     echo.
-    echo [ERRO] Nao foi possivel abrir. Veja o aviso acima.
+    echo [ERRO] Falha ao abrir. O programa nao apagou projetos nem reiniciou processos desconhecidos.
     pause
 )
 exit /b %RESULT%
@@ -20,25 +19,25 @@ exit /b %RESULT%
 :MAIN
 set "BASE=%~dp0"
 set "PROJECT_DIR="
-
-rem Funciona na raiz do repo, em repo\windows, ou fora dele.
 if exist "%BASE%package.json" if exist "%BASE%.git" set "PROJECT_DIR=%BASE%"
 if not defined PROJECT_DIR if exist "%BASE%..\package.json" if exist "%BASE%..\.git" set "PROJECT_DIR=%BASE%.."
 if not defined PROJECT_DIR if exist "%BASE%D-E-V1\package.json" if exist "%BASE%D-E-V1\.git" set "PROJECT_DIR=%BASE%D-E-V1"
-
 if not defined PROJECT_DIR (
-    echo Dark Studio nao encontrado nesta pasta.
-    echo Execute primeiro 01-INSTALAR-ATUALIZAR.bat.
+    echo Repositorio D-E-V1 nao encontrado. Execute 01-INSTALAR-ATUALIZAR.bat.
     exit /b 1
 )
+for %%I in ("%PROJECT_DIR%") do set "PROJECT_DIR=%%~fI"
 if not exist "%PROJECT_DIR%\node_modules\.bin\tauri.cmd" (
-    echo As dependencias nao foram instaladas.
-    echo Execute primeiro 01-INSTALAR-ATUALIZAR.bat.
+    echo Dependencias nao instaladas. Execute 01-INSTALAR-ATUALIZAR.bat.
+    exit /b 1
+)
+if not exist "%PROJECT_DIR%\scripts\ensure-service.ps1" (
+    echo Supervisor local ausente. Atualize o codigo via GitHub antes de abrir.
     exit /b 1
 )
 where npm >nul 2>&1
 if errorlevel 1 (
-    echo Node.js/npm nao foram encontrados. Execute o instalador primeiro.
+    echo Node.js/npm nao encontrados.
     exit /b 1
 )
 where cargo >nul 2>&1
@@ -46,38 +45,26 @@ if errorlevel 1 if exist "%USERPROFILE%\.cargo\bin\cargo.exe" set "PATH=%USERPRO
 where cargo >nul 2>&1
 if errorlevel 1 (
     echo Rust/Cargo nao encontrado. Execute 01-INSTALAR-ATUALIZAR.bat.
-    echo Requisitos: https://v2.tauri.app/start/prerequisites/
     exit /b 1
 )
-
-echo Pasta do app: %PROJECT_DIR%
+echo Pasta do editor: %PROJECT_DIR%
 echo.
-echo [1/2] Iniciando servidor LOCAL de projetos e midia...
-powershell.exe -NoProfile -Command "try {$r=Invoke-RestMethod 'http://127.0.0.1:4317/health' -TimeoutSec 2; if($r.status -eq 'ready'){exit 0}}catch{}; exit 1" >nul 2>&1
+echo [1/2] Verificando versao e processo do servico local...
+rem O caminho enviado termina em .ps1, nao em barra invertida:
+rem evita o bug de aspas com diretorios terminados em \.
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%PROJECT_DIR%\scripts\ensure-service.ps1"
 if errorlevel 1 (
-    start "Dark Studio - Servico local" /D "%PROJECT_DIR%" cmd.exe /k "npm run dev:service"
-    powershell.exe -NoProfile -Command "$deadline=(Get-Date).AddSeconds(12); do { try {$r=Invoke-RestMethod 'http://127.0.0.1:4317/health' -TimeoutSec 1; if($r.status -eq 'ready'){exit 0}} catch {}; Start-Sleep -Milliseconds 400 } while ((Get-Date) -lt $deadline); exit 1" >nul 2>&1
-    if errorlevel 1 (
-        echo [ERRO] O servico local nao ficou pronto em 12 segundos.
-        echo Confira a janela do servico e tente abrir novamente.
-        exit /b 1
-    )
-) else (
-    echo [OK] Servico local ja esta ativo na porta 4317.
+    echo [ERRO] Servico local antigo ou indisponivel. Veja o aviso acima.
+    exit /b 1
 )
-
-echo [2/2] Iniciando janela desktop Tauri...
+echo.
+echo [2/2] Abrindo a interface Tauri...
 start "Dark Studio - Editor" /D "%PROJECT_DIR%" cmd.exe /k "npm run dev:desktop"
 if errorlevel 1 (
-    echo [ERRO] Nao consegui iniciar o processo do editor.
+    echo [ERRO] Nao consegui abrir a janela do editor.
     exit /b 1
 )
-
 echo.
-echo [OK] Abertura solicitada. Duas janelas podem ficar abertas:
-echo      - Servico local (projetos, midia e render)
-echo      - Tauri desktop (interface)
-echo Na primeira inicializacao, o Rust pode precisar compilar dependencias.
-echo Mantenha as janelas abertas enquanto usa o Dark Studio.
-echo Projetos ficam no seu Windows; nao passam pelo GitHub.
+echo [OK] Servico compativel e editor solicitado.
+echo Seus projetos continuam em %%USERPROFILE%%\DarkStudio\projects.
 exit /b 0

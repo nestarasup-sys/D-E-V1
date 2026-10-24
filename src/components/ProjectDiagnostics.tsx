@@ -1,4 +1,5 @@
 import {useEffect,useState} from 'react';
+import {ensureServiceCompatible} from '../services/service-guard';
 
 interface Issue {severity:'error'|'warning'|'info';code:string;message:string;sceneId?:string}
 interface Report {projectId:string;checkedAt:string;readyForRender:boolean;issues:Issue[];counts:{errors:number;warnings:number;info:number}}
@@ -11,6 +12,7 @@ export function ProjectDiagnostics({projectId,onClose}:{projectId:string,onClose
   async function check(){
     setBusy(true);setError('');
     try{
+      await ensureServiceCompatible();
       const [r,e]=await Promise.all([
         fetch('http://127.0.0.1:4317/v1/projects/'+encodeURIComponent(projectId)+'/diagnostics'),
         fetch('http://127.0.0.1:4317/v1/diagnostics'),

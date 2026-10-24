@@ -5,10 +5,12 @@ import {ProposalReview} from './components/ProposalReview';
 import {ProjectDiagnostics} from './components/ProjectDiagnostics';
 import {useEditor} from './model/store';
 import {parseProject} from './model/project';
+import {ensureServiceCompatible} from './services/service-guard';
+import type {ServiceHealth} from './model/service-contract';
 import {
   ApiError, listProjects, getProject, createProject, createPilotProject, importProject,
   saveProject, duplicateProject, archiveProject,
-  type ProjectSummary, type ProjectRecord,
+  type ProjectSummary, type ProjectRecord, type InvalidProject,
 } from './services/projects';
 
 const asError=(e:unknown)=>e instanceof Error?e.message:'Erro desconhecido';
@@ -107,6 +109,8 @@ function ProjectSession({initial,onClose}: {initial:ProjectRecord;onClose:()=>vo
 
 export function App(){
   const [entries,setEntries]=useState<ProjectSummary[]>([]);
+  const [service,setService]=useState<ServiceHealth|null>(null);
+  const [invalidProjects,setInvalidProjects]=useState<InvalidProject[]>([]);
   const [historyId,setHistoryId]=useState<string|null>(null);
   const [proposalsId,setProposalsId]=useState<string|null>(null);
   const [diagnosticsId,setDiagnosticsId]=useState<string|null>(null);
@@ -121,12 +125,15 @@ export function App(){
 
   const refresh=useCallback(async()=>{
     try{
+      const currentService=await ensureServiceCompatible();
       const data=await listProjects();
+      setService(currentService);
+      setInvalidProjects(data.invalidProjects);
       setEntries(data.projects);
       setDirectory(data.directory);
       setLoaded(true);
       setError('');
-    }catch(e){setError(asError(e));setLoaded(true);}
+    }catch(e){setService(null);setError(asError(e));setLoaded(true);}
   },[]);
   useEffect(()=>{
     if(active)return;
@@ -227,7 +234,9 @@ export function App(){
   return <main className="homeScreen">
     <header className="homeHeader">
       <div className="brand"><span className="brandmark">D</span><div><strong>DARK STUDIO</strong><small>ESTÚDIO DE DOCUMENTÁRIOS</small></div></div>
-      <span className="homeVersion">PROJETOS · WINDOWS · v0.12 DIREÇÃO</span>
+      <span className="homeVersion">PROJETOS · WINDOWS · v0.13
+        {service?' · SERVIÇO COMPATÍVEL '+service.appVersion:' · VERIFIQUE O SERVIÇO'}
+      </span>
     </header>
     <section className="homeHero">
       <p className="homeEyebrow">SEU ESTÚDIO INVESTIGATIVO</p>
@@ -244,13 +253,29 @@ export function App(){
     <section className="homeProjects">
       <div className="homeSectionTop"><h2>Projetos recentes</h2><button onClick={()=>void refresh()}>↻ Atualizar</button></div>
       {error && <p role="alert" className="warning">{error}</p>}
+      {service&&<p className="homeNote" role="status">
+        Serviço local {service.appVersion}, iniciado {new Date(service.startedAt).toLocaleString('pt-BR')}
+        {' · '}PID {service.pid}{' · '}Projetos em {service.projectsDirectory}
+      </p>}
+      {invalidProjects.length>0&&<div role="alert" className="warning">
+        <strong>{invalidProjects.length} projeto(s) com JSON incompatível ou incompleto no disco.</strong>
+        {' '}Eles não foram apagados. O Codex deve corrigir o esquema ou verificar qual versão criou esses arquivos.
+        {invalidProjects.slice(0,4).map(project=><p key={project.id}>
+          {project.id.slice(0,8)}: {project.error}
+        </p>)}
+      </div>}
       {notice && <p role="status" className="syncSuccess">{notice}</p>}
       {!loaded && <p>Consultando projetos locais...</p>}
       {loaded && entries.length===0 && <div className="homeEmpty"><strong>Nenhum projeto nesta pasta.</strong><p>Crie o primeiro documentário ou importe um projeto JSON. O Codex local também pode criar arquivos de projeto aqui.</p></div>}
       <div className="projectGrid">{entries.map(entry=><article className="projectTile" key={entry.id}>
         <div className="projectArt"><span>D</span><small>{entry.sceneCount} CENA{entry.sceneCount===1?'':'S'}</small></div>
         <div className="projectInfo"><h3 title={entry.name}>{entry.name}</h3>
-        <p>{formatDuration(entry.durationFrames)} · {entry.assetCount} arquivos · {new Date(entry.modifiedAt).toLocaleDateString('pt-BR')}</p>
+        <p>{formatDuration(entry.durationFrames)} · {entry.assetCount} arquivos
+          {' · '}{new Date(entry.modifiedAt).toLocaleDateString('pt-BR')}</p>
+          {(entry.pendingProposals??0)>0&&<p className="homeNote" role="status">
+            {entry.pendingProposals} proposta(s) local(is) aguardando revisão ou descarte.
+            O projeto salvo permanece inalterado até sua aprovação.
+          </p>
         <div className="projectActions"><button className="primary" disabled={busy} onClick={()=>void open(entry.id)}>Abrir editor →</button><button disabled={busy} onClick={()=>void act(async()=>{await duplicateProject(entry.id);})}>Duplicar</button><button disabled={busy} onClick={()=>void copyCodexInstruction(entry)}>Copiar instrução Codex</button><button disabled={busy} onClick={()=>setHistoryId(entry.id)}>Versões</button><button disabled={busy} onClick={()=>setProposalsId(entry.id)}>Revisar Codex</button><button disabled={busy} onClick={()=>setDiagnosticsId(entry.id)}>Diagnóstico</button><button disabled={busy} onClick={()=>{if(window.confirm('Arquivar projeto? Ele será movido para _archived, sem apagar a mídia.'))void act(async()=>{await archiveProject(entry.id);});}}>Arquivar</button></div>
         </div>
       </article>)}</div>

@@ -19,9 +19,11 @@ describe('propostas do Codex para aprovação humana',()=>{
     expect(proposed.preview?.changedScenes).toHaveLength(1);
     expect(proposed.preview?.changedScenes[0].changedFields).toContain('title');
     expect(await p.list(initial.project.id)).toHaveLength(1);
+    expect(await p.count(initial.project.id)).toBe(1);
     const applied=await p.accept(initial.project.id,proposed.id);
     expect(applied.project.scenes[0].title).toBe('Novo roteiro');
     expect(await p.list(initial.project.id)).toHaveLength(0);
+    expect(await p.count(initial.project.id)).toBe(0);
     expect((await repo.history(initial.project.id)).length).toBeGreaterThan(0);
   }));
   it('não sobrescreve mudanças manuais feitas depois da proposta',()=>fixture(async(repo,p)=>{

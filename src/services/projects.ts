@@ -1,15 +1,19 @@
 import {parseProject, type Project} from '../model/project';
+import {SERVICE_BASE,ensureServiceCompatible} from './service-guard';
 
-const BASE='http://127.0.0.1:4317';
+const BASE=SERVICE_BASE;
+export interface InvalidProject {id:string;error:string}
 export interface ProjectSummary {
   id:string; name:string; sceneCount:number; durationFrames:number;
   assetCount:number; modifiedAt:string; revision:string;
+  pendingProposals?:number;
 }
 export interface ProjectRecord {project:Project;revision:string;path:string;modifiedAt:string;}
 export class ApiError extends Error {
   constructor(message:string,public readonly status:number){super(message);}
 }
 async function request(path:string,init?:RequestInit):Promise<unknown>{
+  await ensureServiceCompatible();
   let response:Response;
   try{response=await fetch(BASE+path,init);}
   catch{throw new ApiError('Serviço local indisponível. Abra npm run dev:service no terminal.',0);}
@@ -27,15 +31,19 @@ function record(data:unknown):ProjectRecord {
   const value=data as Record<string,unknown>;
   if(typeof value.revision!=='string'||typeof value.path!=='string'||typeof value.modifiedAt!=='string')
     throw new ApiError('Metadados inválidos do projeto.',500);
-  return {project:parseProject(value.project),revision:value.revision,path:value.path,modifiedAt:value.modifiedAt};
+  let project:Project;
+  try{project=parseProject(value.project);}
+  catch(e){throw new ApiError('O serviço retornou um esquema de projeto incompatível com este editor: '+
+    (e instanceof Error?e.message:String(e))+'. Confira a versão na tela inicial.',422);}
+  return {project,revision:value.revision,path:value.path,modifiedAt:value.modifiedAt};
 }
 const jsonHeaders={'Content-Type':'application/json'};
-export async function listProjects():Promise<{projects:ProjectSummary[];directory:string}> {
+export async function listProjects():Promise<{projects:ProjectSummary[];directory:string;invalidProjects:InvalidProject[]}> {
   const result=await request('/v1/projects');
   if(typeof result!=='object'||result===null||!('projects' in result)||!('directory' in result))throw new Error('Lista inválida.');
-  const data=result as {projects:ProjectSummary[],directory:string};
+  const data=result as {projects:ProjectSummary[],directory:string,invalidProjects?:InvalidProject[]};
   if(!Array.isArray(data.projects)||typeof data.directory!=='string')throw new Error('Lista inválida.');
-  return data;
+  return {...data,invalidProjects:Array.isArray(data.invalidProjects)?data.invalidProjects:[]};
 }
 export async function createProject(name:string):Promise<ProjectRecord>{
   return record(await request('/v1/projects',{method:'POST',headers:jsonHeaders,body:JSON.stringify({name})}));

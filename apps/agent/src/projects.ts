@@ -19,7 +19,13 @@ function failure(res: ServerResponse, error: unknown) {
 }
 export async function handleProjects(req: IncomingMessage,res: ServerResponse,url: URL): Promise<boolean> {
   if (url.pathname==='/v1/projects' && req.method==='GET') {
-    try {json(res,200,{projects:await projects.list(),directory:projects.root});}
+    try {
+      const [listed,invalidProjects]=await Promise.all([projects.list(),projects.inspectInvalid()]);
+      const enriched=await Promise.all(listed.map(async project=>({
+        ...project,pendingProposals:await proposals.count(project.id).catch(()=>0),
+      })));
+      json(res,200,{projects:enriched,invalidProjects,directory:projects.root});
+    }
     catch(e){failure(res,e);}
     return true;
   }

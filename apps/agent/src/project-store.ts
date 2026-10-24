@@ -119,6 +119,16 @@ export class ProjectRepository {
     }));
     return results.filter((x): x is ProjectSummary=>x!==null).sort((a,b)=>b.modifiedAt.localeCompare(a.modifiedAt));
   }
+  async inspectInvalid():Promise<Array<{id:string;error:string}>>{
+    // Um projeto com JSON incompatível deve aparecer como erro, nunca sumir da interface.
+    await mkdir(this.root,{recursive:true});
+    const entries=await readdir(this.root,{withFileTypes:true});
+    const checks=await Promise.all(entries.filter(e=>e.isDirectory()&&UUID.test(e.name)).map(async e=>{
+      try{await this.read(e.name);return null;}
+      catch(error){return {id:e.name,error:(error instanceof Error?error.message:String(error)).slice(0,320)};}
+    }));
+    return checks.filter((entry):entry is {id:string;error:string}=>entry!==null);
+  }
   async save(id: string, incoming: unknown, expectedRevision: string): Promise<ProjectRecord> {
     const file = this.file(id);
     if (!expectedRevision || !/^[0-9a-f]{64}$/.test(expectedRevision)) {

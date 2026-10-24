@@ -16,6 +16,7 @@ const storedProposal=z.object({
 export type ProposedChange=z.infer<typeof storedProposal>;
 export interface ChangePreview {
   beforeScenes:number;afterScenes:number;beforeClips:number;afterClips:number;
+  beforeShots:number;afterShots:number;
   addedScenes:string[];removedScenes:string[];changedScenes:{before:string;after:string;id:string;changedFields:string[]}[];
   changedClips:{id:string;changedFields:string[]}[];addedClips:number;removedClips:number;
   addedAssets:number;removedAssets:number;addedCaptions:number;addedEvidence:number;
@@ -27,6 +28,7 @@ export function describeChanges(before:Project,after:Project):ChangePreview {
   const b=new Map(after.scenes.map(s=>[s.id,s]));
   return {
     beforeScenes:before.scenes.length,afterScenes:after.scenes.length,
+    beforeShots:before.shots.length,afterShots:after.shots.length,
     beforeClips:before.clips.length,afterClips:after.clips.length,
     addedScenes:after.scenes.filter(s=>!a.has(s.id)).map(s=>s.title),
     removedScenes:before.scenes.filter(s=>!b.has(s.id)).map(s=>s.title),

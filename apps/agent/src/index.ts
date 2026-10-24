@@ -4,9 +4,13 @@ import {handleExport} from './export';
 import {handleProjects} from './projects';
 import {json} from './http';
 import {runtimeDiagnostics} from './diagnostics';
+import {DEFAULT_PROJECTS_ROOT} from './project-store';
+import {SERVICE_PROTOCOL,SERVICE_VERSION,SERVICE_BUILD,PROJECT_SCHEMA_VERSION,REQUIRED_CAPABILITIES} from '../../../src/model/service-contract';
+import {resolve} from 'node:path';
 
 const HOST='127.0.0.1';
 const PORT=4317;
+const startedAt=new Date().toISOString();
 const origins=new Set([
   'http://127.0.0.1:1420',
   'http://localhost:1420',
@@ -28,8 +32,14 @@ const server=createServer(async(req,res)=>{
     res.end();
     return;
   }
-  if(req.method==='GET' && req.url==='/health'){
-    json(res,200,{status:'ready',mode:'local-project-service',media:true,export:true,projects:true});
+  if(req.method==='GET' && (req.url==='/health'||req.url==='/v1/health')){
+    json(res,200,{
+      status:'ready',service:'dark-studio-local',apiProtocol:SERVICE_PROTOCOL,
+      appVersion:SERVICE_VERSION,build:SERVICE_BUILD,
+      projectSchemaVersion:PROJECT_SCHEMA_VERSION,capabilities:[...REQUIRED_CAPABILITIES],
+      pid:process.pid,startedAt,workspace:resolve(process.cwd()),
+      projectsDirectory:DEFAULT_PROJECTS_ROOT,
+    });
     return;
   }
   try{
