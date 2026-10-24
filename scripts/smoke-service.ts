@@ -13,7 +13,8 @@ const root=await mkdtemp(join(tmpdir(),'dark-service-integration-'));
 const base='http://127.0.0.1:4317';
 let output='';
 const worker=spawn(process.execPath,['--import','tsx','apps/agent/src/index.ts'],{
-  cwd:resolve(process.cwd()),env:{...process.env,DARK_STUDIO_PROJECTS_DIR:root},
+  cwd:resolve(process.cwd()),env:{...process.env,DARK_STUDIO_PROJECTS_DIR:root,
+    DARK_STUDIO_DATA_ROOT:join(root,'data')},
   windowsHide:true,stdio:['ignore','pipe','pipe'],
 });
 worker.stdout.on('data',(b:Buffer)=>{output=(output+String(b)).slice(-2000);});
@@ -61,7 +62,39 @@ try{
   if(diagnostic.projectId!==id)throw Error('Diagnóstico não corresponde ao projeto.');
   const jobs=object(await api('/v1/export/jobs?projectId='+id));
   if(!Array.isArray(jobs.jobs))throw Error('Histórico de render inválido.');
-  console.log('SERVICE SMOKE OK: versão, diretório isolado, 1 proposta, painel e diagnóstico.');
+  // ZIP64 v2 service integration: prepare on disk, byte-range download and interrupted upload.
+  const pack=object(await api('/v1/archive/prepare',{method:'POST',
+    headers:{'Content-Type':'application/json'},body:JSON.stringify(project)}));
+  const url=String(pack.url),size=Number(pack.size);
+  if(!url.startsWith(base+'/v1/archive/download/')||size<200)
+    throw Error('Serviço não preparou pacote ZIP64.');
+  const first=await fetch(url,{headers:{Range:'bytes=0-3'}});
+  if(first.status!==206||Buffer.from(await first.arrayBuffer()).toString('latin1')!=='PK\u0003\u0004')
+    throw Error('Download com retomada HTTP Range não funcionou.');
+  const downloaded=await fetch(url);
+  if(!downloaded.ok)throw Error('Download .darkstudio falhou.');
+  const bytes=Buffer.from(await downloaded.arrayBuffer());
+  if(bytes.length!==size)throw Error('Tamanho do pacote divergente.');
+  const upload=object(await api('/v1/archive/uploads',{method:'POST',
+    headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      name:'teste-de-retomada.darkstudio',size:bytes.length})}));
+  const uploadId=String(upload.id),half=Math.floor(bytes.length/2);
+  const part1=object(await api('/v1/archive/uploads/'+uploadId,{method:'PUT',
+    headers:{'Content-Type':'application/octet-stream','X-Upload-Offset':'0'},
+    body:bytes.subarray(0,half)}));
+  if(part1.offset!==half)throw Error('Offset da primeira parte incorreto.');
+  const resumed=object(await api('/v1/archive/uploads/'+uploadId));
+  if(resumed.offset!==half)throw Error('Sessão não preservou offset para retomada.');
+  const part2=object(await api('/v1/archive/uploads/'+uploadId,{method:'PUT',
+    headers:{'Content-Type':'application/octet-stream','X-Upload-Offset':String(half)},
+    body:bytes.subarray(half)}));
+  if(part2.offset!==bytes.length)throw Error('Offset final de importação incorreto.');
+  const imported=object(await api('/v1/archive/uploads/'+uploadId+'/complete',{method:'POST'}));
+  const importedProject=object(imported.project);
+  if(importedProject.id===id||importedProject.name!==project.name)
+    throw Error('Importação ZIP não criou cópia com ID independente.');
+
+  console.log('SERVICE SMOKE OK: API, propostas, ZIP64, HTTP Range e upload retomável em duas partes.');
 }finally{
   worker.kill();
   await new Promise<void>(resolveWait=>{

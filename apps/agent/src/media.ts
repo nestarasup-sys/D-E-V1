@@ -1,6 +1,6 @@
 import {createReadStream,createWriteStream} from 'node:fs';
 import {copyFile,mkdir,readFile,rename,stat,unlink,writeFile} from 'node:fs/promises';
-import {join,extname} from 'node:path';
+import {join,extname,resolve} from 'node:path';
 import {homedir} from 'node:os';
 import {randomUUID} from 'node:crypto';
 import {Transform} from 'node:stream';
@@ -9,7 +9,8 @@ import type {IncomingMessage,ServerResponse} from 'node:http';
 import {json} from './http';
 import type {Asset} from '../../../src/model/project';
 
-export const DATA_ROOT=join(homedir(),'DarkStudio');
+export const DATA_ROOT=process.env.DARK_STUDIO_DATA_ROOT?
+  resolve(process.env.DARK_STUDIO_DATA_ROOT):join(homedir(),'DarkStudio');
 const MEDIA_DIR=join(DATA_ROOT,'media');
 const INDEX=join(DATA_ROOT,'media-index.json');
 export const MAX_FILE=16*1024*1024*1024;

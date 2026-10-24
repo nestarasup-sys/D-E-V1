@@ -2,7 +2,7 @@
 import {createReadStream,createWriteStream} from 'node:fs';
 import {mkdir,readFile,rename,rm,stat,writeFile,open,readdir} from 'node:fs/promises';
 import {randomUUID} from 'node:crypto';
-import {join} from 'node:path';
+import {join,resolve} from 'node:path';
 import {homedir} from 'node:os';
 import {pipeline} from 'node:stream/promises';
 import {Transform} from 'node:stream';
@@ -15,8 +15,10 @@ import {ProjectRepository} from './project-store';
 import {json,readJson} from './http';
 
 const repository=new ProjectRepository();
-const root=join(homedir(),'DarkStudio','uploads');
-const exportRoot=join(homedir(),'DarkStudio','portable-exports');
+const archiveDataRoot=process.env.DARK_STUDIO_DATA_ROOT?
+  resolve(process.env.DARK_STUDIO_DATA_ROOT):join(homedir(),'DarkStudio');
+const root=join(archiveDataRoot,'uploads');
+const exportRoot=join(archiveDataRoot,'portable-exports');
 const uuid=/^[0-9a-f-]{36}$/i;
 const active=new Set<string>();
 const chunkMax=16*1024*1024;
