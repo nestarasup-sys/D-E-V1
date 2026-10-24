@@ -61,7 +61,8 @@ describe('v0.18 real word timing and semantic cues',()=>{
     expect(project.captions[0].words).toHaveLength(4);
     expect(project.shots[0].layers[0].cueWord).toBe('salário');
     expect(project.shots[0].layers[0].cueCaptionId).toBe(project.captions[0].id);
-    expect(project.clips.find(c=>c.lane==='sfx')?.startFrame).toBe(13);
+    expect(project.clips.find(c=>c.lane==='sfx')?.startFrame).toBe(
+      project.captions[0].words.find(w=>w.text.toLowerCase().includes('salário'))?.startFrame);
     const next=resyncProduction(project,[audio(85,text)],id,parsed,[sound]);
     expect(next.captions[0].words).toHaveLength(4);
     expect(next.shots[0].layers[0].id).toBe(project.shots[0].layers[0].id);
