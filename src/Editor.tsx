@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
-import {productionSchema} from './model/production';
+import {productionSchema} from './model/ai-production';
 import { Player, type PlayerRef } from '@remotion/player';
 import { Documentary } from './video/Documentary';
 import { useEditor } from './model/store';

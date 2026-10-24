@@ -4,7 +4,7 @@ import {mkdtemp,readFile,rm,writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join,resolve} from 'node:path';
 import {importGeneratedWave,rollbackArchiveMedia} from './media';
-import {type NarratedAudio,type AIProduction} from '../../../src/model/production';
+import {type NarratedAudio,type AIProduction} from '../../../src/model/ai-production';
 
 export interface LocalVoice {name:string;culture:string;gender:string}
 async function invoke(args:string[],timeout=480000){

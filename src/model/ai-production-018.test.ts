@@ -1,6 +1,6 @@
 import {describe,it,expect} from 'vitest';
 import {randomUUID} from 'node:crypto';
-import {productionSchema,compileProduction,resyncProduction} from './production';
+import {productionSchema,compileProduction,resyncProduction} from './ai-production';
 import {projectSchema} from './project';
 import {wavFrames} from '../../apps/agent/src/narration';
 

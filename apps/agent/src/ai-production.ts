@@ -4,9 +4,9 @@ import {randomUUID} from 'node:crypto';
 import {z} from 'zod';
 import {json,readJson} from './http';
 import {ProjectRepository} from './project-store';
-import {productionSchema,compileProduction,resyncProduction,productionPlanSchema} from '../../../src/model/production';
+import {productionSchema,compileProduction,resyncProduction,productionPlanSchema} from '../../../src/model/ai-production';
 import {listLocalVoices,synthesizeNarration,rollbackNarration} from './narration';
-import type {NarratedAudio} from '../../../src/model/production';
+import type {NarratedAudio} from '../../../src/model/ai-production';
 
 const projects=new ProjectRepository();
 let active=false;
