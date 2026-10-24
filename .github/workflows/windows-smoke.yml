@@ -4,6 +4,17 @@ on:
     branches: [main]
   workflow_dispatch:
 jobs:
+  bat-test:
+    runs-on: windows-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Exercise BAT updater in isolated Git fixture
+        shell: powershell
+        run: .\scripts\test-windows-bats.ps1
   windows-smoke:
     runs-on: windows-latest
     timeout-minutes: 45
@@ -19,9 +30,6 @@ jobs:
           npm run check
           npm test
           npm run build
-      - name: Test BAT updater safely against isolated Git main
-        shell: powershell
-        run: .\scripts\test-windows-bats.ps1
       - name: Check Windows launcher supervisor syntax
         shell: powershell
         run: |
