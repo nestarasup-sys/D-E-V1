@@ -334,7 +334,7 @@ export function App(){
       <div className="homeCreate">
         <input aria-label="Nome do novo projeto" placeholder="Nome do novo documentário" maxLength={120} value={newName} onChange={e=>setNewName(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')void create();}}/>
         <button className="primary" disabled={busy||!newName.trim()} onClick={()=>void create()}>+ Criar projeto</button>
-        <button disabled={busy} onClick={()=>importRef.current?.click()}>Importar produção IA / JSON / .darkstudio</button>
+        <button disabled={busy} onClick={()=>importRef.current?.click()}>Importar JSON / produção IA / .darkstudio</button>
         <button disabled={busy} onClick={()=>void createPilot()}>▶ Criar piloto audiovisual 30s</button>
         <input ref={importRef} className="hidden" type="file" accept=".json,.darkstudio,application/json,application/vnd.darkstudio+zip" onChange={e=>void importFile(e)}/>
       </div>
