@@ -116,3 +116,11 @@ font-size:10px;text-align:left;padding:7px;background:#654c2d;color:#fff4d6;bord
 .lane-sfx .mediaClip{background:#6d5b2e;border-color:#ceaf5e}
 
 .channelKitPanel{margin:26px 0 18px;padding:16px 0;border-top:1px solid #4e627b;border-bottom:1px solid #35465e}
+
+/* Linguagem investigativa: edição de registros, gráficos e relações */
+.investigationInspector{margin:14px 0;padding:14px 10px;background:#101b2b;border:1px solid #42556e;border-radius:8px}
+.investigationInspector .panelTitle{color:#eecb86}
+.investigationInspector .help{font-size:11px;line-height:1.5;color:#adc0d4}
+.directorPoint{display:grid;grid-template-columns:1fr 88px 27px;gap:6px;align-items:center;margin:7px 0}
+.directorPoint input{min-width:0;padding:7px;font-size:11px}
+.directorPoint button{padding:6px}

@@ -16,10 +16,33 @@ const keyframes=z.array(keyframeSchema).max(40).default([]);
 export const motionSchema=z.object({
   x:keyframes,y:keyframes,scale:keyframes,rotation:keyframes,opacity:keyframes,
 }).strict().default({x:[],y:[],scale:[],rotation:[],opacity:[]});
+/** Especificação visual não destrutiva: o texto é editável e não finge ser prova fotográfica. */
+export const investigationSchema=z.object({
+  representation:z.enum(['illustration','reconstruction','source-excerpt']).default('illustration'),
+  sourceEvidenceId:z.string().uuid().optional(),
+  excerpt:z.string().max(600).default(''),
+  highlight:z.string().max(140).default(''),
+  locationLabels:z.array(z.string().trim().min(1).max(60)).max(4).default([]),
+  unit:z.string().max(24).default(''),
+  points:z.array(z.object({
+    label:z.string().trim().min(1).max(45),
+    value:z.number().finite().min(-1000000000).max(1000000000),
+  }).strict()).max(8).default([]),
+  leftLabel:z.string().max(80).default(''),
+  leftValue:z.string().max(80).default(''),
+  rightLabel:z.string().max(80).default(''),
+  rightValue:z.string().max(80).default(''),
+}).strict().default({});
+export type InvestigationData=z.infer<typeof investigationSchema>;
+export const investigativeStyles=['dossier','document','evidence','chart','map','comparison','lower-third'] as const;
+export const investigationPurposes=['hook','context','proof','data','contrast','location','transition','conclusion'] as const;
+
 export const shotSchema=z.object({
   id:z.string().uuid(),
   kind:z.enum(['graphic','image','video']),
-  style:z.enum(['headline','split','number','quote','chapter','timeline']).default('headline'),
+  style:z.enum(['headline','split','number','quote','chapter','timeline',...investigativeStyles]).default('headline'),
+  purpose:z.enum(investigationPurposes).optional(),
+  investigation:investigationSchema,
   title:z.string().max(180).default(''),
   subtitle:z.string().max(400).default(''),
   kicker:z.string().max(100).default(''),

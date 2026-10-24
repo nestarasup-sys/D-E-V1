@@ -42,7 +42,8 @@ export function Documentary({project}:{project:Project}) {
     {project.visualMode==='legacy'&&positions.map(({scene,from})=><Sequence key={'text-'+scene.id} from={from} durationInFrames={scene.durationFrames}><SceneVisual scene={scene} layer="text"/></Sequence>)}
     {project.visualMode==='shots'&&[...project.shots].sort((a,b)=>a.zIndex-b.zIndex||a.startFrame-b.startFrame).map(shot=>
       <Sequence key={'shot-'+shot.id} from={shot.startFrame} durationInFrames={shot.durationFrames}>
-        <ShotVisual shot={shot} asset={shot.assetId?assets.get(shot.assetId):undefined} kit={project.channelKit}/>
+        <ShotVisual shot={shot} asset={shot.assetId?assets.get(shot.assetId):undefined} kit={project.channelKit}
+          evidence={project.evidence.find(item=>item.id===shot.investigation.sourceEvidenceId)}/>
       </Sequence>)}
     {project.captions.map(c=><Sequence key={'caption-'+c.id} from={c.startFrame} durationInFrames={c.endFrame-c.startFrame}>
       <AbsoluteFill style={{justifyContent:'flex-end',alignItems:'center',paddingBottom:80,pointerEvents:'none'}}>

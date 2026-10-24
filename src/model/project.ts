@@ -96,6 +96,12 @@ export const projectSchema = z.object({
   p.shots.forEach((shot,i)=>{
     if(shot.startFrame+shot.durationFrames>total)ctx.addIssue({code:'custom',path:['shots',i],message:'Plano ultrapassa a duração do episódio'});
     validateMotion(shot.motion,shot.durationFrames,ctx,['shots',i,'motion']);
+    const evidenceId=shot.investigation.sourceEvidenceId;
+    if(evidenceId&&!p.evidence.some(e=>e.id===evidenceId))
+      ctx.addIssue({code:'custom',path:['shots',i,'investigation','sourceEvidenceId'],message:'Plano cita evidência inexistente'});
+    if(shot.investigation.representation==='source-excerpt'&&!evidenceId)
+      ctx.addIssue({code:'custom',path:['shots',i,'investigation'],message:'Trecho apresentado como fonte precisa do ID da evidência'});
+
     if(shot.kind!=='graphic'){
       const asset=shot.assetId?assetById.get(shot.assetId):undefined;
       if(!asset||asset.kind!==shot.kind)ctx.addIssue({code:'custom',path:['shots',i,'assetId'],message:'Plano exige imagem ou vídeo importado no computador'});

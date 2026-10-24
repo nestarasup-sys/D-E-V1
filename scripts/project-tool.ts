@@ -12,8 +12,10 @@
  * npm run project -- replace <id> <projeto.json> <revisao>
  * npm run project -- render <id>
  */
-import {readFile} from 'node:fs/promises';
+import {readFile,writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
+import {randomUUID} from 'node:crypto';
+import {compileDirection,makeAutomaticDirection,reviewVisualDirection} from '../src/model/direction';
 import {ProjectRepository} from '../apps/agent/src/project-store';
 import {ProposalRepository} from '../apps/agent/src/proposals';
 import {diagnoseProject,runtimeDiagnostics} from '../apps/agent/src/diagnostics';
@@ -117,6 +119,53 @@ async function main() {
       console.log('ID: '+created.project.id);
       return;
     }
+    case 'direction-template': {
+      const id=requireArgument(args[0],'UUID do projeto');
+      const file=resolve(requireArgument(args[1],'arquivo de direção .json'));
+      const current=await repository.read(id);
+      const direction=makeAutomaticDirection(current.project);
+      await writeFile(file,JSON.stringify(direction,null,2)+'\n',{flag:'wx',encoding:'utf8'});
+      console.log('Rascunho ilustrativo salvo LOCALMENTE em: '+file);
+      console.log('Edite as composições, dados e IDs de fontes conforme roteiro e evidências.');
+      console.log('Revisão para futura proposta: '+current.revision);
+      return;
+    }
+    case 'direct': {
+      const id=requireArgument(args[0],'UUID do projeto');
+      const input=requireArgument(args[1],'arquivo da direção JSON');
+      const expected=requireArgument(args[2],'revisão de info');
+      const current=await repository.read(id);
+      if(current.revision!==expected)throw new Error('Conflito: o projeto mudou. Refaça a direção a partir da versão atual.');
+      const plan=await readLocalJson(input);
+      const result=compileDirection(current.project,plan,randomUUID);
+      const proposal=await proposalStore.create(id,result.operations,expected);
+      console.log('Direção visual entregue para APROVAÇÃO no Dark Studio.');
+      console.log('Proposta: '+proposal.id+' — '+result.report.shots+' planos, '+result.report.coveragePercent+'% de cobertura.');
+      console.log('Nenhuma cena, narração, legenda ou mídia foi alterada.');
+      console.log('Relatório editorial: '+JSON.stringify(result.report,null,2));
+      return;
+    }
+    case 'auto-direct': {
+      const id=requireArgument(args[0],'UUID do projeto');
+      const expected=requireArgument(args[1],'revisão de info');
+      const current=await repository.read(id);
+      if(current.revision!==expected)throw new Error('Conflito: revisão alterada.');
+      const plan=makeAutomaticDirection(current.project);
+      const result=compileDirection(current.project,plan,randomUUID);
+      const proposal=await proposalStore.create(id,result.operations,expected);
+      console.log('Direção ilustrativa AUTOMÁTICA preparada: '+proposal.id);
+      console.log('Planos: '+result.report.shots+'. Relatório: '+JSON.stringify(result.report,null,2));
+      console.log('Atenção: é um storyboard ilustrativo baseado em texto existente; não pesquisa nem verifica fatos.');
+      return;
+    }
+    case 'direction-report': {
+      const id=requireArgument(args[0],'UUID do projeto');
+      const current=await repository.read(id);
+      const report=reviewVisualDirection(current.project);
+      console.log(JSON.stringify(report,null,2));
+      if(report.issues.some(item=>item.severity==='error'))process.exitCode=2;
+      return;
+    }
     case 'preview': {
       const id=requireArgument(args[0],'UUID do projeto');
       const ops=await readLocalJson(requireArgument(args[1],'operações JSON'));
@@ -203,7 +252,7 @@ async function main() {
       return;
     }
     default:
-      throw new Error('Comandos locais: path | list | create "Título" | info <id> | show <id> | validate <id> | import <json> | apply <id> <ops.json> [revisao] | replace <id> <json> <revisao> | render <id>');
+      throw new Error('Comandos locais: direction-template <id> <destino> | direct <id> <direcao.json> <revisao> | auto-direct <id> <revisao> | direction-report <id> | path | list | create "Título" | info <id> | show <id> | validate <id> | import <json> | apply <id> <ops.json> [revisao] | replace <id> <json> <revisao> | render <id>');
   }
 }
 main().catch(error=>{

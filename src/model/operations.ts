@@ -12,6 +12,7 @@ export const operationSchema = z.discriminatedUnion('type', [
   z.object({type:z.literal('addClip'), clip:clipSchema}).strict(),
   z.object({type:z.literal('updateClip'), clipId:z.string(), changes:clipSchema.omit({id:true,assetId:true}).partial().strict()}).strict(),
   z.object({type:z.literal('removeClip'), clipId:z.string()}).strict(),
+  z.object({type:z.literal('replaceShots'),shots:z.array(shotSchema).max(1500)}).strict(),
   z.object({type:z.literal('addShot'),shot:shotSchema}).strict(),
   z.object({type:z.literal('updateShot'),shotId:z.string().uuid(),changes:shotSchema.omit({id:true}).partial().strict()}).strict(),
   z.object({type:z.literal('removeShot'),shotId:z.string().uuid()}).strict(),
@@ -85,6 +86,11 @@ export function applyOperations(project:Project, input:unknown):Project {
       case 'removeClip': {
         const i=draft.clips.findIndex(c=>c.id===op.clipId);
         if(i<0) throw new Error('Clipe não encontrado'); draft.clips.splice(i,1);break;
+      }
+      case 'replaceShots': {
+        // A direção automática substitui apenas os planos visuais. Narração,
+        // cenas, legendas, assets, fontes e trilhas de áudio não são tocados.
+        draft.shots=op.shots;break;
       }
       case 'addShot': {
         if(draft.shots.some(s=>s.id===op.shot.id))throw new Error('Plano duplicado');

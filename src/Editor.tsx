@@ -244,7 +244,7 @@ export function Editor({onHome,syncStatus,onReload}:{onHome:()=>void,syncStatus:
         {exportState&&<div className="exportStatus" role="status"><strong>EXPORTAÇÃO MP4 · {exportState}</strong><progress max={1} value={exportProgress}/><small>Renderização local em processo separado, com Remotion e FFmpeg. Salvo em Vídeos/DarkStudio.</small></div>}
       </main>
       <aside className="inspector">
-        {selectedShot&&<ShotInspector shot={selectedShot} assets={project.assets}
+        {selectedShot&&<ShotInspector shot={selectedShot} assets={project.assets} evidence={project.evidence}
           onEdit={changes=>updateShot(selectedShot.id,changes)}
           onRemove={()=>{action([{type:'removeShot',shotId:selectedShot.id}]);setSelectedShotId(null);}}/>}
         {selectedCaption&&<CaptionInspector caption={selectedCaption}

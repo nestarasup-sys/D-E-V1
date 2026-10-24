@@ -1,12 +1,14 @@
 import {useState} from 'react';
 import {motionPropertySchema,motionBounds,retimeMotion,type Shot,type MotionProperty,type Keyframe} from '../model/shots';
-import type {Asset} from '../model/project';
+import type {Asset,Evidence} from '../model/project';
+import {investigativeStyles} from '../model/shots';
+import {InvestigationInspector} from './InvestigationInspector';
 
 const names:Record<MotionProperty,string>={x:'Posição X (%)',y:'Posição Y (%)',scale:'Zoom (escala)',rotation:'Rotação (°)',opacity:'Opacidade'};
 const properties=motionPropertySchema.options;
 const seconds=(frames:number)=>(frames/30).toFixed(2);
-export function ShotInspector({shot,assets,onEdit,onRemove}:{
-  shot:Shot;assets:Asset[];onEdit:(changes:Partial<Omit<Shot,'id'>>)=>void;onRemove:()=>void;
+export function ShotInspector({shot,assets,evidence,onEdit,onRemove}:{
+  shot:Shot;assets:Asset[];evidence:Evidence[];onEdit:(changes:Partial<Omit<Shot,'id'>>)=>void;onRemove:()=>void;
 }){
   const [property,setProperty]=useState<MotionProperty>('scale');
   const frames=shot.motion[property];
@@ -57,7 +59,7 @@ export function ShotInspector({shot,assets,onEdit,onRemove}:{
     <div className="field"><label>Estilo de composição</label>
       <select disabled={shot.kind!=='graphic'} value={shot.style}
         onChange={e=>onEdit({style:e.target.value as Shot['style']})}>
-        {(['headline','split','number','quote','chapter','timeline'] as const).map(style=>
+        {(['headline','split','number','quote','chapter','timeline',...investigativeStyles] as const).map(style=>
           <option value={style} key={style}>{style}</option>)}
       </select>
     </div>
@@ -79,6 +81,8 @@ export function ShotInspector({shot,assets,onEdit,onRemove}:{
     </div><div className="field"><label>Fundo</label>
       <input type="color" value={shot.backgroundColor} onChange={e=>onEdit({backgroundColor:e.target.value})}/>
     </div></div>
+    {shot.kind==='graphic'&&investigativeStyles.some(s=>s===shot.style)&&
+      <InvestigationInspector shot={shot} evidence={evidence} onEdit={onEdit}/>}
     <div className="shotMotion"><div className="panelTitle">ANIMAÇÃO POR KEYFRAMES</div>
       <p className="help">Quadros relativos ao início deste plano (30 FPS). A curva pertence ao quadro-chave de partida.</p>
       <div className="projectActions">

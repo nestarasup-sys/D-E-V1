@@ -1,7 +1,8 @@
 import {AbsoluteFill,Img,OffthreadVideo,useCurrentFrame} from 'remotion';
 import type {CSSProperties} from 'react';
-import type {Asset} from '../model/project';
-import {evaluateMotion,type Shot,type ChannelKit} from '../model/shots';
+import type {Asset,Evidence} from '../model/project';
+import {evaluateMotion,investigativeStyles,type Shot,type ChannelKit} from '../model/shots';
+import {InvestigationVisual} from './InvestigationVisual';
 
 const fonts:Record<ChannelKit['font'],string>={
   sans:'Arial, Helvetica, sans-serif',serif:'Georgia, Times New Roman, serif',mono:'Consolas, Courier New, monospace',
@@ -51,7 +52,7 @@ function Design({shot,frame,kit}:{shot:Shot;frame:number;kit:ChannelKit}){
     {label}{title}<div style={{height:8,width:170,background:accent,marginTop:37}}/>{subtitle}
   </AbsoluteFill>;
 }
-export function ShotVisual({shot,asset,kit}:{shot:Shot;asset?:Asset;kit:ChannelKit}){
+export function ShotVisual({shot,asset,kit,evidence}:{shot:Shot;asset?:Asset;kit:ChannelKit;evidence?:Evidence}){
   const frame=useCurrentFrame();
   const m=evaluateMotion(shot,frame);
   const accent=shot.accentColor||kit.accentColor;
@@ -59,7 +60,8 @@ export function ShotVisual({shot,asset,kit}:{shot:Shot;asset?:Asset;kit:ChannelK
   return <AbsoluteFill style={{background:shot.backgroundColor,overflow:'hidden',fontFamily:fonts[kit.font]}}>
     <AbsoluteFill style={{background:'radial-gradient(circle at 70% 25%, '+accent+'24 0%, transparent 54%)'}}/>
     <AbsoluteFill style={{transform,opacity:m.opacity,willChange:'transform, opacity'}}>
-      {shot.kind==='graphic'?<Design shot={shot} frame={frame} kit={kit}/>:
+      {shot.kind==='graphic'?(investigativeStyles.some(s=>s===shot.style)?
+        <InvestigationVisual shot={shot} evidence={evidence}/>:<Design shot={shot} frame={frame} kit={kit}/>):
         asset?.kind==='image'?<Img src={asset.url} style={{width:'100%',height:'100%',objectFit:'cover'}}/>:
         asset?.kind==='video'?<OffthreadVideo src={asset.url} startFrom={shot.trimStartFrames} muted style={{width:'100%',height:'100%',objectFit:'cover'}}/>:null}
       {shot.kind!=='graphic'&&shot.title&&<AbsoluteFill style={{justifyContent:'flex-end',padding:'0 120px 175px'}}>

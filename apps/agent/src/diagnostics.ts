@@ -1,5 +1,6 @@
 import {freemem,totalmem,platform} from 'node:os';
 import type {Project} from '../../../src/model/project';
+import {reviewVisualDirection} from '../../../src/model/direction';
 
 export type Severity='error'|'warning'|'info';
 export interface DiagnosticIssue {severity:Severity;code:string;message:string;sceneId?:string}
@@ -25,6 +26,9 @@ export async function diagnoseProject(project:Project,hasMedia:(id:string)=>Prom
   for(const evidence of project.evidence){
     if(evidence.reviewStatus==='pending')add('warning','evidence-pending','Fonte ainda não verificada: '+evidence.sourceTitle,evidence.sceneId);
     if(evidence.reviewStatus==='rejected')add('warning','evidence-rejected','Fonte rejeitada usada no projeto: '+evidence.sourceTitle,evidence.sceneId);
+  }
+  for(const issue of reviewVisualDirection(project).issues){
+    add(issue.severity,issue.code,issue.message);
   }
   if(!project.clips.some(c=>c.lane==='narration')){
     add('info','narration-missing','Nenhuma trilha de narração adicionada. Isto é permitido, mas confirme antes de publicar.');
