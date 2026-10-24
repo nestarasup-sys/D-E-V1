@@ -143,6 +143,13 @@ export function Editor({onHome,syncStatus,onReload}:{onHome:()=>void,syncStatus:
         ' GiB. Download direto do serviço local, com suporte a retomada por bytes.');
     }catch(e){setMediaMessage(e instanceof Error?e.message:'Falha no .darkstudio');}
   }
+  function saveRasterReport(){
+    if(!rasterReport)return;
+    const blob=new Blob([JSON.stringify(rasterReport,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob),a=document.createElement('a');
+    a.href=url;a.download='darkstudio-qa-'+project.id+'.json';
+    a.click();setTimeout(()=>URL.revokeObjectURL(url),2000);
+  }
   async function reviewRaster(){
     setRasterBusy(true);setRasterReport(null);
     try{
@@ -295,6 +302,7 @@ export function Editor({onHome,syncStatus,onReload}:{onHome:()=>void,syncStatus:
         </div>
         {rasterReport&&<div className="libraryNote" role="status">
           <strong>REVISÃO VISUAL AUTOMÁTICA · {rasterReport.frames.length} FRAMES</strong>
+          <button onClick={saveRasterReport}>Salvar relatório completo JSON</button>
           <p>{rasterReport.method}</p>
           {rasterReport.ocr&&<p>OCR local: {rasterReport.ocr.status} · {rasterReport.ocr.framesAnalyzed} frames · {rasterReport.ocr.language}
             {rasterReport.ocr.error?' · '+rasterReport.ocr.error:''}</p>}

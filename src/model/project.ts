@@ -136,6 +136,12 @@ export const projectSchema = z.object({
         path:['shots',i,'layers',j,'sourceEvidenceId'],message:'Elemento cita fonte não cadastrada'});
       if(layer.kind==='chart'&&(layer.values.length||layer.chartStages.length)&&!layer.sourceEvidenceId)
         ctx.addIssue({code:'custom',path:['shots',i,'layers',j],message:'Gráfico factual sem evidência'});
+      if(layer.kind==='text'&&layer.fontFamily.startsWith('DSFont-')){
+        const id=layer.fontFamily.slice(7);
+        if(assetById.get(id)?.kind!=='font')
+          ctx.addIssue({code:'custom',path:['shots',i,'layers',j,'fontFamily'],
+            message:'Fonte portátil não cadastrada na biblioteca de mídia.'});
+      }
       if(layer.kind==='image'){
         const asset=layer.assetId?assetById.get(layer.assetId):undefined;
         if(asset?.kind!=='image')ctx.addIssue({code:'custom',path:['shots',i,'layers',j,'assetId'],
