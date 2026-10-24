@@ -306,13 +306,38 @@ export function LayerEditor({shot,selectedId,onSelected,assets,captions,evidence
             }}/></div>
       </div>
       <div className="field"><label>Sincronizar entrada com legenda</label>
-        <select value={selected.cueCaptionId||''} onChange={e=>patch(selected.id,{cueCaptionId:e.target.value||undefined})}>
+        <select value={selected.cueCaptionId||''} onChange={e=>patch(selected.id,{cueCaptionId:e.target.value||undefined,
+           cueWord:e.target.value?selected.cueWord:undefined})}>
           <option value="">Tempo livre do plano</option>
           {scopedCaptions.map(c=><option key={c.id} value={c.id}>
             {time(c.startFrame-shot.startFrame)} s · {c.text.slice(0,55)}
           </option>)}
         </select>
       </div>
+      {selected.cueCaptionId&&<div className="shotMotion">
+        <div className="panelTitle">EVENTO ACÚSTICO DE PALAVRA</div>
+        <div className="field"><label>Palavra exata na legenda (opcional)</label>
+          <input value={selected.cueWord||''} placeholder="Ex.: salário"
+            maxLength={80} onChange={e=>patch(selected.id,{
+              cueWord:e.target.value.trim()||undefined,
+            })}/></div>
+        <div className="twoCols">
+          <div className="field"><label>Ocorrência da palavra</label>
+            <input type="number" min={1} max={20} step={1} value={selected.cueOccurrence}
+              onChange={e=>patch(selected.id,{
+                cueOccurrence:Math.max(1,Math.min(20,Math.round(Number(e.target.value)))),
+              })}/></div>
+          <div className="field"><label>Ajuste fino de entrada (frames)</label>
+            <input type="number" min={-120} max={120} step={1}
+              value={selected.cueOffsetFrames} onChange={e=>patch(selected.id,{
+                cueOffsetFrames:Math.round(Number(e.target.value)),
+              })}/></div>
+        </div>
+        {selected.cueWord&&<small>
+          A entrada usa o timestamp real do SAPI. Se a voz não fornecer o instante
+          desta palavra, a animação é ocultada em vez de receber um tempo inventado.
+        </small>}
+      </div>}
       <div className="field"><label>Comportamento animado</label>
         <select value={selected.behavior}
           onChange={e=>patch(selected.id,{behavior:e.target.value as SceneLayer['behavior']})}>

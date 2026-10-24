@@ -413,6 +413,9 @@ export function Editor({onHome,syncStatus,onReload,onRegenerateVoice}:{
         <b>NARRADOR AUTOMÁTICO · PRODUÇÃO JSON v0.18</b>
         <p>Áudio PCM real gerado no Windows para {source.beats.length} fala(s).
           Cada palavra recebe destaque no frame se a voz SAPI fornecer eventos acústicos suficientes; caso contrário, permanece o texto por frase.</p>
+        <p>Alinhamento acústico: {project.productionPlan?.segments.filter(
+          segment=>segment.wordAlignment==='aligned').length??0} de {source.beats.length} falas com palavras cronometradas.
+          Os demais trechos continuam legendados integralmente.</p>
         <div className="field"><label>Voz instalada no Windows</label>
           <select value={voiceName} onChange={e=>setVoiceName(e.target.value)}>
             <option value="">Automática (preferir português brasileiro)</option>

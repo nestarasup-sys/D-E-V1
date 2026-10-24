@@ -44,6 +44,10 @@ export function processIsAlive(pid:unknown):boolean{
 }
 export async function recoverJob(job:JobStatus):Promise<JobStatus>{
   if(!isPending(job)||processIsAlive(job.pid))return job;
+  // The child may not have written its first status yet; do not label a new
+  // render dead during the first ten seconds before its PID is registered.
+  if(!job.pid&&job.state==='queued'&&Date.now()-Date.parse(job.createdAt||'')<10000)
+    return job;
   const stopped:JobStatus={...job,state:'interrupted',error:
     'Render anterior interrompido; o estado foi preservado. Refaça apenas a exportação quando estiver pronto.'};
   await writeJob(stopped);

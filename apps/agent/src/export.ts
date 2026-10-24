@@ -49,6 +49,14 @@ export async function handleExport(req:IncomingMessage,res:ServerResponse,url:UR
           await writeJob({...current,state:'failed',
             error:'Render encerrou com código '+String(code)}).catch(()=>{});
       });
+      // Register the child PID before returning job ID to the polling UI.
+      // Without this, an immediate /v1/export/:id request can incorrectly
+      // turn a newly queued render into an "interrupted" job.
+      if(child.pid){
+        const live=await readJob(id);
+        if(live.state==='queued'&&!live.pid)
+          await writeJob({...live,pid:child.pid});
+      }
       json(res,202,{id});
     }catch(e){json(res,400,{error:e instanceof Error?e.message:'Projeto inválido'});}
     finally{starting=false;}
