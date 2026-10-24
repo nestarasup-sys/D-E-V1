@@ -22,7 +22,7 @@ function failure(res: ServerResponse, error: unknown) {
 export async function handleProjects(req: IncomingMessage,res: ServerResponse,url: URL): Promise<boolean> {
   if (url.pathname==='/v1/projects' && req.method==='GET') {
     try {
-      const [listed,invalidProjects]=await Promise.all([projects.list(),projects.inspectInvalid()]);
+      const {projects:listed,invalidProjects}=await projects.listDetailed();
       const enriched=await Promise.all(listed.map(async project=>({
         ...project,pendingProposals:await proposals.count(project.id).catch(()=>0),
       })));

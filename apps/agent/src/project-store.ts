@@ -100,13 +100,17 @@ export class ProjectRepository {
       throw new ProjectError('Projeto inválido no disco: ' + (error instanceof Error ? error.message : String(error)), 422);
     }
   }
-  async list(): Promise<ProjectSummary[]> {
-    await mkdir(this.root, {recursive: true});
-    const entries = await readdir(this.root, {withFileTypes:true});
-    const results = await Promise.all(entries.filter(e=>e.isDirectory() && UUID.test(e.name)).map(async e=>{
-      try {
+  /** Um único passe: lista os projetos válidos e expõe erros em vez de escondê-los. */
+  async listDetailed():Promise<{
+    projects:ProjectSummary[];
+    invalidProjects:Array<{id:string;error:string}>;
+  }>{
+    await mkdir(this.root,{recursive:true});
+    const entries=await readdir(this.root,{withFileTypes:true});
+    const results=await Promise.all(entries.filter(e=>e.isDirectory()&&UUID.test(e.name)).map(async e=>{
+      try{
         const record=await this.read(e.name);
-        return {
+        const summary:ProjectSummary={
           id:record.project.id,
           name:record.project.name,
           durationFrames:record.project.scenes.reduce((n,s)=>n+s.durationFrames,0),
@@ -114,20 +118,25 @@ export class ProjectRepository {
           assetCount:record.project.assets.length,
           modifiedAt:record.modifiedAt,
           revision:record.revision,
-        } satisfies ProjectSummary;
-      } catch { return null; } // Projeto incompleto em escrita externa: não corromper a lista.
+        };
+        return {summary,invalid:null};
+      }catch(error){
+        return {summary:null,invalid:{
+          id:e.name,error:(error instanceof Error?error.message:String(error)).slice(0,320),
+        }};
+      }
     }));
-    return results.filter((x): x is ProjectSummary=>x!==null).sort((a,b)=>b.modifiedAt.localeCompare(a.modifiedAt));
+    return {
+      projects:results.map(x=>x.summary).filter((x):x is ProjectSummary=>x!==null)
+        .sort((a,b)=>b.modifiedAt.localeCompare(a.modifiedAt)),
+      invalidProjects:results.map(x=>x.invalid).filter((x):x is {id:string;error:string}=>x!==null),
+    };
+  }
+  async list():Promise<ProjectSummary[]>{
+    return (await this.listDetailed()).projects;
   }
   async inspectInvalid():Promise<Array<{id:string;error:string}>>{
-    // Um projeto com JSON incompatível deve aparecer como erro, nunca sumir da interface.
-    await mkdir(this.root,{recursive:true});
-    const entries=await readdir(this.root,{withFileTypes:true});
-    const checks=await Promise.all(entries.filter(e=>e.isDirectory()&&UUID.test(e.name)).map(async e=>{
-      try{await this.read(e.name);return null;}
-      catch(error){return {id:e.name,error:(error instanceof Error?error.message:String(error)).slice(0,320)};}
-    }));
-    return checks.filter((entry):entry is {id:string;error:string}=>entry!==null);
+    return (await this.listDetailed()).invalidProjects;
   }
   async save(id: string, incoming: unknown, expectedRevision: string): Promise<ProjectRecord> {
     const file = this.file(id);

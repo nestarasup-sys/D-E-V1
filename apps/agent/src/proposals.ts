@@ -127,7 +127,6 @@ export class ProposalRepository {
       .sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
   }
   async count(projectId:string):Promise<number>{
-    await this.projects.read(projectId);
     try{
       return (await readdir(this.directory(projectId)))
         .filter(name=>/^[0-9a-f-]{36}\.json$/.test(name)).length;
