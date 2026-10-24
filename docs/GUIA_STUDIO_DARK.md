@@ -15,8 +15,8 @@ Este é o **guia mestre do Studio Dark** para criadores, diretores, ChatGPT e op
 
 0. [Manual atual v0.18: primeiro uso, produção IA, voz, som, B-roll, segurança e manutenção](#0-manual-atual-v018--comece-pelo-que-funciona-hoje)
 
-1. [Comece aqui: vídeo com direção por JSON](#1-comece-aqui-vídeo-com-direção-por-json)
-2. [Os três tipos de JSON](#2-os-três-tipos-de-json)
+1. [Direção visual avançada por JSON (rota Codex opcional)](#1-comece-aqui-direção-visual-avançada-por-json-rota-codex-opcional)
+2. [Produção, projeto, direção e operações](#2-os-formatos-de-json-produção-projeto-direção-e-operações)
 3. [Tempo, resolução, IDs e limites](#3-tempo-resolução-ids-e-limites)
 4. [Tutorial: criar projeto, roteiro e duração](#4-tutorial-criar-projeto-roteiro-e-duração)
 5. [Tutorial: escrever direction.json](#5-tutorial-escrever-directionjson)
@@ -32,9 +32,9 @@ Este é o **guia mestre do Studio Dark** para criadores, diretores, ChatGPT e op
 15. [Referência completa dos comandos locais](#15-referência-completa-dos-comandos-locais)
 16. [Exemplo completo de episódio e direção criativa](#16-exemplo-completo-de-episódio-e-direção-criativa)
 17. [Checklist, erros comuns e soluções](#17-checklist-erros-comuns-e-soluções)
-18. [O que ainda NÃO está implementado](#18-o-que-ainda-não-está-implementado)
+18. [Limites atuais e recursos não implementados](#18-limites-atuais-e-o-que-continua-não-implementado)
 19. [Como atualizar este guia nas próximas versões](#19-como-atualizar-este-guia-nas-próximas-versões)
-20. [Prompt pronto para qualquer IA diretora](#20-prompt-pronto-para-qualquer-ia-diretora)
+20. [Prompt avançado direction.json](#20-prompt-avançado-para-ia-diretora-em-projeto-existente-directionjson)
 
 
 ## 0. Manual atual v0.18 — comece pelo que funciona hoje
@@ -49,57 +49,57 @@ Este é o **guia mestre do Studio Dark** para criadores, diretores, ChatGPT e op
 <summary>Termos usados neste guia</summary>
 
 - **Studio Dark:** nome editorial deste manual solicitado pelo mantenedor. **Dark Studio:** nome efetivo do produto, dos comandos, dos pacotes e do repositório.
-- **Produção IA:** o JSON de entrada ``darkstudio-production``, entendido pelo dashboard e convertido em projeto.
-- **Projeto completo:** arquivo ``project.json`` esquema 2, com IDs e arquivos de mídia já registrados.
-- **Direção visual:** ``direction.json`` esquema 1, para substituir só os planos visuais de um projeto existente, via proposta CLI.
+- **Produção IA:** o JSON de entrada `darkstudio-production`, entendido pelo dashboard e convertido em projeto.
+- **Projeto completo:** arquivo `project.json` esquema 2, com IDs e arquivos de mídia já registrados.
+- **Direção visual:** `direction.json` esquema 1, para substituir só os planos visuais de um projeto existente, via proposta CLI.
 - **Composição:** plano gráfico nativo com camadas, não uma imagem achatada.
 - **Asset:** mídia física cadastrada localmente, com ID, tipo, URL do serviço e informações de direitos.
 - **Beat:** bloco narrativo do roteiro; **shot:** plano visual; **scene:** cena-base que determina parte da duração; **clip:** trecho de mídia na timeline.
 </details>
 
-**Contrato técnico em 24/10/2026:** versão de aplicativo ``0.18.0``; serviço local ``apiProtocol: 10`` e build ``dark-studio-v0.18-acoustic-sound-auto-broll-10``; ``project.version = 2``, ``direction.version = 1``, ``darkstudio-production.version = 1`` e pacote portátil ZIP ``.darkstudio`` com manifesto versão 2. Um serviço v0.17 remanescente na porta 4317 **não é compatível** mesmo que responda "ready". Ver ``src/model/service-contract.ts``.
+**Contrato técnico em 24/10/2026:** versão de aplicativo `0.18.0`; serviço local `apiProtocol: 10` e build `dark-studio-v0.18-acoustic-sound-auto-broll-10`; `project.version = 2`, `direction.version = 1`, `darkstudio-production.version = 1` e pacote portátil ZIP `.darkstudio` com manifesto versão 2. Um serviço v0.17 remanescente na porta 4317 **não é compatível** mesmo que responda "ready". Ver `src/model/service-contract.ts`.
 
 ### 0.2 Instalação, atualização e abertura no Windows
 
-1. Trabalhe no clone de ``nestarasup-sys/D-E-V1``, branch ``main``. A pasta contém ``package.json``, ``ATUALIZAR.bat`` e ``INICIAR.bat``.
-2. Feche primeiro a janela antiga e o serviço local anterior. Execute **``ATUALIZAR.bat``** quando quiser baixar o código mais novo da ``main`` e instalar dependências. O atualizador protege alterações versionadas divergentes; **não use** ``git reset --hard`` / ``git clean -fdx`` para forçar update.
-3. Execute **``INICIAR.bat``** para abrir a versão **já instalada localmente**, sem buscar atualização automaticamente. O supervisor ``scripts/ensure-service.ps1`` verifica identidade de versão, workspace e processo; não deve encerrar processos desconhecidos.
+1. Trabalhe no clone de `nestarasup-sys/D-E-V1`, branch `main`. A pasta contém `package.json`, `ATUALIZAR.bat` e `INICIAR.bat`.
+2. Feche primeiro a janela antiga e o serviço local anterior. Execute **`ATUALIZAR.bat`** quando quiser baixar o código mais novo da `main` e instalar dependências. O atualizador protege alterações versionadas divergentes; **não use** `git reset --hard` / `git clean -fdx` para forçar update.
+3. Execute **`INICIAR.bat`** para abrir a versão **já instalada localmente**, sem buscar atualização automaticamente. O supervisor `scripts/ensure-service.ps1` verifica identidade de versão, workspace e processo; não deve encerrar processos desconhecidos.
 4. Se for uma instalação limpa, consulte [README — Preparar o Windows](../README.md#preparar-o-windows). A aplicação depende de Node/npm e ferramentas Windows compatíveis com o projeto; o render MP4 depende do pipeline Remotion/Chromium/FFmpeg utilizado pelo serviço.
-5. Confirme no dashboard que o serviço é compatível. Para conferir manualmente: ``npm run project -- service-info`` ou ``GET http://127.0.0.1:4317/health``. O serviço expõe também ``/v1/health``.
+5. Confirme no dashboard que o serviço é compatível. Para conferir manualmente: `npm run project -- service-info` ou `GET http://127.0.0.1:4317/health`. O serviço expõe também `/v1/health`.
 
-**Onde ficam seus arquivos:** por padrão, projetos privados em ``%USERPROFILE%\DarkStudio\projects\<UUID>\project.json``; biblioteca de mídias em ``%USERPROFILE%\DarkStudio\media``, trabalhos de exportação em ``%USERPROFILE%\DarkStudio\jobs``, uploads de pacotes em diretórios locais do Studio. ``DARK_STUDIO_DATA_ROOT`` e ``DARK_STUDIO_PROJECTS_DIR`` são usados pelo serviço/testes para isolamento de dados. **Não copie os projetos para o repositório Git nem publique WAV, fontes, vídeos, evidências ou chaves privadas.**
+**Onde ficam seus arquivos:** por padrão, projetos privados em `%USERPROFILE%\DarkStudio\projects\<UUID>\project.json`; biblioteca de mídias em `%USERPROFILE%\DarkStudio\media`, trabalhos de exportação em `%USERPROFILE%\DarkStudio\jobs`, uploads de pacotes em diretórios locais do Studio. `DARK_STUDIO_DATA_ROOT` e `DARK_STUDIO_PROJECTS_DIR` são usados pelo serviço/testes para isolamento de dados. **Não copie os projetos para o repositório Git nem publique WAV, fontes, vídeos, evidências ou chaves privadas.**
 
 ### 0.3 Escolher o JSON certo — quatro caminhos sem confusão
 
 | Quero fazer... | Formato | Entrada suportada na v0.18 | Precisa de WAV pronto? | Substitui projeto existente? |
 | --- | --- | --- | --- | --- |
-| **Criar um episódio novo a partir do ChatGPT** | ``darkstudio-production`` v1 | Dashboard ``Importar JSON / produção IA / .darkstudio`` | **Não**: Windows SAPI sintetiza narração real | **Não**: cria outro projeto |
-| Abrir/copiar um episódio completo | ``project.json`` v2 | Dashboard: mesmo botão, ou CLI ``import`` | Se houver locução, mídia deve estar disponível no serviço local | Importar gera cópia; operações de ``replace`` requerem revisão |
-| Dirigir visualmente um episódio que **já existe** | ``direction.json`` v1 | CLI ``direct UUID ARQUIVO REVISAO`` → ``Revisar Codex`` | **Sim**, se quiser usar o áudio existente; a direção não o cria | Apenas após aprovação da proposta |
-| Alterar cenas, mídias, legendas, planos ou identidade em lote | ``operacoes.json`` (array) | CLI ``preview`` / ``propose`` / ``apply`` | Depende das operações | Sim, se houver aprovação/execução |
-| Levar mídias, fontes autorizadas e projeto entre computadores | ``.darkstudio`` ZIP v2 | ``Exportar .darkstudio`` / importar pelo dashboard | **Não gera** voz nova: embute os WAVs já criados | Importar cria cópia e remapeia IDs |
+| **Criar um episódio novo a partir do ChatGPT** | `darkstudio-production` v1 | Dashboard `Importar JSON / produção IA / .darkstudio` | **Não**: Windows SAPI sintetiza narração real | **Não**: cria outro projeto |
+| Abrir/copiar um episódio completo | `project.json` v2 | Dashboard: mesmo botão, ou CLI `import` | Se houver locução, mídia deve estar disponível no serviço local | Importar gera cópia; operações de `replace` requerem revisão |
+| Dirigir visualmente um episódio que **já existe** | `direction.json` v1 | CLI `direct UUID ARQUIVO REVISAO` → `Revisar Codex` | **Sim**, se quiser usar o áudio existente; a direção não o cria | Apenas após aprovação da proposta |
+| Alterar cenas, mídias, legendas, planos ou identidade em lote | `operacoes.json` (array) | CLI `preview` / `propose` / `apply` | Depende das operações | Sim, se houver aprovação/execução |
+| Levar mídias, fontes autorizadas e projeto entre computadores | `.darkstudio` ZIP v2 | `Exportar .darkstudio` / importar pelo dashboard | **Não gera** voz nova: embute os WAVs já criados | Importar cria cópia e remapeia IDs |
 
-O formato de produção IA **não é** a mesma coisa que ``direction.json``. Na produção IA, o ChatGPT pode determinar a sequência de falas e os ``plannedFrames``; o aplicativo usa a **duração realmente medida dos WAVs** como relógio final. Na direção visual tradicional, cada ``startFrame`` / ``durationFrames`` é absoluto e os beats precisam cobrir toda a duração **já existente**.
+O formato de produção IA **não é** a mesma coisa que `direction.json`. Na produção IA, o ChatGPT pode determinar a sequência de falas e os `plannedFrames`; o aplicativo usa a **duração realmente medida dos WAVs** como relógio final. Na direção visual tradicional, cada `startFrame` / `durationFrames` é absoluto e os beats precisam cobrir toda a duração **já existente**.
 
-A tela inicial **importa arquivos**, não executa JSON/JavaScript colado como código. Salve a resposta do ChatGPT como texto UTF-8 com extensão ``.json`` e importe-a. **Codex e terminal não são obrigatórios** para o caminho ``darkstudio-production``. A CLI continua útil para direção, auditoria, projeto completo e propostas avançadas.
+A tela inicial **importa arquivos**, não executa JSON/JavaScript colado como código. Salve a resposta do ChatGPT como texto UTF-8 com extensão `.json` e importe-a. **Codex e terminal não são obrigatórios** para o caminho `darkstudio-production`. A CLI continua útil para direção, auditoria, projeto completo e propostas avançadas.
 
 ### 0.4 Caminho principal v0.18: do ChatGPT ao MP4
 
 1. Defina **tema, público, intenção, tom, duração aproximada e fontes factuais**. A IA não deve inventar estatísticas, imagens de prova ou direito de usar terceiros.
-2. Peça ao ChatGPT **somente um JSON v1 ``darkstudio-production`` válido**, sem cercas Markdown, com frases curtas em ``beats[].narration``, visuais em ``layers[]``, timing ``plannedFrames``, música/efeitos opcional e pedidos de B-roll opcionais. Leia o [exemplo completo](examples/PRODUCAO_018.example.json).
-3. Salve em disco como ``producao.json``. No dashboard, selecione **``Importar JSON / produção IA / .darkstudio``**. O serviço primeiro valida campos estritos; se houver erro, apresenta o caminho do campo, descrição e sugestão.
-4. O Windows SAPI cria **um WAV PCM mono 16 kHz/16 bit para cada beat**, sem fingir áudio inexistente. O serviço mede amostras de áudio e gera um projeto com ``scenes[]``, ``shots[]``, ``clips[]`` na trilha ``narration`` e ``captions[]`` cronometradas. Cada cena recebe a fala mais uma pausa configurada.
-5. Se o sintetizador SAPI fornecer eventos nativos ``SpeakProgress`` suficientes, o Studio gera os ``captions[].words[]`` e permite que camadas/sfx entrem na palavra efetivamente falada. Caso contrário, mantém a **legenda integral por frase**, sinaliza ``wordAlignment:"unavailable"`` e **não inventa instantes**.
-6. Segundo ``soundDesign``, o Studio também gera WAVs de música e efeitos procedurais, com volume reduzido sob a voz e gatilhos por palavra **somente quando houve alinhamento**.
+2. Peça ao ChatGPT **somente um JSON v1 `darkstudio-production` válido**, sem cercas Markdown, com frases curtas em `beats[].narration`, visuais em `layers[]`, timing `plannedFrames`, música/efeitos opcional e pedidos de B-roll opcionais. Leia o [exemplo completo](examples/PRODUCAO_018.example.json).
+3. Salve em disco como `producao.json`. No dashboard, selecione **`Importar JSON / produção IA / .darkstudio`**. O serviço primeiro valida campos estritos; se houver erro, apresenta o caminho do campo, descrição e sugestão.
+4. O Windows SAPI cria **um WAV PCM mono 16 kHz/16 bit para cada beat**, sem fingir áudio inexistente. O serviço mede amostras de áudio e gera um projeto com `scenes[]`, `shots[]`, `clips[]` na trilha `narration` e `captions[]` cronometradas. Cada cena recebe a fala mais uma pausa configurada.
+5. Se o sintetizador SAPI fornecer eventos nativos `SpeakProgress` suficientes, o Studio gera os `captions[].words[]` e permite que camadas/sfx entrem na palavra efetivamente falada. Caso contrário, mantém a **legenda integral por frase**, sinaliza `wordAlignment:"unavailable"` e **não inventa instantes**.
+6. Segundo `soundDesign`, o Studio também gera WAVs de música e efeitos procedurais, com volume reduzido sob a voz e gatilhos por palavra **somente quando houve alinhamento**.
 7. Se houver pedidos de B-roll, revise a pendência ou use o painel Smart B-roll com sua chave Pexels. A busca e importação podem ocorrer após o projeto ser criado: **não representam prova de direito nem correspondência visual garantida**.
-8. Abra o editor, ajuste composição, tipografia, câmera, poses e volume. Clique **``Revisar frames renderizados (QA)``**; trate os alertas como inspeção amostral, não como certificação.
-9. Exporte MP4 por **``Exportar MP4``** e assista/ouça o vídeo inteiro. Opcionalmente use **``Exportar .darkstudio``** para um pacote com mídia, respeitando licenças.
+8. Abra o editor, ajuste composição, tipografia, câmera, poses e volume. Clique **`Revisar frames renderizados (QA)`**; trate os alertas como inspeção amostral, não como certificação.
+9. Exporte MP4 por **`Exportar MP4`** e assista/ouça o vídeo inteiro. Opcionalmente use **`Exportar .darkstudio`** para um pacote com mídia, respeitando licenças.
 
 **Falhas honestas:** sem voz SAPI compatível, a importação não deve finalizar silenciosamente. Sem mídia B-roll validada, o projeto conserva ilustração procedural. Sem timings acústicos, as legendas permanecem por frase e eventos dependentes de palavra podem não ser disparados.
 
 ### 0.5 Exemplo mínimo completo de produção IA (v1)
 
-Este exemplo é para **criar um projeto novo**. Não coloque ``id`` de projeto, ``assetId`` fictício, JavaScript ou URLs de mídia inexistente nele.
+Este exemplo é para **criar um projeto novo**. Não coloque `id` de projeto, `assetId` fictício, JavaScript ou URLs de mídia inexistente nele.
 
 ```json
 {
@@ -160,47 +160,47 @@ Este exemplo é para **criar um projeto novo**. Não coloque ``id`` de projeto, 
 }
 ```
 
-**Por que funciona:** ``voice.voice=""`` usa voz instalada pt-BR se disponível; ``narration`` produz WAV real; ``plannedFrames`` só serve como desenho inicial a ser escalado; ``wordCue`` e o efeito esperam timestamp acústico da palavra "salário"; o pedido de B-roll continua pendente até encontrar arquivo e revisar direitos. O primeiro vídeo **não promete** que o Pexels entregará uma cena adequada. Para a receita didática mantida no repositório, veja [produção v0.18 real](examples/PRODUCAO_018.example.json).
+**Por que funciona:** `voice.voice=""` usa voz instalada pt-BR se disponível; `narration` produz WAV real; `plannedFrames` só serve como desenho inicial a ser escalado; `wordCue` e o efeito esperam timestamp acústico da palavra "salário"; o pedido de B-roll continua pendente até encontrar arquivo e revisar direitos. O primeiro vídeo **não promete** que o Pexels entregará uma cena adequada. Para a receita didática mantida no repositório, veja [produção v0.18 real](examples/PRODUCAO_018.example.json).
 
 ### 0.6 Campos aceitos em produção IA — tabela atual
 
-**Raiz** de ``darkstudio-production``:
+**Raiz** de `darkstudio-production`:
 
 | Campo | Tipo / limite real | Efeito |
 | --- | --- | --- |
-| ``format`` | literal ``"darkstudio-production"`` | Diferencia de projeto, direção e operações |
-| ``version`` | literal ``1`` | Versão do intercâmbio IA, **não** versão do aplicativo |
-| ``title`` | texto 1–120 | Nome do episódio |
-| ``voice`` | objeto; defaults disponíveis | Configuração SAPI |
-| ``soundDesign`` | ``auto`` (padrão), ``explicit``, ``off`` | Trilha e eventos |
-| ``brand`` | opcional, subconjunto de ``channelKit`` | Identidade do canal |
-| ``beats`` | 1–200 | Lista de blocos narrativos |
+| `format` | literal `"darkstudio-production"` | Diferencia de projeto, direção e operações |
+| `version` | literal `1` | Versão do intercâmbio IA, **não** versão do aplicativo |
+| `title` | texto 1–120 | Nome do episódio |
+| `voice` | objeto; defaults disponíveis | Configuração SAPI |
+| `soundDesign` | `auto` (padrão), `explicit`, `off` | Trilha e eventos |
+| `brand` | opcional, subconjunto de `channelKit` | Identidade do canal |
+| `beats` | 1–200 | Lista de blocos narrativos |
 
-**Campos obrigatórios de beat:** ``title`` (pode estar vazio pelo contrato de direção; prefira claro), ``purpose`` (hook/context/proof/data/contrast/location/transition/conclusion) e ``narration`` (1–1.600 caracteres). Os demais de direção, se usados, obedecem ao schema: ``plannedFrames`` inteiro 15–1.800 (padrão 120); ``style``; ``motionPreset``; ``subtitle``, ``kicker``; ``presetId``; ``layers[]`` (até 48); ``cameraPath`` (até 24); ``transitionIn``; ``framing``; ``mediaPlan``; ``investigation``; ``data`` (com evidência cadastrada, não valores inventados); ``accentColor`` e ``backgroundColor``. ``broll``, ``music`` e ``soundEffects[]`` são específicos da produção IA.
+**Campos obrigatórios de beat:** `title` (pode estar vazio pelo contrato de direção; prefira claro), `purpose` (hook/context/proof/data/contrast/location/transition/conclusion) e `narration` (1–1.600 caracteres). Os demais de direção, se usados, obedecem ao schema: `plannedFrames` inteiro 15–1.800 (padrão 120); `style`; `motionPreset`; `subtitle`, `kicker`; `presetId`; `layers[]` (até 48); `cameraPath` (até 24); `transitionIn`; `framing`; `mediaPlan`; `investigation`; `data` (com evidência cadastrada, não valores inventados); `accentColor` e `backgroundColor`. `broll`, `music` e `soundEffects[]` são específicos da produção IA.
 
-**Atenção:** o esquema de produção herda o de direção. Embora ``assetId`` e dados investigativos façam parte do vocabulário, o novo projeto ainda **não possui** mídia externa ou evidências cadastradas durante a compilação. Para a primeira importação, prefira layers vetoriais, personagens, textos e dados não factuais; depois importe fotos, vídeos e evidências reais. Referências inexistentes falham, em vez de serem criadas artificialmente.
+**Atenção:** o esquema de produção herda o de direção. Embora `assetId` e dados investigativos façam parte do vocabulário, o novo projeto ainda **não possui** mídia externa ou evidências cadastradas durante a compilação. Para a primeira importação, prefira layers vetoriais, personagens, textos e dados não factuais; depois importe fotos, vídeos e evidências reais. Referências inexistentes falham, em vez de serem criadas artificialmente.
 
 **Configuração de voz:**
 
 | Campo | Valores aceitos | Comportamento |
 | --- | --- | --- |
-| ``engine`` | literal ``windows-sapi`` | Síntese local pelo Windows |
-| ``voice`` | string até 140 | Vazia = preferir voz pt-BR instalada; se preenchida, **nome exato** SAPI |
-| ``rate`` | inteiro -10 a 10; padrão 1 | Taxa de fala do Windows SAPI |
-| ``pauseMs`` | 0–2.500; padrão 350 | Silêncio depois de cada bloco, entra na duração final da cena |
+| `engine` | literal `windows-sapi` | Síntese local pelo Windows |
+| `voice` | string até 140 | Vazia = preferir voz pt-BR instalada; se preenchida, **nome exato** SAPI |
+| `rate` | inteiro -10 a 10; padrão 1 | Taxa de fala do Windows SAPI |
+| `pauseMs` | 0–2.500; padrão 350 | Silêncio depois de cada bloco, entra na duração final da cena |
 
 **Música e efeitos:**
 
 | Campo | Valores | Observações |
 | --- | --- | --- |
-| ``soundDesign`` | ``auto``, ``explicit``, ``off`` | Auto cria trilha por beat e sugere até dois SFX por palavras-chave disponíveis; explicit respeita somente os pedidos; off desativa síntese procedural |
-| ``beat.music.mood`` | ``documentary``, ``tension``, ``hope``, ``calm`` | Onda procedural original, não gravação comercial |
-| ``beat.music.volume`` | 0,03–0,40; padrão 0,22 | Base do volume musical |
-| ``beat.music.ducking`` | 0,05–0,80; padrão 0,28 | Redução de volume sob fala |
-| ``beat.soundEffects[]`` | até 8 itens | Cada um tem ``sound``, ``word``, ``occurrence`` (1–20), ``offsetFrames`` (-45..45) e ``volume`` (0,05..0,85) |
-| ``beat.layers[].wordCue`` | ``word``, ``occurrence`` (1–20), ``offsetFrames`` (-120..120) | A camada aparece no tempo da palavra pronunciada; sem evento acústico, o gatilho não é fabricado |
+| `soundDesign` | `auto`, `explicit`, `off` | Auto cria trilha por beat e sugere até dois SFX por palavras-chave disponíveis; explicit respeita somente os pedidos; off desativa síntese procedural |
+| `beat.music.mood` | `documentary`, `tension`, `hope`, `calm` | Onda procedural original, não gravação comercial |
+| `beat.music.volume` | 0,03–0,40; padrão 0,22 | Base do volume musical |
+| `beat.music.ducking` | 0,05–0,80; padrão 0,28 | Redução de volume sob fala |
+| `beat.soundEffects[]` | até 8 itens | Cada um tem `sound`, `word`, `occurrence` (1–20), `offsetFrames` (-45..45) e `volume` (0,05..0,85) |
+| `beat.layers[].wordCue` | `word`, `occurrence` (1–20), `offsetFrames` (-120..120) | A camada aparece no tempo da palavra pronunciada; sem evento acústico, o gatilho não é fabricado |
 
-**Paleta dos nove efeitos procedurais**: ``soft-whoosh``, ``page-turn``, ``document-click``, ``ambient-pulse``, ``positive-chime``, ``keyboard-tap``, ``transition-sweep``, ``notification-soft``, ``impact-low``. Nada é baixado de biblioteca comercial. O novo WAV é registrado como asset e o clipe fica em ``music`` ou ``sfx``, pronto para ajuste manual.
+**Paleta dos nove efeitos procedurais**: `soft-whoosh`, `page-turn`, `document-click`, `ambient-pulse`, `positive-chime`, `keyboard-tap`, `transition-sweep`, `notification-soft`, `impact-low`. Nada é baixado de biblioteca comercial. O novo WAV é registrado como asset e o clipe fica em `music` ou `sfx`, pronto para ajuste manual.
 
 **Pedido de B-roll:**
 
@@ -216,29 +216,29 @@ Este exemplo é para **criar um projeto novo**. Não coloque ``id`` de projeto, 
 }
 ```
 
-``query`` é a pesquisa textual (2–180 caracteres); ``description`` até 450, ``purpose`` até 280, ``licenseNote`` até 300; ``provider`` vale ``pexels`` ou ``manual``. É um pedido, **não um vídeo obtido**. Evite depender de uma filmagem cuja existência/licença não esteja confirmada.
+`query` é a pesquisa textual (2–180 caracteres); `description` até 450, `purpose` até 280, `licenseNote` até 300; `provider` vale `pexels` ou `manual`. É um pedido, **não um vídeo obtido**. Evite depender de uma filmagem cuja existência/licença não esteja confirmada.
 
 ### 0.7 Relógio, camadas e sincronização: não confundir referências temporais
 
-- Projeto: **1920 × 1080**, **30 FPS**; ``frame = round(segundos * 30)``.
-- ``scenes[].durationFrames`` somados determinam a duração do projeto. A produção por IA redimensiona cada beat à duração do WAV + pausa; ela **não** fixa a saída nos ``plannedFrames`` do ChatGPT.
-- ``shots[].startFrame`` e ``clips[].startFrame`` são **absolutos no episódio**; ``shot.layers[].startFrame`` é **relativo ao plano**, salvo sincronismo com legenda.
-- Keyframes de câmera, rig e layer usam **frames relativos ao objeto**; ``captions[].words[].startFrame/endFrame`` são **absolutos dentro do episódio**.
-- ``cueCaptionId`` relaciona camada a legenda cadastrada; ``cueWord``/``cueOccurrence`` procuram a palavra com timestamp, caso exista. ``cueOffsetFrames`` permite ajuste visual manual sem alterar o áudio. Gatilho ausente **oculta a animação dependente dele**.
+- Projeto: **1920 × 1080**, **30 FPS**; `frame = round(segundos * 30)`.
+- `scenes[].durationFrames` somados determinam a duração do projeto. A produção por IA redimensiona cada beat à duração do WAV + pausa; ela **não** fixa a saída nos `plannedFrames` do ChatGPT.
+- `shots[].startFrame` e `clips[].startFrame` são **absolutos no episódio**; `shot.layers[].startFrame` é **relativo ao plano**, salvo sincronismo com legenda.
+- Keyframes de câmera, rig e layer usam **frames relativos ao objeto**; `captions[].words[].startFrame/endFrame` são **absolutos dentro do episódio**.
+- `cueCaptionId` relaciona camada a legenda cadastrada; `cueWord`/`cueOccurrence` procuram a palavra com timestamp, caso exista. `cueOffsetFrames` permite ajuste visual manual sem alterar o áudio. Gatilho ausente **oculta a animação dependente dele**.
 - Quando voz/velocidade muda, **Regenerar voz e sincronização** cria WAVs novos, recalcula frames, legendas e eventos e preserva IDs de shots e layers quando possível; outros clipes do usuário têm posicionamento transformado para a nova timeline, mas precisam ser conferidos auditivamente.
 - Trocar palavra/editar texto de legenda pode invalidar marcações anteriores; regenere a voz ou limpe tempos de palavra incorretos. **SAPI SpeakProgress não é transcrição ASR nem forced alignment universal para mídias pré-gravadas.**
 
 #### Editor visual: composição autoral de verdade
 
-O JSON pode usar todos os **12 kinds** de camadas: ``text``, ``character``, ``object``, ``building``, ``scene``, ``chart``, ``shape``, ``connector``, ``particles``, ``image``, ``group`` e ``vector``. Os **20 behaviors** são ``none``, ``float``, ``pulse``, ``walk``, ``wave``, ``point``, ``nod``, ``think``, ``celebrate``, ``orbit``, ``shake``, ``parallax``, ``draw``, ``typewriter``, ``count``, ``grow``, ``stagger``, ``slide-in``, ``bounce``, ``word-reveal``.
+O JSON pode usar todos os **12 kinds** de camadas: `text`, `character`, `object`, `building`, `scene`, `chart`, `shape`, `connector`, `particles`, `image`, `group` e `vector`. Os **20 behaviors** são `none`, `float`, `pulse`, `walk`, `wave`, `point`, `nod`, `think`, `celebrate`, `orbit`, `shake`, `parallax`, `draw`, `typewriter`, `count`, `grow`, `stagger`, `slide-in`, `bounce`, `word-reveal`.
 
-- **Texto:** ``fontFamily``, ``fontWeight`` (100–900), ``fontSize`` (12–260), ``textAlign``, ``letterSpacing``, ``lineHeight``, ``strokeColor``, ``strokeWidth``, efeitos de blur/sombra/degradê. Famílias portáteis importadas são ``DSFont-<UUID>``, não uma URL remota.
-- **Hierarquia:** ``key`` e ``parentKey`` permitem à IA nomear grupos sem fornecer UUID; o compilador os converte em ``id`` e ``parentId`` e rejeita ciclo ou referência inexistente. Grupo pode ter filhos animáveis.
-- **Vetor:** ``vectorPath`` aceita um caminho SVG ``d`` restrito; **não aceita** código HTML arbitrário, JavaScript, SVG remoto ou scripts executáveis.
-- **Personagem 2D:** ``rig`` controla braço esquerdo/direito, perna esquerda/direita, cabeça, posição ocular e sorriso. ``rigKeys`` admite até 40 poses com easing; expressões e personagens estilizados continuam editáveis. **Não** é geração de ator fotorrealista nem lip-sync automático.
-- **Gráficos:** ``chartType`` admite ``bar``, ``line``, ``donut``, ``ranking``, ``area``, ``waterfall``, ``cashflow`` e ``counter``. ``chartStages`` anima até 12 conjuntos, com valores de tamanhos correspondentes; números factuais exigem ``sourceEvidenceId`` existente. Uma ilustração não pode fingir dado verificado.
-- **Câmera:** ``cameraPath`` até 24 pontos ``{frame,x,y,zoom,rotation,easing}``, com x/y relativos ao centro do canvas, zoom 0,5–4 e rotação -45..45. Transições ``transitionIn.type``: ``cut``, ``fade``, ``slide-left``, ``wipe``; duração 1–90 frames. Não há câmera 3D livre nem rastreamento automático de rosto.
-- **Frame e mídia:** ``framing`` permite ``fit`` cover/contain, ``focusX``, ``focusY`` e ``zoom``. Em vídeo, a mídia real usa ``assetId`` e corte inicial ``trimStartFrames``; o overlay de camadas continua editável.
+- **Texto:** `fontFamily`, `fontWeight` (100–900), `fontSize` (12–260), `textAlign`, `letterSpacing`, `lineHeight`, `strokeColor`, `strokeWidth`, efeitos de blur/sombra/degradê. Famílias portáteis importadas são `DSFont-<UUID>`, não uma URL remota.
+- **Hierarquia:** `key` e `parentKey` permitem à IA nomear grupos sem fornecer UUID; o compilador os converte em `id` e `parentId` e rejeita ciclo ou referência inexistente. Grupo pode ter filhos animáveis.
+- **Vetor:** `vectorPath` aceita um caminho SVG `d` restrito; **não aceita** código HTML arbitrário, JavaScript, SVG remoto ou scripts executáveis.
+- **Personagem 2D:** `rig` controla braço esquerdo/direito, perna esquerda/direita, cabeça, posição ocular e sorriso. `rigKeys` admite até 40 poses com easing; expressões e personagens estilizados continuam editáveis. **Não** é geração de ator fotorrealista nem lip-sync automático.
+- **Gráficos:** `chartType` admite `bar`, `line`, `donut`, `ranking`, `area`, `waterfall`, `cashflow` e `counter`. `chartStages` anima até 12 conjuntos, com valores de tamanhos correspondentes; números factuais exigem `sourceEvidenceId` existente. Uma ilustração não pode fingir dado verificado.
+- **Câmera:** `cameraPath` até 24 pontos `{frame,x,y,zoom,rotation,easing}`, com x/y relativos ao centro do canvas, zoom 0,5–4 e rotação -45..45. Transições `transitionIn.type`: `cut`, `fade`, `slide-left`, `wipe`; duração 1–90 frames. Não há câmera 3D livre nem rastreamento automático de rosto.
+- **Frame e mídia:** `framing` permite `fit` cover/contain, `focusX`, `focusY` e `zoom`. Em vídeo, a mídia real usa `assetId` e corte inicial `trimStartFrames`; o overlay de camadas continua editável.
 
 **Exemplo de grupo simbólico em direção visual avançada:**
 
@@ -263,66 +263,66 @@ O JSON pode usar todos os **12 kinds** de camadas: ``text``, ``character``, ``ob
 }
 ```
 
-Este exemplo mostra **somente direção de 120 frames**; use ``direct`` com projeto existente de exatamente 120 frames. Para produção IA, remova ``startFrame``/``durationFrames`` do beat e inclua ``format``, ``title``, ``narration`` e ``plannedFrames``. Não confunda estrutura de beat com a de projeto.
+Este exemplo mostra **somente direção de 120 frames**; use `direct` com projeto existente de exatamente 120 frames. Para produção IA, remova `startFrame`/`durationFrames` do beat e inclua `format`, `title`, `narration` e `plannedFrames`. Não confunda estrutura de beat com a de projeto.
 
 ### 0.8 Painel Smart B-roll, seleção conservadora e direitos
 
-**Manual:** selecione um shot, pesquise por texto no catálogo Pexels pela interface, confira prévia, duração, autoria e página oficial; somente após revisão da licença confirme importação do MP4 para a biblioteca. A chave Pexels pode ser digitada na sessão ou configurada no ambiente local do serviço como ``PEXELS_API_KEY``. O serviço usa API oficial e download HTTPS de hosts permitidos, com teto de **256 MB por vídeo** neste fluxo.
+**Manual:** selecione um shot, pesquise por texto no catálogo Pexels pela interface, confira prévia, duração, autoria e página oficial; somente após revisão da licença confirme importação do MP4 para a biblioteca. A chave Pexels pode ser digitada na sessão ou configurada no ambiente local do serviço como `PEXELS_API_KEY`. O serviço usa API oficial e download HTTPS de hosts permitidos, com teto de **256 MB por vídeo** neste fluxo.
 
 **Automático por lote:** marque a opção de consentimento no painel, então **Selecionar automaticamente B-roll pendente (até 10 planos)**. O sistema:
-1. Examina pedidos ``mediaPlan.query`` dos shots gráficos pendentes (até 10 por operação).
+1. Examina pedidos `mediaPlan.query` dos shots gráficos pendentes (até 10 por operação).
 2. Consulta até 15 resultados por busca; atribui escore conservador por coincidência textual do título/slug publicado pelo fornecedor, adequação de duração/resolução e existência de dados do criador/licença.
 3. Só seleciona com escore igual ou superior ao limiar **0,77** e critérios obrigatórios satisfeitos; se nada passar, mantém a ilustração procedural original.
-4. Revalida o vídeo e a origem via API, registra autor, página, licença e atribuição; o asset selecionado **automaticamente começa com ``rights.status = "unknown"``** até revisão editorial.
+4. Revalida o vídeo e a origem via API, registra autor, página, licença e atribuição; o asset selecionado **automaticamente começa com `rights.status = "unknown"`** até revisão editorial.
 5. Associa o vídeo ao shot quando sua duração é suficiente e preserva camadas SVG/texto/personagens sobrepostas.
 
-**Ética e limite crucial:** seleção por título/metadados **não é reconhecimento visual dos pixels** nem certificação de direitos de imagem, marcas, figuras públicas ou uso comercial. O usuário precisa assistir e conferir o material e os termos vigentes. Pacotes ``.darkstudio`` **bloqueiam exportar filmagens Pexels com direitos ainda pendentes**; só altere o status após revisão real. Nenhuma IA pode marcar automaticamente ``rights.status = "cleared"``.
+**Ética e limite crucial:** seleção por título/metadados **não é reconhecimento visual dos pixels** nem certificação de direitos de imagem, marcas, figuras públicas ou uso comercial. O usuário precisa assistir e conferir o material e os termos vigentes. Pacotes `.darkstudio` **bloqueiam exportar filmagens Pexels com direitos ainda pendentes**; só altere o status após revisão real. Nenhuma IA pode marcar automaticamente `rights.status = "cleared"`.
 
 ### 0.9 Biblioteca, arquivos e fontes de tipografia portátil
 
 | Categoria | Extensões aceitas | O que acontece |
 | --- | --- | --- |
-| Imagem | PNG, JPG/JPEG, WebP | Asset ``image``, usado como layer/shot/clipe visual |
-| Vídeo | MP4, WebM, MOV | Asset ``video``, pode virar shot ou clipe |
-| Áudio | MP3, WAV, M4A, OGG | Asset ``audio``, usado nas trilhas de narração, música e SFX |
-| Fontes | WOFF2, WOFF, TTF, OTF | Asset ``font``, acessível no painel de tipografia |
+| Imagem | PNG, JPG/JPEG, WebP | Asset `image`, usado como layer/shot/clipe visual |
+| Vídeo | MP4, WebM, MOV | Asset `video`, pode virar shot ou clipe |
+| Áudio | MP3, WAV, M4A, OGG | Asset `audio`, usado nas trilhas de narração, música e SFX |
+| Fontes | WOFF2, WOFF, TTF, OTF | Asset `font`, acessível no painel de tipografia |
 
-**Para incorporar fonte:** importe o arquivo pelo botão **``Importar mídia``**, selecione-a na tipografia do layer (família ``DSFont-UUID``). O Player e MP4 usam o mesmo carregamento ``@font-face`` local. Para empacotar uma fonte no ``.darkstudio``, registre ``rights.licenseName`` e marque ``redistributionAllowed:true`` **apenas quando a licença realmente permitir redistribuição**. Afirmar isso na UI é uma declaração do responsável editorial, não validação automática da licença. Se não houver autorização, use fonte instalada localmente e esteja ciente de que outro computador poderá renderizar com fallback ou não ter a mesma tipografia.
+**Para incorporar fonte:** importe o arquivo pelo botão **`Importar mídia`**, selecione-a na tipografia do layer (família `DSFont-UUID`). O Player e MP4 usam o mesmo carregamento `@font-face` local. Para empacotar uma fonte no `.darkstudio`, registre `rights.licenseName` e marque `redistributionAllowed:true` **apenas quando a licença realmente permitir redistribuição**. Afirmar isso na UI é uma declaração do responsável editorial, não validação automática da licença. Se não houver autorização, use fonte instalada localmente e esteja ciente de que outro computador poderá renderizar com fallback ou não ter a mesma tipografia.
 
-**Direitos por asset:** ``rights.status`` = ``unknown`` / ``cleared`` / ``restricted``; ``sourceUrl``, ``creator``, ``licenseName``, ``attribution``, ``notes`` e ``redistributionAllowed`` opcional. Não use ``cleared`` para encobrir dúvidas de licenciamento.
+**Direitos por asset:** `rights.status` = `unknown` / `cleared` / `restricted`; `sourceUrl`, `creator`, `licenseName`, `attribution`, `notes` e `redistributionAllowed` opcional. Não use `cleared` para encobrir dúvidas de licenciamento.
 
 ### 0.10 Controle editorial, evidências e gráficos de economia
 
-Para estatísticas, porcentagens, preços e gráficos, comece por **evidências reais** no projeto: ``evidence[]`` guarda ``claim``, ``sourceTitle``, ``sourceUrl`` (HTTPS), ``sourceExcerpt``, datas de publicação/consulta, região, unidade, notas, direitos e ``reviewStatus`` (pending/verified/rejected). Uma evidência cadastrada **não é automaticamente verificada**.
+Para estatísticas, porcentagens, preços e gráficos, comece por **evidências reais** no projeto: `evidence[]` guarda `claim`, `sourceTitle`, `sourceUrl` (HTTPS), `sourceExcerpt`, datas de publicação/consulta, região, unidade, notas, direitos e `reviewStatus` (pending/verified/rejected). Uma evidência cadastrada **não é automaticamente verificada**.
 
-O gráfico com valores exige vínculo por ``sourceEvidenceId``; evite dados fabricados só para preencher barras. Identifique se é simulação, se valores foram normalizados, a unidade, local, período, fonte e o que mudou na comparação. Estilos de investigação incluem ``dossier``, ``document``, ``evidence``, ``chart``, ``map``, ``comparison`` e ``lower-third``. O mapa **é esquemático**, não uma API cartográfica ou coordenadas reais. Reconstruções não devem parecer provas fotográficas autênticas.
+O gráfico com valores exige vínculo por `sourceEvidenceId`; evite dados fabricados só para preencher barras. Identifique se é simulação, se valores foram normalizados, a unidade, local, período, fonte e o que mudou na comparação. Estilos de investigação incluem `dossier`, `document`, `evidence`, `chart`, `map`, `comparison` e `lower-third`. O mapa **é esquemático**, não uma API cartográfica ou coordenadas reais. Reconstruções não devem parecer provas fotográficas autênticas.
 
 ### 0.11 QA de frames renderizados com OCR português offline
 
-O botão **``Revisar frames renderizados (QA)``** renderiza quadros amostrados de verdade usando o pipeline do produto. Seleciona preferencialmente início/fim dos shots, transições, keyframes e movimentos relevantes, até **96 quadros PNG em 480×270**. Até **24 desses quadros** passam por OCR local Tesseract.js com dados da língua portuguesa incluídos como dependência; nenhum pedido de OCR é enviado a servidor externo.
+O botão **`Revisar frames renderizados (QA)`** renderiza quadros amostrados de verdade usando o pipeline do produto. Seleciona preferencialmente início/fim dos shots, transições, keyframes e movimentos relevantes, até **96 quadros PNG em 480×270**. Até **24 desses quadros** passam por OCR local Tesseract.js com dados da língua portuguesa incluídos como dependência; nenhum pedido de OCR é enviado a servidor externo.
 
 O relatório detecta **riscos** de:
 - palavra cortada na borda, baixa confiança do OCR, texto esperado ilegível/não reconhecido e palavra/região sobreposta;
 - blocos de texto geometricamente sobrepostos, fora do canvas ou densidade visual excessiva;
 - baixo contraste/localização de texto, mudança abrupta entre frames, pouca variação luminosa e atividade nas bordas.
 
-Cada alerta inclui ``frame``, ``seconds`` (frame / 30) e ``recommendation`` sugerida. O editor oferece **``Salvar relatório completo JSON``**. Leia ``ocr.status`` / ``framesAnalyzed``: falha do modelo local não equivale a ausência de problemas. A inspeção é **amostral e heurística**, não lê todos os frames de um documentário longo e não substitui revisão visual de um MP4 completo.
+Cada alerta inclui `frame`, `seconds` (frame / 30) e `recommendation` sugerida. O editor oferece **`Salvar relatório completo JSON`**. Leia `ocr.status` / `framesAnalyzed`: falha do modelo local não equivale a ausência de problemas. A inspeção é **amostral e heurística**, não lê todos os frames de um documentário longo e não substitui revisão visual de um MP4 completo.
 
 ### 0.12 Arquivo portátil único .darkstudio (ZIP64 v2)
 
-**``Exportar .darkstudio``** monta em disco um ZIP64 com ``project.json``, ``manifest.json`` e ``media/<UUID>.<ext>`` de cada asset permitido, verificando tamanhos e hashes SHA-256. **Não** coloca todos os vídeos na RAM antes de compactar. A importação lê em streaming, verifica caminho e tamanho, hashes, entrada inesperada/duplicada, faz staging e só cria projeto depois da verificação. Importação de pacotes v1 antigos permanece suportada dentro de seus limites históricos.
+**`Exportar .darkstudio`** monta em disco um ZIP64 com `project.json`, `manifest.json` e `media/<UUID>.<ext>` de cada asset permitido, verificando tamanhos e hashes SHA-256. **Não** coloca todos os vídeos na RAM antes de compactar. A importação lê em streaming, verifica caminho e tamanho, hashes, entrada inesperada/duplicada, faz staging e só cria projeto depois da verificação. Importação de pacotes v1 antigos permanece suportada dentro de seus limites históricos.
 
-**Tetos atuais deliberados:** **64 GiB por pacote**, **16 GiB por mídia**, **até 12.000 mídias**; na prática depende de espaço em disco, CPU e memória. Há limite adicional para o arquivo ``project.json`` do pacote (**12 MB**). Mais mídias que o limite de ``clips[]`` (4.000) não significam que todas possam estar simultaneamente na timeline. O ZIP usa conteúdo sem compressão dos arquivos de mídia (não promete redução drástica do tamanho).
+**Tetos atuais deliberados:** **64 GiB por pacote**, **16 GiB por mídia**, **até 12.000 mídias**; na prática depende de espaço em disco, CPU e memória. Há limite adicional para o arquivo `project.json` do pacote (**12 MB**). Mais mídias que o limite de `clips[]` (4.000) não significam que todas possam estar simultaneamente na timeline. O ZIP usa conteúdo sem compressão dos arquivos de mídia (não promete redução drástica do tamanho).
 
 **Transferência confiável:** exportação prepara arquivo local e oferece download com **HTTP Range**; a importação do dashboard usa upload em blocos de até **8 MiB** com consulta do offset, permitindo continuar ao selecionar o mesmo arquivo após interrupção. O serviço não recupera automaticamente um **render MP4** interrompido a partir do último frame: ZIP retomável ≠ render retomável. Arquivos corrompidos não se tornam projetos válidos. Direitos de fontes e filmagens pendentes são verificados na exportação.
 
 ### 0.13 O que há no dashboard e no editor
 
-**Dashboard:** ``+ Criar projeto`` (projeto básico sem locução), ``Importar JSON / produção IA / .darkstudio`` (produção por IA, projeto completo ou pacote), ``Criar piloto audiovisual 30s`` (demonstração), abrir, ``Duplicar``, ``Arquivar`` (move para ``_archived`` sem apagar mídia), ``Versões`` (histórico), ``Revisar Codex`` (propostas), ``Diagnóstico`` (avisos), ``Produção`` (etapas e checkpoints), migração de projeto legado. O Codex local é um **caminho alternativo**, não a única entrada de JSON.
+**Dashboard:** `+ Criar projeto` (projeto básico sem locução), `Importar JSON / produção IA / .darkstudio` (produção por IA, projeto completo ou pacote), `Criar piloto audiovisual 30s` (demonstração), abrir, `Duplicar`, `Arquivar` (move para `_archived` sem apagar mídia), `Versões` (histórico), `Revisar Codex` (propostas), `Diagnóstico` (avisos), `Produção` (etapas e checkpoints), migração de projeto legado. O Codex local é um **caminho alternativo**, não a única entrada de JSON.
 
-**Editor:** ``Desfazer``, ``Refazer``, seleção de cena/shot/layer, timeline visual, timeline de camadas e trilhas de áudio, ``Importar mídia``, ``Exportar JSON``, ``Exportar MP4``, ``Exportar .darkstudio``; keyframes de transformações, câmera e volume, efeitos de texto, rigs 2D, gráficos, duração e sincronismo de legenda, biblioteca de assets e fontes, ``Importar SRT`` / ``Exportar SRT`` e painel de QA. Para áudio, use ``Fade in``, ``Fade out``, ``Sem fade`` e ``Quadro-chave de volume``. Para conflitos com mudanças externas, há **``Recarregar projeto do disco``**.
+**Editor:** `Desfazer`, `Refazer`, seleção de cena/shot/layer, timeline visual, timeline de camadas e trilhas de áudio, `Importar mídia`, `Exportar JSON`, `Exportar MP4`, `Exportar .darkstudio`; keyframes de transformações, câmera e volume, efeitos de texto, rigs 2D, gráficos, duração e sincronismo de legenda, biblioteca de assets e fontes, `Importar SRT` / `Exportar SRT` e painel de QA. Para áudio, use `Fade in`, `Fade out`, `Sem fade` e `Quadro-chave de volume`. Para conflitos com mudanças externas, há **`Recarregar projeto do disco`**.
 
-**Narração v0.18:** no painel **``NARRADOR AUTOMÁTICO · PRODUÇÃO JSON v0.18``**, veja o total de falas alinhadas, selecione voz SAPI instalada, taxa e pausa, e clique **``Regenerar voz e sincronização``**. O projeto precisa ser salvo e ter sua revisão atual; as edições concorrentes são bloqueadas.
+**Narração v0.18:** no painel **`NARRADOR AUTOMÁTICO · PRODUÇÃO JSON v0.18`**, veja o total de falas alinhadas, selecione voz SAPI instalada, taxa e pausa, e clique **`Regenerar voz e sincronização`**. O projeto precisa ser salvo e ter sua revisão atual; as edições concorrentes são bloqueadas.
 
 **B-roll:** painéis de busca/seleção manual e checkbox de consentimento da seleção automática. O painel **não envia chaves ao GitHub** por design. Não confunda o pedido de pesquisa com o arquivo efetivamente importado.
 
@@ -353,33 +353,33 @@ npm run project -- raster-qa UUID
 npm run project -- sfx list
 ```
 
-**Ferramentas de controle:** ``preview`` simula operações sem gravar, ``propose`` apresenta para aprovação, ``apply`` edita diretamente com revisão, ``replace`` substitui projeto completo com revisão, ``accept``/``reject`` resolvem proposta, ``history``/``restore`` recuperam histórico. Regras e ordem completa de parâmetros constam da seção [15](#15-referência-completa-dos-comandos-locais) e do script [project-tool.ts](../scripts/project-tool.ts). **Jamais invente REVISAO_SHA** — obtenha com ``info UUID``. O comando ``direct`` **não gera voz** e não aplica sozinho.
+**Ferramentas de controle:** `preview` simula operações sem gravar, `propose` apresenta para aprovação, `apply` edita diretamente com revisão, `replace` substitui projeto completo com revisão, `accept`/`reject` resolvem proposta, `history`/`restore` recuperam histórico. Regras e ordem completa de parâmetros constam da seção [15](#15-referência-completa-dos-comandos-locais) e do script [project-tool.ts](../scripts/project-tool.ts). **Jamais invente REVISAO_SHA** — obtenha com `info UUID`. O comando `direct` **não gera voz** e não aplica sozinho.
 
-**Testes da versão no repositório:** ``npm run check``, ``npm test``, ``npm run build``, ``npm run smoke:service``, ``npm run smoke:ai-production`` (Windows SAPI real), ``npm run smoke:pilot``, ``npm run smoke:render``, ``npm run smoke:motion``, ``npm run smoke:advanced``. Os testes de render mais demorados dependem de Chromium/FFmpeg e Windows configurado; não confundir um unit test verde com a revisão de um filme de 30 minutos.
+**Testes da versão no repositório:** `npm run check`, `npm test`, `npm run build`, `npm run smoke:service`, `npm run smoke:ai-production` (Windows SAPI real), `npm run smoke:pilot`, `npm run smoke:render`, `npm run smoke:motion`, `npm run smoke:advanced`. Os testes de render mais demorados dependem de Chromium/FFmpeg e Windows configurado; não confundir um unit test verde com a revisão de um filme de 30 minutos.
 
 ### 0.15 Rotas relevantes do serviço local — referência de integração
 
-Host local: ``http://127.0.0.1:4317``. A API **não é pública nem um serviço cloud**; páginas externas não devem receber acesso ao diretório. Rotas importantes:
+Host local: `http://127.0.0.1:4317`. A API **não é pública nem um serviço cloud**; páginas externas não devem receber acesso ao diretório. Rotas importantes:
 
 | Método / rota | Função | Observação |
 | --- | --- | --- |
-| ``GET /health`` ou ``GET /v1/health`` | Identificar build, protocolo, diretório, capacidades | **Não** aceitar só "ready" |
-| ``GET /v1/productions/voices`` | Listar vozes SAPI instaladas | Responde indisponível quando TTS não funciona |
-| ``POST /v1/productions/validate`` | Validar JSON de produção IA | Não gera WAV |
-| ``POST /v1/productions/import`` | Gerar WAVs, cenas, legendas, trilha, efeitos e projeto novo | Rejeita produção simultânea |
-| ``POST /v1/productions/:id/regenerate`` | Regerar voz/alinhamento/trilha e ressincronizar | Exige cabeçalho ``If-Match`` da revisão |
-| ``GET /v1/broll/search?query=...`` | Pexels manual | Usa chave Pexels informada ou variável local |
-| ``POST /v1/broll/import`` | Importar vídeo conferido manualmente | Exige ``licenseConfirmed:true`` |
-| ``POST /v1/broll/auto`` | Busca automática conservadora por metadados | Exige ``allowAutomaticSelection:true``, ``licenseConfirmed:true``, query e segundos |
-| ``POST /v1/export`` | Gerar job de render MP4 | Status em ``GET /v1/export/:id`` |
-| ``POST /v1/archive/prepare`` | Gerar pacote em disco | Retorna URL de download local |
-| ``GET /v1/archive/download/:id`` | Download de pacote | Aceita HTTP Range |
-| ``POST /v1/archive/uploads`` | Criar sessão de upload | Retorna ID/offset |
-| ``PUT /v1/archive/uploads/:id`` | Enviar bloco | Exige ``X-Upload-Offset`` |
-| ``GET /v1/archive/uploads/:id`` | Consultar andamento | Pode retomar upload |
-| ``POST /v1/archive/uploads/:id/complete`` | Validar, importar e remapear IDs | Não aceita pacote corrompido |
+| `GET /health` ou `GET /v1/health` | Identificar build, protocolo, diretório, capacidades | **Não** aceitar só "ready" |
+| `GET /v1/productions/voices` | Listar vozes SAPI instaladas | Responde indisponível quando TTS não funciona |
+| `POST /v1/productions/validate` | Validar JSON de produção IA | Não gera WAV |
+| `POST /v1/productions/import` | Gerar WAVs, cenas, legendas, trilha, efeitos e projeto novo | Rejeita produção simultânea |
+| `POST /v1/productions/:id/regenerate` | Regerar voz/alinhamento/trilha e ressincronizar | Exige cabeçalho `If-Match` da revisão |
+| `GET /v1/broll/search?query=...` | Pexels manual | Usa chave Pexels informada ou variável local |
+| `POST /v1/broll/import` | Importar vídeo conferido manualmente | Exige `licenseConfirmed:true` |
+| `POST /v1/broll/auto` | Busca automática conservadora por metadados | Exige `allowAutomaticSelection:true`, `licenseConfirmed:true`, query e segundos |
+| `POST /v1/export` | Gerar job de render MP4 | Status em `GET /v1/export/:id` |
+| `POST /v1/archive/prepare` | Gerar pacote em disco | Retorna URL de download local |
+| `GET /v1/archive/download/:id` | Download de pacote | Aceita HTTP Range |
+| `POST /v1/archive/uploads` | Criar sessão de upload | Retorna ID/offset |
+| `PUT /v1/archive/uploads/:id` | Enviar bloco | Exige `X-Upload-Offset` |
+| `GET /v1/archive/uploads/:id` | Consultar andamento | Pode retomar upload |
+| `POST /v1/archive/uploads/:id/complete` | Validar, importar e remapear IDs | Não aceita pacote corrompido |
 
-Detalhes de todas as rotas estão em ``apps/agent/src/index.ts``, ``ai-production.ts``, ``projects.ts``, ``export.ts``, ``broll.ts`` e ``archive.ts``. Não exponha a API do localhost a máquinas remotas sem revisar autenticação, CORS e superfície de ataque.
+Detalhes de todas as rotas estão em `apps/agent/src/index.ts`, `ai-production.ts`, `projects.ts`, `export.ts`, `broll.ts` e `archive.ts`. Não exponha a API do localhost a máquinas remotas sem revisar autenticação, CORS e superfície de ataque.
 
 ### 0.16 Tabela honesta de capacidade: implementado × condicionado × ausente
 
@@ -387,7 +387,7 @@ Detalhes de todas as rotas estão em ``apps/agent/src/index.ts``, ``ai-productio
 | --- | --- |
 | Importar produção IA declarativa sem Codex | **Sim**, via dashboard e SAPI Windows; requer voz local |
 | Criar WAVs reais, medir duração, montar cenas/planos/clipes | **Sim**, testado em Windows |
-| Destaque por palavra e ``wordCue`` | **Condicional:** depende de eventos SAPI suficientemente completos |
+| Destaque por palavra e `wordCue` | **Condicional:** depende de eventos SAPI suficientemente completos |
 | Música com ducking e SFX ancorado em palavras | **Sim**, procedural; cue acústico só com alinhamento |
 | Troca de voz e ressincronização | **Sim**, com revisão/conflitos e revisão humana dos cortes |
 | Composição autoral, 50 presets, rigs, gráficos, câmera | **Sim**, vetores e render 2D |
@@ -407,24 +407,24 @@ Detalhes de todas as rotas estão em ``apps/agent/src/index.ts``, ``ai-productio
 
 | Sintoma | Por que acontece | Correção segura |
 | --- | --- | --- |
-| ``Unrecognized key`` em produção IA | Campo inventado ou campo de ``project.json`` colocado no beat | Compare com ``productionSchema`` e ``layerBlueprintSchema``; não altere o JSON até passar validação |
+| `Unrecognized key` em produção IA | Campo inventado ou campo de `project.json` colocado no beat | Compare com `productionSchema` e `layerBlueprintSchema`; não altere o JSON até passar validação |
 | Importação reclama de voz pt-BR | Nenhuma voz correspondente instalada e voz não selecionada | Instale voz compatível ou escolha exatamente uma voz listada pelo app |
-| Entrada por palavra não aparece | ``SpeakProgress`` ausente/incompleto ou palavra não encontrada | Veja status do alinhamento; prefira cue de legenda/frase ou ajuste a fala |
-| Vídeo com imagem estática ou diferente do briefing | Preset ou camada genérica, ou B-roll não elegível | Construa ``layers[]`` com geometria e movimentos específicos; importe filme revisado manualmente |
+| Entrada por palavra não aparece | `SpeakProgress` ausente/incompleto ou palavra não encontrada | Veja status do alinhamento; prefira cue de legenda/frase ou ajuste a fala |
+| Vídeo com imagem estática ou diferente do briefing | Preset ou camada genérica, ou B-roll não elegível | Construa `layers[]` com geometria e movimentos específicos; importe filme revisado manualmente |
 | Pexels devolve pendente | Chave ausente, slug pouco informativo, duração/resolução insuficiente ou score baixo | Altere consulta ou use seleção manual; não reduza limiar sem revisão editorial |
-| B-roll automático não entra no .darkstudio | ``rights.status`` pendente | Confira arquivo, pessoas, marcas, licença e finalidade antes de registrar aprovação |
-| Exportação bloqueia fonte | Sem ``redistributionAllowed`` verdadeiro/licença preenchida | Mantenha-a externa ou use fonte redistribuível comprovada |
+| B-roll automático não entra no .darkstudio | `rights.status` pendente | Confira arquivo, pessoas, marcas, licença e finalidade antes de registrar aprovação |
+| Exportação bloqueia fonte | Sem `redistributionAllowed` verdadeiro/licença preenchida | Mantenha-a externa ou use fonte redistribuível comprovada |
 | QA não reporta nenhuma palavra | OCR indisponível ou não reconheceu o frame | Consulte status OCR, renderize frames adicionais e revise manualmente |
 | Arquivo .darkstudio muito grande | Limite 64 GiB, espaço insuficiente ou mídia individual >16 GiB | Mova/reduza mídia com cuidado ou divida projeto; **não** retire verificações ZIP |
-| Serviço antigo após atualização | Protocolo/build diferente na porta 4317 | Feche serviço seguro identificado, execute ``ATUALIZAR.bat`` e ``INICIAR.bat`` |
+| Serviço antigo após atualização | Protocolo/build diferente na porta 4317 | Feche serviço seguro identificado, execute `ATUALIZAR.bat` e `INICIAR.bat` |
 | Render parado após reinício | Job MP4 não é retomado pelo frame | Confira jobs e inicie **nova** exportação; projetos e assets continuam no disco |
-| Alteração do Codex não aparece | Proposta não aprovada, pasta/clones diferentes ou revision conflict | Confira ``info`` / ``pending`` e ``Revisar Codex``; não sobrescreva projeto |
+| Alteração do Codex não aparece | Proposta não aprovada, pasta/clones diferentes ou revision conflict | Confira `info` / `pending` e `Revisar Codex`; não sobrescreva projeto |
 
 ### 0.18 Como pedir um vídeo realmente autoral ao ChatGPT — prompt oficial
 
-> **Você é o diretor audiovisual do Studio Dark v0.18.0.** Entregue **somente um JSON ``darkstudio-production`` versão 1**, que o dashboard possa importar diretamente, sem Codex, HTML, scripts ou UUIDs inventados. Faça roteiro original em ``beats[]`` com narração explícita, ``purpose``, ``plannedFrames``, ``motionPreset``, camadas editáveis (``layers[]``), personagens/objetos/cenários/gráficos, câmera e efeitos apenas se suportados por ``src/model/ai-production.ts``, ``src/model/direction.ts`` e ``src/model/layers.ts``. Use o arquivo ``docs/examples/PRODUCAO_018.example.json`` como base sintática. Distribua informação visual segundo as frases; varie composições com significado, não só troque presets. Para a primeira importação, não referencie ``assetId`` ou evidências ainda inexistentes. Inclua ``voice``, ``soundDesign`` e, quando houver motivo, ``music``, ``soundEffects`` por palavra e ``wordCue``. Sabe que ``plannedFrames`` serão adaptados à locução real, e que sons disparados em palavras dependem dos eventos acústicos da voz. Pedidos de B-roll devem usar ``broll`` e deixar licença pendente; nada de afirmar que imagem, autorização ou fonte factual já foi importada. Não invente estatísticas, manchetes, citações, documento real ou licença. Ao final, indique em uma nota separada as revisões humanas necessárias, mas **não** inclua texto solto dentro do JSON. Priorize ritmo, clareza, hierarquia visual e originalidade em vez de repetir as mesmas cenas.
+> **Você é o diretor audiovisual do Studio Dark v0.18.0.** Entregue **somente um JSON `darkstudio-production` versão 1**, que o dashboard possa importar diretamente, sem Codex, HTML, scripts ou UUIDs inventados. Faça roteiro original em `beats[]` com narração explícita, `purpose`, `plannedFrames`, `motionPreset`, camadas editáveis (`layers[]`), personagens/objetos/cenários/gráficos, câmera e efeitos apenas se suportados por `src/model/ai-production.ts`, `src/model/direction.ts` e `src/model/layers.ts`. Use o arquivo `docs/examples/PRODUCAO_018.example.json` como base sintática. Distribua informação visual segundo as frases; varie composições com significado, não só troque presets. Para a primeira importação, não referencie `assetId` ou evidências ainda inexistentes. Inclua `voice`, `soundDesign` e, quando houver motivo, `music`, `soundEffects` por palavra e `wordCue`. Sabe que `plannedFrames` serão adaptados à locução real, e que sons disparados em palavras dependem dos eventos acústicos da voz. Pedidos de B-roll devem usar `broll` e deixar licença pendente; nada de afirmar que imagem, autorização ou fonte factual já foi importada. Não invente estatísticas, manchetes, citações, documento real ou licença. Ao final, indique em uma nota separada as revisões humanas necessárias, mas **não** inclua texto solto dentro do JSON. Priorize ritmo, clareza, hierarquia visual e originalidade em vez de repetir as mesmas cenas.
 
-Para **redirecionar visualmente um projeto existente sem recriar locução**, use o prompt específico de direção da seção [20](#20-prompt-pronto-para-qualquer-ia-diretora) com ``direction.json`` e proposta via CLI. São fluxos diferentes.
+Para **redirecionar visualmente um projeto existente sem recriar locução**, use o prompt específico de direção da seção [20](#20-prompt-pronto-para-qualquer-ia-diretora) com `direction.json` e proposta via CLI. São fluxos diferentes.
 
 ### 0.19 Qualidade editorial: aceite antes de publicar
 
@@ -433,19 +433,19 @@ Para **redirecionar visualmente um projeto existente sem recriar locução**, us
 - [ ] Não há palavras destacadas/animadas fora de tempo; falhas de alinhamento SAPI estão registradas sem valores falsos.
 - [ ] Música e efeitos apoiam o sentido da narração e não abafam a voz; fade, ducking e cortes foram ouvidos.
 - [ ] Gráficos com dados têm período, unidade e fonte conferida; reconstruções e ilustrações estão identificadas.
-- [ ] Fontes e vídeos possuem origem e autorização apropriadas; marcações ``cleared`` são decisões humanas fundamentadas.
+- [ ] Fontes e vídeos possuem origem e autorização apropriadas; marcações `cleared` são decisões humanas fundamentadas.
 - [ ] B-roll exibido realmente representa a mensagem, não apenas uma palavra parecida no título do Pexels.
 - [ ] QA OCR/raster foi revisado e os alertas pertinentes foram corrigidos.
 - [ ] Cada composição é editável e tem movimento significativo onde cabível; o ritmo evita repetição mecânica.
 - [ ] O MP4 final completo foi **assistido com áudio**, não só um frame ou smoke curto.
-- [ ] O pacote ``.darkstudio`` exporta e reimporta quando necessário, incluindo fontes legalmente redistribuíveis.
+- [ ] O pacote `.darkstudio` exporta e reimporta quando necessário, incluindo fontes legalmente redistribuíveis.
 - [ ] Os projetos privados, tokens e arquivos de mídia continuam fora do GitHub.
 
 ### 0.20 Arquitetura, versões, segurança e manutenção deste manual
 
-A fonte de verdade é o código do projeto, **não frases antigas deste guia**: ``src/model/project.ts`` (projeto e duração), ``src/model/ai-production.ts`` (intercâmbio ChatGPT e resync), ``src/model/direction.ts`` (direção visual/compilação), ``src/model/layers.ts`` e ``shots.ts`` (camadas/câmera), ``src/model/speech-alignment.ts`` (palavras), ``apps/agent/src/narration.ts``, ``soundtrack.ts``, ``broll.ts``, ``frame-qa.ts``, ``archive.ts`` e ``portable-stream.ts`` (serviço), ``src/video/Documentary.tsx`` (player/MP4), ``src/App.tsx`` / ``src/Editor.tsx`` (UI) e ``scripts/project-tool.ts`` (CLI).
+A fonte de verdade é o código do projeto, **não frases antigas deste guia**: `src/model/project.ts` (projeto e duração), `src/model/ai-production.ts` (intercâmbio ChatGPT e resync), `src/model/direction.ts` (direção visual/compilação), `src/model/layers.ts` e `shots.ts` (camadas/câmera), `src/model/speech-alignment.ts` (palavras), `scripts/tts-production.ps1` (SAPI e eventos acústicos por palavra), `apps/agent/src/narration.ts`, `soundtrack.ts`, `broll.ts`, `frame-qa.ts`, `archive.ts` e `portable-stream.ts` (serviço), `src/video/Documentary.tsx` (player/MP4), `src/App.tsx` / `src/Editor.tsx` (UI) e `scripts/project-tool.ts` (CLI).
 
-**Regra de atualização permanente:** a cada nova versão, atualize o cabeçalho deste **``docs/GUIA_STUDIO_DARK.md``** (nome fixo, versão no título), o mapa de formatos, os limites, as rotas, a matriz de capacidades, os exemplos e os testes de contrato ``src/model/director-json-guide.test.ts`` no **mesmo commit**. Verifique também ``README.md`` e ``AGENTS.md``. Os testes de documentação garantem presença de campos/enums, não verdade jornalística nem qualidade subjetiva. Leia as especificações históricas v0.14, v0.15, v0.16 e v0.17 como **referências adicionais**, nunca como motivo para retirar recursos reais da v0.18.
+**Regra de atualização permanente:** a cada nova versão, atualize o cabeçalho deste **`docs/GUIA_STUDIO_DARK.md`** (nome fixo, versão no título), o mapa de formatos, os limites, as rotas, a matriz de capacidades, os exemplos e os testes de contrato `src/model/director-json-guide.test.ts` no **mesmo commit**. Verifique também `README.md` e `AGENTS.md`. Os testes de documentação garantem presença de campos/enums, não verdade jornalística nem qualidade subjetiva. Leia as especificações históricas v0.14, v0.15, v0.16 e v0.17 como **referências adicionais**, nunca como motivo para retirar recursos reais da v0.18.
 
 ---
 
