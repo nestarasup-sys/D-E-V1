@@ -151,6 +151,23 @@ export function Editor({onHome,syncStatus,onReload}:{onHome:()=>void,syncStatus:
       setSelectedShotId(shot.id);setSelectedCaptionId(null);setMessage('');
     }catch(e){setMessage(e instanceof Error?e.message:'Falha ao criar plano');}
   }
+  function editVolumeKeyframe(index:number,changes:Partial<MediaClip['volumeKeyframes'][number]>){
+    if(!selectedClip)return;
+    const next=selectedClip.volumeKeyframes.map((kf,i)=>i===index?{...kf,...changes}:kf).sort((a,b)=>a.frame-b.frame);
+    updateClip({volumeKeyframes:next});
+  }
+  function addVolumeKeyframe(){
+    if(!selectedClip)return;
+    const last=selectedClip.durationFrames-1;
+    const occupied=new Set(selectedClip.volumeKeyframes.map(k=>k.frame));
+    const target=Math.round(last/2);
+    let frame=target;
+    while(frame<=last&&occupied.has(frame))frame++;
+    if(frame>last)frame=Array.from({length:last+1},(_,i)=>i).find(i=>!occupied.has(i))??-1;
+    if(frame<0)return;
+    updateClip({volumeKeyframes:[...selectedClip.volumeKeyframes,
+      {frame,value:selectedClip.volume,easing:'ease-in-out'}].sort((a,b)=>a.frame-b.frame)});
+  }
   function setVolumeFade(kind:'in'|'out'|'reset'){
     if(!selectedClip)return;
     const last=selectedClip.durationFrames-1;
@@ -202,8 +219,15 @@ export function Editor({onHome,syncStatus,onReload}:{onHome:()=>void,syncStatus:
         <div className="projectSync" role="status"><span>{syncStatus}</span>{onReload&&<button onClick={onReload}>Recarregar projeto do disco</button>}</div>
         <div className="stageFooter"><div>● PREVIEW LOCAL <span>Cenas, clipes, narração e música pelo Remotion Player.</span></div><strong>{seconds(total,project.fps)} total</strong></div>
         {project.visualMode==='shots'&&<ShotTimeline shots={project.shots} totalFrames={total}
-          selectedId={selectedShotId} onSelect={id=>{setSelectedShotId(id);setSelectedCaptionId(null);selectClip(null);}}
-          onEdit={updateShot}/>}
+          selectedId={selectedShotId} onSelect={id=>{
+            setSelectedShotId(id);setSelectedCaptionId(null);selectClip(null);
+            const shot=project.shots.find(s=>s.id===id);
+            if(shot)player.current?.seekTo(shot.startFrame);
+          }}
+          onEdit={(id,changes)=>{
+            updateShot(id,changes);
+            if(changes.startFrame!==undefined)player.current?.seekTo(changes.startFrame);
+          }}/>}
         <div className="timelineTop"><strong>TIMELINE MULTITRILHA</strong><span>{project.clips.length} clipes · ajuste início e duração nas propriedades</span></div>
         <div className="timeline multiTimeline">
           <div className="track"><span className="trackLabel">CENAS</span><div className="clips">{project.scenes.map((s,i)=><button key={s.id} onClick={()=>jumpTo(i)} className={`clip ${s.id===scene.id?'active':''}`} style={{flex:s.durationFrames}} title={s.title}><span>{i+1}. {s.title}</span></button>)}</div></div>
@@ -236,6 +260,17 @@ export function Editor({onHome,syncStatus,onReload}:{onHome:()=>void,syncStatus:
           {clipAsset?.kind==='audio'&&<div className="field"><label>Curva de volume · {selectedClip.volumeKeyframes.length} keyframes</label>
             <div className="projectActions"><button onClick={()=>setVolumeFade('in')}>Fade in</button>
               <button onClick={()=>setVolumeFade('out')}>Fade out</button><button onClick={()=>setVolumeFade('reset')}>Sem fade</button></div>
+            {selectedClip.volumeKeyframes.map((key,i)=><div className="kfRow" key={key.frame+'-'+i}>
+              <label>Frame<input type="number" min={0} max={selectedClip.durationFrames-1} value={key.frame}
+                onChange={e=>editVolumeKeyframe(i,{frame:Math.round(Number(e.target.value))})}/></label>
+              <label>Volume<input type="number" step=".05" min={0} max={1} value={key.value}
+                onChange={e=>editVolumeKeyframe(i,{value:Number(e.target.value)})}/></label>
+              <label>Curva<select value={key.easing} onChange={e=>editVolumeKeyframe(i,{easing:e.target.value as typeof key.easing})}>
+                <option value="linear">Linear</option><option value="ease-in">Acelera</option>
+                <option value="ease-out">Desacelera</option><option value="ease-in-out">Suave</option></select></label>
+              <button aria-label="Excluir keyframe de volume" onClick={()=>updateClip({volumeKeyframes:selectedClip.volumeKeyframes.filter((_,j)=>j!==i)})}>×</button>
+            </div>)}
+            <button disabled={selectedClip.volumeKeyframes.length>=40} onClick={addVolumeKeyframe}>+ Quadro-chave de volume</button>
           </div>}
           <div className="sceneActions"><button onClick={()=>{apply([{type:'removeClip',clipId:selectedClip.id}]);selectClip(null);}}>Excluir clipe</button><button onClick={()=>selectClip(null)}>Editar cena</button></div>
         </section>}

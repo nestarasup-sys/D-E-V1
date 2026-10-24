@@ -227,7 +227,7 @@ export function App(){
   return <main className="homeScreen">
     <header className="homeHeader">
       <div className="brand"><span className="brandmark">D</span><div><strong>DARK STUDIO</strong><small>ESTÚDIO DE DOCUMENTÁRIOS</small></div></div>
-      <span className="homeVersion">PROJETOS · WINDOWS · v0.5 LOCAL</span>
+      <span className="homeVersion">PROJETOS · WINDOWS · v0.11 PILOTO</span>
     </header>
     <section className="homeHero">
       <p className="homeEyebrow">SEU ESTÚDIO INVESTIGATIVO</p>

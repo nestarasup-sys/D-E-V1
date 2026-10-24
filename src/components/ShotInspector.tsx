@@ -50,6 +50,10 @@ export function ShotInspector({shot,assets,onEdit,onRemove}:{
         {assets.filter(a=>a.kind!=='audio').map(asset=><option key={asset.id} value={asset.id}>{asset.name}</option>)}
       </select>
     </div>
+    {shot.kind==='video'&&<div className="field"><label>Corte inicial do vídeo (segundos)</label>
+      <input type="number" step=".1" min={0} value={seconds(shot.trimStartFrames)}
+        onChange={e=>{const value=Number(e.target.value);if(Number.isFinite(value))onEdit({trimStartFrames:Math.max(0,Math.round(value*30))});}}/>
+    </div>}
     <div className="field"><label>Estilo de composição</label>
       <select disabled={shot.kind!=='graphic'} value={shot.style}
         onChange={e=>onEdit({style:e.target.value as Shot['style']})}>

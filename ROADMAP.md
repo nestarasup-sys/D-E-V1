@@ -43,12 +43,24 @@ Estas cinco etapas compõem a **base de produto**, não um editor finalizado. Ev
 - Serviço 127.0.0.1 ainda experimental e sem autenticação forte de sessão; não expor na rede.
 - Checar licenciamento Remotion antes de comercialização.
 
-## Próximas etapas após esta base
 
-- v0.11: transcrição realmente automática e waveform, preferencialmente com motor local opt-in.
-- v0.12: proxies, cache e render por segmentos para longos documentários e 16 GB RAM.
-- v0.13: instalador e serviço embarcado/gerenciado, controle de permissões, autenticação local e atualização segura.
-- v0.14: investigação editorial com fontes auditáveis, importação de materiais e revisão de direitos.
-- Somente depois: biblioteca de motion graphics, refinamento cinematográfico e UX de edição profissional.
+## v0.11 — piloto de montagem dinâmica (vertical slice, NÃO release profissional)
 
-Critério de concluído: testes unitários + verificação TypeScript + build frontend + CI Windows com smoke MP4 **e teste real no Windows do usuário**. A CI não substitui a última etapa.
+- **Compatibilidade**: Project v2 recebe \`visualMode: legacy|shots\`, \`shots\`, \`chapters\`, \`channelKit\` e \`clips[].volumeKeyframes\` com defaults. Documentários antigos continuam no modo cartões. Novos assets ficam somente no PC.
+- **Motor visual**: novo \`ShotVisual\` com seis composições de demonstração, keyframes relativos ao plano (posição X/Y, escala, rotação, opacidade; easing) e mídia importada localmente (imagem/vídeo). Mesmo \`Documentary\` utilizado no Remotion Player e na exportação MP4.
+- **Timeline editável**: trilho de planos com arrastar e bordas de corte, inspetor de tempos/keyframes/curvas, edição de legendas por texto/tempo, áudio com fades, pista SFX básica. Arrastar um plano **não desloca** narração/legendas (sem ripple automático).
+- **Piloto de 30 segundos**: gerador \`npm run project -- pilot\` ou botão na home. Oito planos (3,2 a 5 s), três capítulos, locução offline usando voz Windows SAPI (se instalada), áudio WAV local de 900 frames e legendas correspondentes. Não cria dados de usuários no repositório público.
+- **Identidade inicial**: marca, fontes de sistema, cor-base, estilo de legendas por projeto; estilos gráficos reutilizáveis. Ainda sem logos externos, vinhetas, templates completos ou thumbnail.
+- **Teste automático**: TypeScript, Vitest, Vite, cargo check Windows, render curto legacy e smoke do piloto 30s com locução Windows; aprovação audiovisual/interativa **ainda depende de teste no Windows do usuário**, incluindo comparação prévia vs MP4 e uso de RAM.
+
+Leia [docs/VIDEO_ARCHITECTURE.md](docs/VIDEO_ARCHITECTURE.md) e [docs/PILOT_30S.md](docs/PILOT_30S.md).
+
+### Próximas prioridades depois de aprovar a vertical slice
+
+1. **P0 — fechar critérios de aceite com projeto real**: ajustes de UX do drag/trimming, legibilidade, sincronia e desempenho de 30 segundos em 1080p no Ryzen 5 4600G/RX 7600/16GB; corrigir regressões do editor de cartões.
+2. **P1 — som e timeline profissionais**: trimming arrastável de áudio, waveform, scrubbing, slip/slide, snap, crossfades, transições controláveis e salvamento de seleção/playhead; capítulo/cena/plano em hierarquia editável.
+3. **P1 — render sustentável**: proxies, pré-render/cache por cena, renderização por trechos, validação de codecs, métricas reais de memória e sincronização A/V para 10–30 minutos.
+4. **P1/P2 — biblioteca de composições e kit de canal**: presets nomeados, movimento de câmera em imagem/B-roll, parallax verdadeiro por camadas, gráficos baseados em fontes, mapas com dados locais, lower thirds, vinheta, encerramento e estilos de legenda por palavra.
+5. **P2 — pipeline YouTube e distribuição**: arquivo de créditos/fonte/licença, biblioteca de assets reutilizáveis, editor de thumbnail, exportações 1080p/4K quando sustentáveis, capítulos e metadata para upload; Tauri com serviço embutido e instalador assinado.
+
+**Não declarar estas cinco prioridades concluídas só porque a fatia piloto compila.**
