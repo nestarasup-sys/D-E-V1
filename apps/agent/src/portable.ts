@@ -59,6 +59,8 @@ export async function buildPortableArchive(project:Project,
 }
 export function decodePortableArchive(buffer:Uint8Array):PortableDocument{
   if(buffer.length<30||buffer.length>MAX_PACKAGE)throw new Error('Arquivo .darkstudio inválido ou acima de 512 MB.');
+  if(buffer[0]!==0x50||buffer[1]!==0x4b||buffer[2]!==0x03||buffer[3]!==0x04)
+    throw new Error('Assinatura ZIP inválida; .darkstudio precisa ser um pacote ZIP padrão.');
   let declared=0,count=0;
   const files=unzipSync(buffer,{filter:file=>{
     count++;declared+=file.originalSize;
