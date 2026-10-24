@@ -52,7 +52,7 @@ export async function importGeneratedWave(wav:Buffer,options?:{
     rights:{status:'unknown',sourceUrl:'',creator:'',licenseName:'',attribution:'',notes:''}};
 }
 /** Portable archives may only read registered media; never arbitrary user paths. */
-export async function readRegisteredMedia(id:string):Promise<{bytes:Buffer;ext:string;mime:string;kind:'image'|'video'|'audio';name:string}>{
+export async function readRegisteredMedia(id:string):Promise<{bytes:Buffer;ext:string;mime:string;kind:'image'|'video'|'audio'|'font';name:string}>{
   const entry=(await index())[id];
   if(!entry)throw new Error('Mídia registrada não encontrada: '+id);
   const bytes=await readFile(join(MEDIA_DIR,entry.id+entry.ext));
