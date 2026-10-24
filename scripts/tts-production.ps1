@@ -17,7 +17,9 @@ try {
     exit 0
   }
   if(-not $InputPath -or -not $OutputDirectory){throw 'Caminhos de entrada e saida obrigatorios.'}
-  $lines=@(Get-Content -Path $InputPath -Raw -Encoding UTF8 | ConvertFrom-Json)
+  $parsed=Get-Content -Path $InputPath -Raw -Encoding UTF8 | ConvertFrom-Json
+  $lines=New-Object 'System.Collections.Generic.List[string]'
+  foreach($item in $parsed){ [void]$lines.Add([string]$item) }
   if($lines.Count -lt 1 -or $lines.Count -gt 200){throw 'Quantidade de falas invalida.'}
   if($VoiceName){
     $selected=@($voices | Where-Object {$_.name -eq $VoiceName})
