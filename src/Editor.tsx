@@ -5,6 +5,7 @@ import { useEditor } from './model/store';
 import { projectDuration, sceneStart, type Scene, type Project, type Asset, type Lane, type MediaClip } from './model/project';
 import type { Operation } from './model/operations';
 import {parseSrt,exportSrt} from './model/captions';
+import {ensureServiceCompatible} from './services/service-guard';
 import {ShotTimeline} from './components/ShotTimeline';
 import {ShotInspector} from './components/ShotInspector';
 import {CaptionInspector} from './components/CaptionInspector';
@@ -52,12 +53,13 @@ export function Editor({onHome,syncStatus,onReload}:{onHome:()=>void,syncStatus:
     let cancelled=false;let timer:ReturnType<typeof setTimeout>;
     async function poll(){
       try{
+        await ensureServiceCompatible();
         const response=await fetch(`${endpoint}/v1/export/${exportId}`);
         if(!response.ok)throw new Error('Falha ao consultar exportação');
         const status: {state:string,progress:number,outputPath?:string,error?:string}=await response.json();
         if(cancelled)return;
-        setExportProgress(status.progress);setExportState(status.state==='completed'?`Pronto: ${status.outputPath}`:status.state==='failed'?`Erro: ${status.error}`:status.state);
-        if(status.state!=='completed'&&status.state!=='failed')timer=setTimeout(poll,1200);
+        setExportProgress(status.progress);setExportState(status.state==='completed'?`Pronto: ${status.outputPath}`:['failed','interrupted'].includes(status.state)?`Erro: ${status.error}`:status.state);
+        if(status.state!=='completed'&&status.state!=='failed'&&status.state!=='interrupted')timer=setTimeout(poll,1200);
       }catch(e){if(!cancelled)setExportState(e instanceof Error?e.message:'Falha ao consultar');}
     }
     void poll();return()=>{cancelled=true;clearTimeout(timer);};
@@ -119,6 +121,7 @@ export function Editor({onHome,syncStatus,onReload}:{onHome:()=>void,syncStatus:
   async function exportVideo(){
     setExportState('Preparando...');setExportId(null);setExportProgress(0);
     try{
+      await ensureServiceCompatible();
       const response=await fetch(`${endpoint}/v1/export`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(project)});
       const result: {id?:string,error?:string}=await response.json();if(!response.ok||!result.id)throw new Error(result.error||'Falha ao iniciar exportação');
       setExportId(result.id);

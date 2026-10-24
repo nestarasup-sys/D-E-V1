@@ -74,3 +74,16 @@ Leia [docs/VIDEO_ARCHITECTURE.md](docs/VIDEO_ARCHITECTURE.md) e [docs/PILOT_30S.
 - Diagnóstico inclui buracos de cobertura, longos períodos estáticos, excesso de repetição, gráfico vazio e prova sem verificação humana; relatório de direção disponível na CLI.
 - Preservação: `Project v2` continua válido; `shot.investigation` possui default para planos antigos. Projeto/voz/mídia não trafegam pelo GitHub.
 - **Ainda falta** escuta/avaliação de um episódio real e do layout completo no Windows do usuário. Também faltam coleta/licenciamento de B-roll automático, síntese/transcrição confiável, parallax em múltiplas camadas, mapas geográficos, thumbnails e render 4K sustentável. Nenhuma dessas etapas foi declarada concluída.
+
+
+## v0.13 — resposta ao diagnóstico real do Codex (etapas verificáveis)
+
+Relatório recebido: projeto local de ~4m50, cinco capítulos, 60 legendas, 60 planos **ainda em proposta**, zero erros de cobertura e 27 avisos. O vídeo completo não foi exportado ou conferido. O usuário mantém a revisão final.
+
+1. **P0 — compatibilidade em serviço e frontend: implementado em código.** Novo handshake versionado \`GET /health\` (\`apiProtocol=4\`), build, schema, PID, diretório, capacidades e data de inicialização. O cliente recusa serviço velho antes de ler projetos; o BAT usa supervisor que só reinicia processos reconhecidos do mesmo usuário. TESTE NO WINDOWS REAL AINDA OBRIGATÓRIO, incluindo BAT previamente corrigido pelo Codex que talvez esteja só no clone.
+2. **P0 — visibilidade correta de projetos/propostas: implementado em código.** Projetos incompatíveis aparecem como aviso em vez de sumirem. Cartão exibe contagem de propostas; modal distingue projeto salvo (0 planos) de proposta visual (60 planos).
+3. **P1 — fluxo resumível: implementação parcial.** \`production status\`, \`checkpoint\`, \`continue\` e painel **Produção** geram/checkpointam o estado por episódio; criação ilustrativa de proposta só é feita com roteiro, narração e legendas presentes e sem proposta anterior. Pesquisa, voz, legendas e B-roll não são gerados de forma autônoma por esse comando, e a revisão editorial não é omitida.
+4. **P1 — render: implementação parcial.** Jobs têm estado e progresso persistidos por arquivo, com registro de PID, detecção de interrupção e histórico por projeto; o render não retoma um MP4 no frame interrompido. Próximo passo: segments, cache e checkpoints de frames.
+5. **P1 — prova jornalística e QA: PENDENTE.** Campos adicionais de evidência (data de consulta, trecho, unidade, região, licença), comparador fonte/alegação, checagem automática de safe areas/contraste, prévias sonoras representativas e escuta integral ainda exigem implementação e teste. Não alegar 95% automático até comprovar esse fluxo num episódio real.
+
+**Gate de aprovação:** CI TypeScript + unit + Windows smoke, depois testar sincronismo, serviços e episódio real no Windows com projetos reais; a CI não tem acesso a \`%USERPROFILE%\\DarkStudio\` do usuário.

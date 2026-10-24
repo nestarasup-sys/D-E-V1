@@ -50,3 +50,13 @@
 - Gráficos com valores no `direction.json` exigem `investigation.sourceEvidenceId` existente. Uma fonte cadastrada não equivale a fonte verificada: mantenha `pending`; o editor exige revisão humana.
 - Para mídia real, importar arquivo autorizado na biblioteca do Windows. Não apresentar imagens geradas, fotografias ilustrativas nem pseudo-documentos como registro factual. Não publicar roteiros, mídias ou projetos de usuários no GitHub.
 - Para QA: `direction-report` e `doctor` devem apontar lacunas, ritmo, fontes pendentes, mapa esquemático e áudio/legenda ausentes; ouvir render e comparar preview com MP4 antes de declarar pronto.
+
+## Confiabilidade v0.13 — primeiro verifique o serviço e o projeto real
+
+- \`npm run project -- service-info\`: exige a mesma versão de serviço que o editor. \`ready\` isolado NÃO significa compatibilidade. O BAT da raiz chama \`scripts/ensure-service.ps1\` e não deve encerrar processo desconhecido.
+- A CLI pode criar projeto e proposta com acesso direto ao disco mesmo que o serviço anterior esteja velho. Se a proposta não aparecer na UI, **não a recrie**: verifique o handshake, caminho do projeto e existência em \`projects/<UUID>/proposals\`.
+- \`npm run project -- production <UUID> status\`: inspeciona estado REAL: fontes, roteiro, voz, legenda, proposta, QA e exportações. \`production <UUID> checkpoint\` salva checkpoint local. \`production <UUID> continue\` prepara no máximo UMA proposta visual ilustrativa, se há roteiro, voz e legendas disponíveis; não gera fatos, voz nem imagens sintéticas apresentadas como reais.
+- No editor, **Produção** mostra checkpoints, pendências e renders. **Revisar Codex** mostra os planos da proposta, não os confunda com os planos do projeto-base ainda não aprovado.
+- O render deixa \`jobs/<id>.status.json\` no disco; após reinício, um worker morto é classificado como \`interrupted\`. Isso não significa render resumível pelo frame: para esse recurso precisamos pipeline segmentado.
+- Pesquisa e validação editorial humana permanecem necessárias. Nenhum estado técnico \`completed\` representa publicação ou veracidade aprovada.
+- **Nunca** executar reset hard/clean -fdx para descartar o trabalho local do Codex sem permissão explícita, sobretudo se o commit \`eeb6c37\` não estiver no GitHub. Não enviar \`project.json\`, \`jobs\`, \`production\`, fontes ou WAV para a main.

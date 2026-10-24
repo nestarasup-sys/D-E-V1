@@ -3,9 +3,9 @@
 # Só reinicia um processo com assinatura reconhecida do Dark Studio, do mesmo usuário.
 param()
 $ErrorActionPreference = 'Stop'
-$repo = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..')).TrimEnd('\','/')
-$expectedBuild = 'dark-studio-v0.13-service-contract-3'
-$expectedProtocol = 3
+$repo = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..')).TrimEnd([char[]]@('\','/'))
+$expectedBuild = 'dark-studio-v0.13-service-contract-4'
+$expectedProtocol = 4
 $healthUrl = 'http://127.0.0.1:4317/health'
 
 function Get-ServiceHealth {

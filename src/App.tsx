@@ -3,6 +3,7 @@ import {Editor} from './Editor';
 import {ProjectHistory} from './components/ProjectHistory';
 import {ProposalReview} from './components/ProposalReview';
 import {ProjectDiagnostics} from './components/ProjectDiagnostics';
+import {ProductionPanel} from './components/ProductionPanel';
 import {useEditor} from './model/store';
 import {parseProject} from './model/project';
 import {ensureServiceCompatible} from './services/service-guard';
@@ -114,6 +115,7 @@ export function App(){
   const [historyId,setHistoryId]=useState<string|null>(null);
   const [proposalsId,setProposalsId]=useState<string|null>(null);
   const [diagnosticsId,setDiagnosticsId]=useState<string|null>(null);
+  const [productionId,setProductionId]=useState<string|null>(null);
   const [directory,setDirectory]=useState('');
   const [active,setActive]=useState<ProjectRecord|null>(null);
   const [busy,setBusy]=useState(false);
@@ -276,7 +278,7 @@ export function App(){
             {entry.pendingProposals} proposta(s) local(is) aguardando revisão ou descarte.
             O projeto salvo permanece inalterado até sua aprovação.
           </p>}
-        <div className="projectActions"><button className="primary" disabled={busy} onClick={()=>void open(entry.id)}>Abrir editor →</button><button disabled={busy} onClick={()=>void act(async()=>{await duplicateProject(entry.id);})}>Duplicar</button><button disabled={busy} onClick={()=>void copyCodexInstruction(entry)}>Copiar instrução Codex</button><button disabled={busy} onClick={()=>setHistoryId(entry.id)}>Versões</button><button disabled={busy} onClick={()=>setProposalsId(entry.id)}>Revisar Codex</button><button disabled={busy} onClick={()=>setDiagnosticsId(entry.id)}>Diagnóstico</button><button disabled={busy} onClick={()=>{if(window.confirm('Arquivar projeto? Ele será movido para _archived, sem apagar a mídia.'))void act(async()=>{await archiveProject(entry.id);});}}>Arquivar</button></div>
+        <div className="projectActions"><button className="primary" disabled={busy} onClick={()=>void open(entry.id)}>Abrir editor →</button><button disabled={busy} onClick={()=>void act(async()=>{await duplicateProject(entry.id);})}>Duplicar</button><button disabled={busy} onClick={()=>void copyCodexInstruction(entry)}>Copiar instrução Codex</button><button disabled={busy} onClick={()=>setHistoryId(entry.id)}>Versões</button><button disabled={busy} onClick={()=>setProposalsId(entry.id)}>Revisar Codex</button><button disabled={busy} onClick={()=>setDiagnosticsId(entry.id)}>Diagnóstico</button><button disabled={busy} onClick={()=>setProductionId(entry.id)}>Produção</button><button disabled={busy} onClick={()=>{if(window.confirm('Arquivar projeto? Ele será movido para _archived, sem apagar a mídia.'))void act(async()=>{await archiveProject(entry.id);});}}>Arquivar</button></div>
         </div>
       </article>)}</div>
       <div className="workspaceInfo">
@@ -292,5 +294,6 @@ export function App(){
     {historyId&&<ProjectHistory id={historyId} onClose={()=>setHistoryId(null)} onRestored={()=>{void refresh();}}/>}
     {proposalsId&&<ProposalReview projectId={proposalsId} onClose={()=>setProposalsId(null)} onChanged={()=>{void refresh();}}/>}
     {diagnosticsId&&<ProjectDiagnostics projectId={diagnosticsId} onClose={()=>setDiagnosticsId(null)}/>}
+    {productionId&&<ProductionPanel projectId={productionId} onClose={()=>setProductionId(null)} onChanged={()=>{void refresh();}}/>}
   </main>;
 }

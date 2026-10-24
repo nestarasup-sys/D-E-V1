@@ -3,13 +3,13 @@
  * Sempre incremente PROTOCOL_BUILD ao alterar rotas ou formato de respostas.
  * Isso detecta um serviço antigo que continua vivo depois de atualizar o código.
  */
-export const SERVICE_PROTOCOL = 3;
+export const SERVICE_PROTOCOL = 4;
 export const SERVICE_VERSION = '0.13.0';
-export const SERVICE_BUILD = 'dark-studio-v0.13-service-contract-3';
+export const SERVICE_BUILD = 'dark-studio-v0.13-service-contract-4';
 export const PROJECT_SCHEMA_VERSION = 2;
 export const REQUIRED_CAPABILITIES = [
   'projects-v2','proposals-v1','project-history-v1','diagnostics-v1',
-  'render-jobs-v1','media-local-v1',
+  'render-jobs-v2','media-local-v1','production-checkpoint-v1',
 ] as const;
 
 export interface ServiceHealth {
@@ -43,7 +43,8 @@ export function assertServiceCompatibility(value:unknown):ServiceHealth {
       'Versões incompatíveis: editor '+SERVICE_VERSION+' ('+SERVICE_BUILD+') e serviço '+
       String(h.appVersion??'desconhecido')+' ('+String(h.build??'sem build')+'). '+advice);
   }
-  if(!Array.isArray(h.capabilities)||REQUIRED_CAPABILITIES.some(c=>!h.capabilities.includes(c)))
+  const availableCapabilities=h.capabilities;
+  if(!Array.isArray(availableCapabilities)||REQUIRED_CAPABILITIES.some(c=>!availableCapabilities.includes(c)))
     throw new ServiceCompatibilityError('O serviço não fornece todas as rotas necessárias. '+advice);
   if(typeof h.pid!=='number'||typeof h.startedAt!=='string'||
      typeof h.workspace!=='string'||typeof h.projectsDirectory!=='string')

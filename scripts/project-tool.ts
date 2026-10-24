@@ -18,6 +18,8 @@ import {randomUUID} from 'node:crypto';
 import {compileDirection,makeAutomaticDirection,reviewVisualDirection} from '../src/model/direction';
 import {ProjectRepository} from '../apps/agent/src/project-store';
 import {ProposalRepository} from '../apps/agent/src/proposals';
+import {ProductionCoordinator} from '../apps/agent/src/production';
+import {assertServiceCompatibility} from '../src/model/service-contract';
 import {diagnoseProject,runtimeDiagnostics} from '../apps/agent/src/diagnostics';
 import {mediaExistsFor} from '../apps/agent/src/media';
 import {applyOperations} from '../src/model/operations';
@@ -25,9 +27,17 @@ import {parseProject} from '../src/model/project';
 
 const repository=new ProjectRepository();
 const proposalStore=new ProposalRepository(repository);
+const production=new ProductionCoordinator(repository,proposalStore);
 const [command,...args]=process.argv.slice(2);
 const api='http://127.0.0.1:4317';
 
+async function requireServiceCompatible():Promise<void>{
+  let response:Response;
+  try{response=await fetch(api+'/health',{signal:AbortSignal.timeout(3000)});}
+  catch{throw new Error('Serviço local indisponível. Inicie o Dark Studio pelo BAT atualizado.');}
+  if(!response.ok)throw new Error('Porta 4317 respondeu HTTP '+response.status);
+  assertServiceCompatibility(await response.json() as unknown);
+}
 function requireArgument(value:string|undefined,label:string):string {
   if (!value)throw new Error('Parâmetro obrigatório: '+label);
   return value;
@@ -37,6 +47,7 @@ async function readLocalJson(file:string):Promise<unknown> {
   return JSON.parse(data) as unknown;
 }
 async function renderProject(id:string) {
+  await requireServiceCompatible();
   const {project}=await repository.read(id);
   let response:Response;
   try{
@@ -57,7 +68,7 @@ async function renderProject(id:string) {
       console.log('MP4 salvo em: '+status.outputPath);
       return;
     }
-    if(status.state==='failed')throw new Error(status.error||'Falha no render MP4.');
+    if(status.state==='failed'||status.state==='interrupted')throw new Error(status.error||'Render interrompido.');
     if(status.state==='rendering')console.log('Renderizando '+Math.round((status.progress||0)*100)+'%');
   }
 }
@@ -75,6 +86,7 @@ async function main() {
       return;
     }
     case 'pilot': {
+      await requireServiceCompatible();
       let response:Response;
       try{response=await fetch(api+'/v1/projects/pilot',{method:'POST'});}
       catch{throw new Error('Serviço local desligado. Abra npm run dev:service antes de gerar o piloto.');}
@@ -117,6 +129,21 @@ async function main() {
       const created=await repository.import(input);
       console.log('Projeto importado localmente: '+created.path);
       console.log('ID: '+created.project.id);
+      return;
+    }
+    case 'service-info': {
+      await requireServiceCompatible();
+      const info=await (await fetch(api+'/health')).json() as unknown;
+      console.log(JSON.stringify(info,null,2));return;
+    }
+    case 'production': {
+      const id=requireArgument(args[0],'UUID do projeto');
+      const action=args[1]||'status';
+      const state=action==='continue'?await production.continue(id):
+        action==='checkpoint'?await production.checkpoint(id):
+        action==='status'?await production.assess(id):null;
+      if(!state)throw new Error('Ações de produção: status | checkpoint | continue');
+      console.log(JSON.stringify(state,null,2));
       return;
     }
     case 'direction-template': {
@@ -252,7 +279,7 @@ async function main() {
       return;
     }
     default:
-      throw new Error('Comandos locais: direction-template <id> <destino> | direct <id> <direcao.json> <revisao> | auto-direct <id> <revisao> | direction-report <id> | path | list | create "Título" | info <id> | show <id> | validate <id> | import <json> | apply <id> <ops.json> [revisao] | replace <id> <json> <revisao> | render <id>');
+      throw new Error('Comandos locais: service-info | production <id> [status|checkpoint|continue] | direction-template <id> <destino> | direct <id> <direcao.json> <revisao> | auto-direct <id> <revisao> | direction-report <id> | path | list | create "Título" | info <id> | show <id> | validate <id> | import <json> | apply <id> <ops.json> [revisao] | replace <id> <json> <revisao> | render <id>');
   }
 }
 main().catch(error=>{

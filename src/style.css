@@ -124,3 +124,8 @@ font-size:10px;text-align:left;padding:7px;background:#654c2d;color:#fff4d6;bord
 .directorPoint{display:grid;grid-template-columns:1fr 88px 27px;gap:6px;align-items:center;margin:7px 0}
 .directorPoint input{min-width:0;padding:7px;font-size:11px}
 .directorPoint button{padding:6px}
+
+.productionStep{padding:10px 0;border-bottom:1px solid #33445a;font-size:12px}
+.productionStep strong{font-weight:700;color:#ecedf4}
+.productionStep span{float:right;color:#d7c08e;font-size:11px}
+.productionStep p{clear:both;color:#a9bac9;line-height:1.55;margin:5px 0}

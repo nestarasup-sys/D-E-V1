@@ -9,9 +9,11 @@ import {buildPilotProject} from '../../../src/model/pilot';
 import {randomUUID} from 'node:crypto';
 import {mediaExistsFor} from './media';
 import {diagnoseProject} from './diagnostics';
+import {ProductionCoordinator} from './production';
 
 export const projects = new ProjectRepository();
 export const proposals = new ProposalRepository(projects);
+export const production = new ProductionCoordinator(projects,proposals);
 function failure(res: ServerResponse, error: unknown) {
   if (error instanceof ProjectError) { json(res,error.status,{error:error.message}); return; }
   if (error instanceof z.ZodError) {json(res,400,{error:'Projeto fora do esquema: '+error.issues[0]?.message});return;}
@@ -49,6 +51,24 @@ export async function handleProjects(req: IncomingMessage,res: ServerResponse,ur
   if (url.pathname==='/v1/projects/import' && req.method==='POST') {
     try {const parsed=z.object({project:z.unknown()}).strict().parse(await readJson(req,2_000_000));json(res,201,await projects.import(parsed.project));}
     catch(e){failure(res,e);}
+    return true;
+  }
+  const productionGet=/^\/v1\/projects\/([0-9a-f-]{36})\/production$/.exec(url.pathname);
+  if(productionGet && req.method==='GET'){
+    try{
+      const state=await production.assess(productionGet[1]);
+      json(res,200,{state,checkpoint:await production.readCheckpoint(productionGet[1])});
+    }catch(e){failure(res,e);}
+    return true;
+  }
+  const productionAction=/^\/v1\/projects\/([0-9a-f-]{36})\/production\/(continue|checkpoint)$/.exec(url.pathname);
+  if(productionAction && req.method==='POST'){
+    try{
+      const state=productionAction[2]==='continue'?
+        await production.continue(productionAction[1]):
+        await production.checkpoint(productionAction[1]);
+      json(res,200,{state});
+    }catch(e){failure(res,e);}
     return true;
   }
   const diagnostics=/^\/v1\/projects\/([0-9a-f-]{36})\/diagnostics$/.exec(url.pathname);

@@ -185,3 +185,14 @@ A tela inicial mostra a versão do serviço e **o número de propostas que aguar
 
 **Aviso para quem usa o Codex Local:** o commit \`eeb6c37\` descrito no relatório do Codex pode existir apenas no seu clone Windows, não neste GitHub. Faça backup e preserve essas alterações antes de atualizar; não execute \`git reset --hard\` ou \`git clean -fdx\` para forçar a sincronização. O supervisor atual foi implementado separadamente no GitHub e precisa ser testado no Windows real.
 
+
+### Estado de produção por episódio (sem refazer trabalho do Codex)
+
+Em vez de recriar uma proposta se o serviço não a exibe, confira o handshake e a pasta local. \`npm run project -- service-info\` mostra a versão do serviço em execução; erro de compatibilidade deve ser corrigido ANTES de aprovar qualquer mudança.
+
+- \`npm run project -- production <UUID> status\`: mostra o estado real de pesquisa, roteiro, narração, legendas, propostas visuais, QA e exportações.
+- \`npm run project -- production <UUID> checkpoint\`: salva \`production/checkpoint.json\` dentro da pasta local do projeto, sem enviar nada ao GitHub.
+- \`npm run project -- production <UUID> continue\`: somente quando há roteiro, voz local e legendas, prepara uma proposta ilustrativa não destrutiva. Se uma proposta já existir, **não duplica**.
+- Na tela inicial, botão **Produção** mostra as etapas, checkpoint e exportações concluídas/interrompidas. **Revisar Codex** é onde você aprova os planos.
+
+O registro de renders agora permanece em \`%USERPROFILE%\\DarkStudio\\jobs\`. O serviço distingue processos ativos de exportações interrompidas depois do reinício; não há retomada de render por frame ainda. Consulte [ROADMAP.md](ROADMAP.md) para o que realmente está implementado e o que falta validar.
