@@ -1,4 +1,4 @@
-# Dark Studio v0.14 — Motion Studio por camadas + Codex Local
+# Dark Studio v0.15 — Motion Engine 2D declarativo + Codex Local
 
 O **Dark Studio** é um editor de documentários para Windows 11. A interface usa Tauri 2 + React + TypeScript, o preview utiliza Remotion e a exportação MP4 acontece via Remotion Renderer/FFmpeg em processo separado.
 
@@ -7,9 +7,15 @@ O **Dark Studio** é um editor de documentários para Windows 11. A interface us
 GitHub serve apenas para hospedar o **código-fonte do aplicativo**, sem roteiros, mídia ou projetos reais de usuários.
 
 
+## v0.15 — Motion Engine: criatividade autoral e planos editáveis
+
+O primeiro incremento v0.15 expande os **50 presets existentes** com tipografia avançada (fontes instaladas, contorno, gradiente, alinhamento e revelação por palavra), grupos hierárquicos, máscaras simples, sombras/desfoque, vetores SVG controlados, trajetórias de câmera por pontos e transições de entrada entre planos contíguos. As novas propriedades existem no `direction.json`, no projeto v2, no inspetor e nos mesmos componentes de preview e MP4 — **não são somente promessas de JSON**. Veja [o contrato e os limites do Motion Engine](docs/MOTION_ENGINE_015.md) e [uma direção autoral de 12 segundos](docs/examples/MOTION_ENGINE_015.direction.example.json).
+
+**Ainda pendentes:** pacote único `.darkstudio`, importação direta de direção pelo dashboard, fontes portáteis, personagens com articulações independentes, tracking, B-roll/licenças automáticos e análise raster real de frames. O Codex continua externo, e projetos/arquivos pessoais permanecem fora do GitHub.
+
 ## Guia Diretor por JSON — comece aqui
 
-**[Abrir o Guia Diretor por JSON](docs/GUIA_DIRETOR_POR_JSON.md)** — manual vivo da v0.14, com os **3 tipos de JSON**, comandos reais, 50 composições, 7 visuais investigativos, personagens, camadas, movimentos, SFX, voz, legendas, evidências, propostas, exportação, limites e **20 tutoriais/seções**. Inclui [direção completa de 12 segundos](docs/examples/GUIA_DIRECAO_12S.example.json) e [operações de identidade](docs/examples/GUIA_OPERACOES.example.json), verificadas automaticamente em testes. **Toda próxima versão deve atualizar o guia e o teste de manutenção**; leia-o antes de pedir direção audiovisual à IA.
+**[Abrir o Guia Diretor por JSON](docs/GUIA_DIRETOR_POR_JSON.md)** — manual vivo das v0.14–v0.15, com os **3 tipos de JSON**, comandos reais, 50 composições, 7 visuais investigativos, personagens, camadas, movimentos, SFX, voz, legendas, evidências, propostas, exportação, limites e **20 tutoriais/seções**. Inclui [direção completa de 12 segundos](docs/examples/GUIA_DIRECAO_12S.example.json) e [operações de identidade](docs/examples/GUIA_OPERACOES.example.json), verificadas automaticamente em testes. **Toda próxima versão deve atualizar o guia e o teste de manutenção**; leia-o antes de pedir direção audiovisual à IA.
 
 ## Piloto de montagem dinâmica de 30 segundos (v0.11)
 

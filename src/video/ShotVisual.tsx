@@ -1,7 +1,7 @@
 import {AbsoluteFill,Img,OffthreadVideo,useCurrentFrame} from 'remotion';
 import type {CSSProperties} from 'react';
 import type {Asset,Caption,Evidence} from '../model/project';
-import {evaluateMotion,investigativeStyles,type Shot,type ChannelKit} from '../model/shots';
+import {evaluateMotion,evaluateCamera,investigativeStyles,type Shot,type ChannelKit} from '../model/shots';
 import {InvestigationVisual} from './InvestigationVisual';
 import {AnimatedLayer} from './elements/AnimatedLayer';
 
@@ -59,21 +59,25 @@ export function ShotVisual({shot,asset,kit,evidence,assets,captions}:{
 }){
   const frame=useCurrentFrame();
   const m=evaluateMotion(shot,frame);
+  const camera=evaluateCamera(shot.cameraPath,frame);
+  const cameraTransform='translate('+-camera.x+'px, '+-camera.y+'px) scale('+camera.zoom+') rotate('+camera.rotation+'deg)';
   const accent=shot.accentColor||kit.accentColor;
   const transform='translate('+m.x+'%, '+m.y+'%) scale('+m.scale+') rotate('+m.rotation+'deg)';
   return <AbsoluteFill style={{background:shot.backgroundColor,overflow:'hidden',fontFamily:fonts[kit.font]}}>
     <AbsoluteFill style={{background:'radial-gradient(circle at 70% 25%, '+accent+'24 0%, transparent 54%)'}}/>
     <AbsoluteFill style={{transform,opacity:m.opacity,willChange:'transform, opacity'}}>
+      <AbsoluteFill style={{transform:cameraTransform,transformOrigin:'50% 50%'}}>
       {shot.kind==='graphic'&&shot.layers.length>0?
         <AbsoluteFill>
-          {[...shot.layers].sort((a,b)=>a.zIndex-b.zIndex).map(layer=>
+          {[...shot.layers].filter(layer=>!layer.parentId).sort((a,b)=>a.zIndex-b.zIndex).map(layer=>
             <AnimatedLayer key={layer.id} layer={layer} frame={frame}
-              shotStart={shot.startFrame} captions={captions} assets={assets}/>)}
+              shotStart={shot.startFrame} captions={captions} assets={assets} allLayers={shot.layers}/>)}
         </AbsoluteFill>:
       shot.kind==='graphic'?(investigativeStyles.some(s=>s===shot.style)?
         <InvestigationVisual shot={shot} evidence={evidence}/>:<Design shot={shot} frame={frame} kit={kit}/>):
         asset?.kind==='image'?<Img src={asset.url} style={{width:'100%',height:'100%',objectFit:'cover'}}/>:
         asset?.kind==='video'?<OffthreadVideo src={asset.url} startFrom={shot.trimStartFrames} muted style={{width:'100%',height:'100%',objectFit:'cover'}}/>:null}
+      </AbsoluteFill>
       {shot.kind!=='graphic'&&shot.title&&<AbsoluteFill style={{justifyContent:'flex-end',padding:'0 120px 175px'}}>
         <div style={{maxWidth:1260,background:'#000000b5',borderLeft:'9px solid '+accent,padding:'25px 38px'}}>
           <div style={{fontSize:71,fontWeight:900,color:'#fff'}}>{shot.title}</div>

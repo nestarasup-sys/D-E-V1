@@ -1,0 +1,226 @@
+{
+  "version": 1,
+  "title": "Dinheiro em movimento — composição autoral (demo 12s)",
+  "beats": [
+    {
+      "startFrame": 0,
+      "durationFrames": 180,
+      "purpose": "hook",
+      "title": "DE ONDE VEM O DINHEIRO?",
+      "subtitle": "Simulação visual, sem dados factuais.",
+      "cameraPath": [
+        {
+          "frame": 0,
+          "x": 0,
+          "y": 0,
+          "zoom": 1,
+          "rotation": 0,
+          "easing": "ease-in-out"
+        },
+        {
+          "frame": 179,
+          "x": 120,
+          "y": 15,
+          "zoom": 1.12,
+          "rotation": 0,
+          "easing": "linear"
+        }
+      ],
+      "transitionIn": {
+        "type": "cut",
+        "durationFrames": 12
+      },
+      "motionPreset": "still",
+      "layers": [
+        {
+          "key": "carteira",
+          "kind": "group",
+          "name": "Carteira e ícones agrupados",
+          "x": 330,
+          "y": 220,
+          "width": 1070,
+          "height": 680,
+          "startFrame": 0,
+          "durationFrames": 180,
+          "behavior": "float",
+          "effects": {
+            "shadowBlur": 28,
+            "shadowX": 15,
+            "shadowY": 18,
+            "shadowColor": "#000000",
+            "radius": 14
+          },
+          "motion": {
+            "x": [
+              {
+                "frame": 0,
+                "value": 0,
+                "easing": "ease-in-out"
+              },
+              {
+                "frame": 179,
+                "value": 110,
+                "easing": "linear"
+              }
+            ],
+            "y": [],
+            "scale": [],
+            "rotation": [],
+            "opacity": []
+          }
+        },
+        {
+          "parentKey": "carteira",
+          "kind": "object",
+          "name": "Carteira",
+          "objectType": "wallet",
+          "x": 20,
+          "y": 90,
+          "width": 380,
+          "height": 400,
+          "startFrame": 0,
+          "durationFrames": 180,
+          "behavior": "pulse",
+          "color": "#e2ad56"
+        },
+        {
+          "parentKey": "carteira",
+          "kind": "text",
+          "name": "Título tipográfico",
+          "x": 390,
+          "y": 20,
+          "width": 660,
+          "height": 270,
+          "startFrame": 0,
+          "durationFrames": 180,
+          "text": "O DINHEIRO SE MOVE",
+          "fontSize": 82,
+          "fontFamily": "Arial",
+          "fontWeight": 900,
+          "textAlign": "left",
+          "letterSpacing": 2,
+          "lineHeight": 1.05,
+          "strokeColor": "#000000",
+          "strokeWidth": 1,
+          "behavior": "word-reveal",
+          "color": "#ffffff",
+          "effects": {
+            "gradient": {
+              "from": "#ffe3a3",
+              "to": "#e17a49",
+              "angle": 110
+            },
+            "shadowBlur": 20,
+            "shadowX": 5,
+            "shadowY": 9,
+            "shadowColor": "#000000"
+          }
+        },
+        {
+          "parentKey": "carteira",
+          "kind": "vector",
+          "name": "Seta vetorial livre",
+          "x": 450,
+          "y": 320,
+          "width": 490,
+          "height": 270,
+          "startFrame": 0,
+          "durationFrames": 180,
+          "vectorPath": "M 20 140 C 160 20 300 20 440 140 L 405 180 L 440 140 L 390 120",
+          "strokeWidth": 7,
+          "strokeColor": "#ffe3a3",
+          "color": "#e2ad56",
+          "behavior": "draw"
+        }
+      ]
+    },
+    {
+      "startFrame": 180,
+      "durationFrames": 180,
+      "purpose": "transition",
+      "title": "CADA CONTA TEM UM DESTINO",
+      "subtitle": "Animação ilustrativa — verifique números e fontes reais antes de publicar.",
+      "cameraPath": [
+        {
+          "frame": 0,
+          "x": -80,
+          "y": 0,
+          "zoom": 1.08,
+          "rotation": 0,
+          "easing": "ease-in-out"
+        },
+        {
+          "frame": 179,
+          "x": 0,
+          "y": 0,
+          "zoom": 1,
+          "rotation": 0,
+          "easing": "linear"
+        }
+      ],
+      "transitionIn": {
+        "type": "fade",
+        "durationFrames": 18
+      },
+      "motionPreset": "still",
+      "layers": [
+        {
+          "kind": "shape",
+          "name": "Painel arredondado",
+          "shapeType": "rectangle",
+          "x": 240,
+          "y": 235,
+          "width": 1400,
+          "height": 570,
+          "startFrame": 0,
+          "durationFrames": 180,
+          "color": "#1c344d",
+          "effects": {
+            "radius": 48,
+            "shadowBlur": 22,
+            "shadowX": 10,
+            "shadowY": 12,
+            "shadowColor": "#000000"
+          }
+        },
+        {
+          "kind": "text",
+          "name": "Texto da explicação",
+          "x": 330,
+          "y": 350,
+          "width": 1180,
+          "height": 180,
+          "startFrame": 0,
+          "durationFrames": 180,
+          "text": "SALÁRIO → CONTAS → FUTURO",
+          "fontSize": 76,
+          "fontFamily": "Arial",
+          "fontWeight": 900,
+          "letterSpacing": 1,
+          "textAlign": "center",
+          "behavior": "word-reveal",
+          "color": "#ffffff"
+        },
+        {
+          "kind": "shape",
+          "name": "Barra ilustrativa",
+          "shapeType": "pill",
+          "x": 435,
+          "y": 625,
+          "width": 1000,
+          "height": 60,
+          "startFrame": 0,
+          "durationFrames": 180,
+          "color": "#e2ad56",
+          "effects": {
+            "gradient": {
+              "from": "#e2ad56",
+              "to": "#4da6d2",
+              "angle": 90
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

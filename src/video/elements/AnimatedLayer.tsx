@@ -36,7 +36,9 @@ function procedure(layer:SceneLayer,frame:number,progress:number){
   return result;
 }
 function Shape({layer}:{layer:SceneLayer}){
-  const common:CSSProperties={height:'100%',width:'100%',background:layer.color};
+  const gradient=layer.effects.gradient;
+  const common:CSSProperties={height:'100%',width:'100%',
+    background:gradient?`linear-gradient(${gradient.angle}deg, ${gradient.from}, ${gradient.to})`:layer.color};
   const kind=layer.shapeType;
   if(kind==='circle')common.borderRadius='50%';
   if(kind==='ring'){common.background='transparent';common.border='20px solid '+layer.color;common.borderRadius='50%';}
@@ -80,11 +82,30 @@ function LayerContents({layer,elapsed,progress,asset}:{
       if(layer.behavior==='count'&&layer.value!==undefined)
         label=(layer.value*clamp(progress*2)).toLocaleString('pt-BR',{maximumFractionDigits:1})+
           (layer.unit?' '+layer.unit:'');
+      const gradient=layer.effects.gradient;
+      const words=label.split(/(\s+)/);
+      const wordCount=words.filter(part=>part.trim().length>0).length;
+      let seen=0;
       return <div style={{width:'100%',height:'100%',fontSize:layer.fontSize,
-        fontWeight:layer.fontSize>56?900:650,lineHeight:1.18,
-        letterSpacing:layer.fontSize>78?-2:0,whiteSpace:'pre-line',
-        overflowWrap:'anywhere',textShadow:'0 3px 16px #0008',color:layer.color,
-        display:'flex',alignItems:'center',overflow:'hidden'}}>{label}</div>;
+        fontFamily:'"'+layer.fontFamily+'", Arial, sans-serif',
+        fontWeight:layer.fontWeight,lineHeight:layer.lineHeight,
+        letterSpacing:layer.letterSpacing,textAlign:layer.textAlign,
+        whiteSpace:'pre-wrap',overflowWrap:'anywhere',
+        textShadow:layer.effects.shadowBlur>0?undefined:'0 3px 16px #0008',
+        color:gradient?'transparent':layer.color,
+        backgroundImage:gradient?
+          `linear-gradient(${gradient.angle}deg, ${gradient.from}, ${gradient.to})`:undefined,
+        backgroundClip:gradient?'text':undefined,WebkitBackgroundClip:gradient?'text':undefined,
+        WebkitTextStroke:layer.strokeWidth>0?`${layer.strokeWidth}px ${layer.strokeColor}`:undefined,
+        display:'flex',alignItems:'center',overflow:'hidden'}}>
+        <div style={{width:'100%'}}>{layer.behavior==='word-reveal'?
+          words.map((part,i)=>{
+            if(!part.trim())return <span key={i}>{part}</span>;
+            const index=seen++;
+            return <span key={i} style={{opacity:clamp(progress*wordCount*1.6-index),
+              display:'inline-block'}}>{part}</span>;
+          }):label}</div>
+      </div>;
     }
     case 'character':return <Character2D layer={layer} frame={elapsed}/>;
     case 'object':return <Object2D layer={layer} frame={elapsed}/>;
@@ -92,14 +113,25 @@ function LayerContents({layer,elapsed,progress,asset}:{
     case 'scene':return <Scene2D layer={layer} frame={elapsed}/>;
     case 'chart':return <Chart2D layer={layer} progress={progress}/>;
     case 'shape':return <Shape layer={layer}/>;
+    case 'vector':return <svg viewBox={'0 0 '+layer.width+' '+layer.height} width="100%" height="100%"
+      preserveAspectRatio="xMidYMid meet">
+      {layer.effects.gradient&&<defs><linearGradient id={'gradient-'+layer.id}>
+        <stop offset="0%" stopColor={layer.effects.gradient.from}/>
+        <stop offset="100%" stopColor={layer.effects.gradient.to}/>
+      </linearGradient></defs>}
+      <path d={layer.vectorPath} fill={layer.effects.gradient?
+        'url(#gradient-'+layer.id+')':layer.color} stroke={layer.strokeWidth>0?layer.strokeColor:'none'}
+        strokeWidth={layer.strokeWidth}/>
+    </svg>;
     case 'connector':return <Connector layer={layer} progress={clamp(progress*3)}/>;
     case 'particles':return <Particles layer={layer} frame={elapsed}/>;
     case 'image':return asset?.kind==='image'?<Img src={asset.url} style={{width:'100%',height:'100%',objectFit:'cover'}}/>:null;
   }
 }
-export function AnimatedLayer({layer,frame,shotStart,captions,assets}:{
+export function AnimatedLayer({layer,frame,shotStart,captions,assets,allLayers}:{
   layer:SceneLayer;frame:number;shotStart:number;
   captions:readonly Caption[];assets:ReadonlyMap<string,Asset>;
+  allLayers?:readonly SceneLayer[];
 }){
   const start=layerAtCaption(layer,shotStart,captions);
   const elapsed=frame-start;
@@ -111,14 +143,27 @@ export function AnimatedLayer({layer,frame,shotStart,captions,assets}:{
   const scale=evaluateKeyframes(layer.motion.scale,elapsed,1)*behavior.scale;
   const rotation=evaluateKeyframes(layer.motion.rotation,elapsed,0)+behavior.rotate;
   const opacity=evaluateKeyframes(layer.motion.opacity,elapsed,1)*behavior.alpha;
+  const fx=layer.effects;
+  const mask=fx.mask==='circle'?'circle(50% at 50% 50%)':
+    fx.mask==='ellipse'?'ellipse(50% 50% at 50% 50%)':undefined;
+  const filters=[
+    fx.blur>0?`blur(${fx.blur}px)`:'',
+    fx.shadowBlur>0?`drop-shadow(${fx.shadowX}px ${fx.shadowY}px ${fx.shadowBlur}px ${fx.shadowColor})`:'',
+  ].filter(Boolean).join(' ');
   const style:CSSProperties={
     position:'absolute',left:x,top:y,width:layer.width,height:layer.height,zIndex:layer.zIndex,
     transform:'rotate('+rotation+'deg) scale('+scale+')',
-    transformOrigin:'center center',opacity,overflow:'visible',pointerEvents:'none',
+    transformOrigin:'center center',opacity,
+    overflow:fx.radius>0||mask?'hidden':'visible',pointerEvents:'none',
+    borderRadius:fx.radius,clipPath:mask,filter:filters||undefined,
     contain:layer.kind==='scene'?'paint':undefined,
   };
   return <div style={style} aria-label={layer.name}>
-    <LayerContents layer={layer} elapsed={elapsed} progress={progress}
-      asset={layer.assetId?assets.get(layer.assetId):undefined}/>
+    {layer.kind==='group'?
+      allLayers?.filter(child=>child.parentId===layer.id).sort((a,b)=>a.zIndex-b.zIndex)
+        .map(child=><AnimatedLayer key={child.id} layer={child} frame={elapsed}
+          shotStart={shotStart} captions={captions} assets={assets} allLayers={allLayers}/>) :
+      <LayerContents layer={layer} elapsed={elapsed} progress={progress}
+        asset={layer.assetId?assets.get(layer.assetId):undefined}/>}
   </div>;
 }

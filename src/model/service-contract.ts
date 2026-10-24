@@ -4,8 +4,8 @@
  * Isso detecta um serviço antigo que continua vivo depois de atualizar o código.
  */
 export const SERVICE_PROTOCOL = 6;
-export const SERVICE_VERSION = '0.14.0';
-export const SERVICE_BUILD = 'dark-studio-v0.14-motion-contract-6';
+export const SERVICE_VERSION = '0.15.0';
+export const SERVICE_BUILD = 'dark-studio-v0.15-motion-contract-6';
 export const PROJECT_SCHEMA_VERSION = 2;
 export const REQUIRED_CAPABILITIES = [
   'projects-v2','proposals-v1','project-history-v1','diagnostics-v1',

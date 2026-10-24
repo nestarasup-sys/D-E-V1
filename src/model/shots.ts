@@ -39,6 +39,22 @@ export type InvestigationData=z.infer<typeof investigationSchema>;
 export const investigativeStyles=['dossier','document','evidence','chart','map','comparison','lower-third'] as const;
 export const investigationPurposes=['hook','context','proof','data','contrast','location','transition','conclusion'] as const;
 
+/** Cinematic camera coordinates are pixels from the canvas center; zoom is a multiplier. */
+export const cameraPointSchema=z.object({
+  frame:z.number().int().min(0),
+  x:z.number().finite().min(-1920).max(1920),
+  y:z.number().finite().min(-1080).max(1080),
+  zoom:z.number().finite().min(.5).max(4),
+  rotation:z.number().finite().min(-45).max(45).default(0),
+  easing:easingSchema.default('ease-in-out'),
+}).strict();
+export type CameraPoint=z.infer<typeof cameraPointSchema>;
+export const transitionSchema=z.object({
+  type:z.enum(['cut','fade','slide-left','wipe']).default('cut'),
+  durationFrames:z.number().int().min(1).max(90).default(12),
+}).strict().default({});
+export type ShotTransition=z.infer<typeof transitionSchema>;
+
 export const shotSchema=z.object({
   id:z.string().uuid(),
   kind:z.enum(['graphic','image','video']),
@@ -47,6 +63,8 @@ export const shotSchema=z.object({
   investigation:investigationSchema,
   presetId:z.string().max(70).refine(id=>PRESET_CATALOG.some(p=>p.id===id),'Composição inexistente').optional(),
   layers:z.array(layerSchema).max(48).default([]),
+  cameraPath:z.array(cameraPointSchema).max(24).default([]),
+  transitionIn:transitionSchema,
   title:z.string().max(180).default(''),
   subtitle:z.string().max(400).default(''),
   kicker:z.string().max(100).default(''),
@@ -124,6 +142,43 @@ export function evaluateMotion(shot:Shot,frame:number){
     opacity:evaluateKeyframes(shot.motion.opacity,frame,1),
   };
 }
+/** Deterministic interpolation shared between preview and MP4 renderer. */
+export function evaluateCamera(points:readonly CameraPoint[],frame:number){
+  const identity={x:0,y:0,zoom:1,rotation:0};
+  if(!points.length)return identity;
+  if(frame<=points[0].frame)return points[0];
+  for(let i=1;i<points.length;i++){
+    if(frame<=points[i].frame){
+      const from=points[i-1],to=points[i];
+      const t=ease((frame-from.frame)/(to.frame-from.frame),from.easing);
+      return {
+        x:from.x+(to.x-from.x)*t,y:from.y+(to.y-from.y)*t,
+        zoom:from.zoom+(to.zoom-from.zoom)*t,
+        rotation:from.rotation+(to.rotation-from.rotation)*t,
+      };
+    }
+  }
+  return points[points.length-1];
+}
+export function retimeCamera(points:readonly CameraPoint[],oldDuration:number,newDuration:number):CameraPoint[]{
+  const frames=new Map<number,CameraPoint>();
+  for(const point of points){
+    const frame=oldDuration>1?
+      Math.min(newDuration-1,Math.round(point.frame*(newDuration-1)/(oldDuration-1))):0;
+    frames.set(frame,{...point,frame});
+  }
+  return [...frames.values()].sort((a,b)=>a.frame-b.frame);
+}
+export function validateCamera(points:readonly CameraPoint[],duration:number,ctx:z.RefinementCtx,path:(string|number)[]){
+  let last=-1;
+  points.forEach((point,i)=>{
+    if(point.frame<=last||point.frame>=duration)ctx.addIssue({
+      code:'custom',path:[...path,i,'frame'],message:'Pontos da câmera em ordem crescente e dentro do plano',
+    });
+    last=point.frame;
+  });
+}
+
 export function frameAt(seconds:number,fps=30){return Math.round(seconds*fps);}
 
 /** Preserva os quadros-chave quando um plano é redimensionado na timeline. */

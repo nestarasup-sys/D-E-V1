@@ -10,7 +10,7 @@ const labels:Record<keyof LayerMotion,string>={
 const types:Record<SceneLayer['kind'],string>={
   text:'Texto',character:'Personagem',object:'Objeto',building:'Construção',
   scene:'Cenário',chart:'Gráfico',shape:'Forma',connector:'Linha/seta',
-  particles:'Partículas',image:'Imagem importada',
+  particles:'Partículas',image:'Imagem importada',group:'Grupo animado',vector:'Caminho vetorial',
 };
 const time=(n:number)=>(n/30).toFixed(2);
 const limits:{[K in keyof LayerMotion]:[number,number]}={
@@ -18,11 +18,12 @@ const limits:{[K in keyof LayerMotion]:[number,number]}={
 };
 const create=(kind:SceneLayer['kind'],duration:number,assetId?:string):SceneLayer=>layerSchema.parse({
   id:crypto.randomUUID(),kind,name:'Novo '+types[kind],
-  x:kind==='scene'?0:480,y:kind==='scene'?0:400,
+  x:kind==='scene'?0:kind==='group'?200:480,y:kind==='scene'?0:kind==='group'?140:400,
   zIndex:kind==='scene'?-5:1,
-  width:kind==='text'?900:kind==='scene'?1920:330,
-  height:kind==='text'?170:kind==='scene'?1080:330,
+  width:kind==='text'?900:kind==='scene'?1920:kind==='group'?1200:330,
+  height:kind==='text'?170:kind==='scene'?1080:kind==='group'?700:330,
   startFrame:0,durationFrames:duration,text:kind==='text'?'TEXTO EDITÁVEL':'',
+  vectorPath:kind==='vector'?'M 10 10 L 300 140 L 20 290 Z':'',
   motion:emptyLayerMotion(),...(assetId?{assetId}:{}),
 });
 export function LayerEditor({shot,selectedId,onSelected,assets,captions,evidence,onEdit}:{
@@ -50,11 +51,24 @@ export function LayerEditor({shot,selectedId,onSelected,assets,captions,evidence
     onSelected(next.id);
   }
   function copy(){
-    if(!selected||layers.length>=48)return;
-    const cloned:SceneLayer={...structuredClone(selected),id:crypto.randomUUID(),
-      name:selected.name+' (cópia)',x:selected.x+45,y:selected.y+30,zIndex:selected.zIndex+1};
-    onEdit({layers:[...layers,cloned]});
-    onSelected(cloned.id);
+    if(!selected)return;
+    const descendants:SceneLayer[]=[];
+    function collect(id:string){
+      for(const child of layers.filter(l=>l.parentId===id)){
+        descendants.push(child);collect(child.id);
+      }
+    }
+    collect(selected.id);
+    const originals=[selected,...descendants];
+    if(layers.length+originals.length>48)return;
+    const ids=new Map(originals.map(l=>[l.id,crypto.randomUUID()]));
+    const cloned=originals.map((l,i)=>({
+      ...structuredClone(l),id:ids.get(l.id)!,name:l.name+' (cópia)',
+      parentId:l.parentId&&ids.has(l.parentId)?ids.get(l.parentId):l.parentId,
+      x:l.x+(i===0?45:0),y:l.y+(i===0?30:0),zIndex:l.zIndex+(i===0?1:0),
+    }));
+    onEdit({layers:[...layers,...cloned]});
+    onSelected(cloned[0].id);
   }
   const scopedCaptions=captions.filter(c=>
     c.startFrame<shot.startFrame+shot.durationFrames&&c.endFrame>shot.startFrame);
@@ -80,12 +94,54 @@ export function LayerEditor({shot,selectedId,onSelected,assets,captions,evidence
       <div className="panelTitle">ELEMENTO SELECIONADO</div>
       <div className="field"><label>Nome</label>
         <input maxLength={90} value={selected.name} onChange={e=>patch(selected.id,{name:e.target.value})}/></div>
+      <div className="field"><label>Grupo pai (posição e tempo relativos ao grupo)</label>
+        <select value={selected.parentId||''} onChange={e=>patch(selected.id,{parentId:e.target.value||undefined})}>
+          <option value="">Sem grupo · elemento na tela</option>
+          {layers.filter(l=>l.kind==='group'&&l.id!==selected.id&&
+            !(() => {let next=l.parentId;const seen=new Set<string>();while(next&&!seen.has(next)){
+              if(next===selected.id)return true;seen.add(next);
+              next=layers.find(item=>item.id===next)?.parentId;
+            }return false;})()).map(l=>
+            <option key={l.id} value={l.id}>{l.name}</option>)}
+        </select>
+      </div>
       {(selected.kind==='text')&&<div className="field"><label>Texto</label>
         <textarea rows={3} maxLength={400} value={selected.text}
           onChange={e=>patch(selected.id,{text:e.target.value})}/></div>}
       {selected.kind==='text'&&<div className="field"><label>Tamanho da letra</label>
         <input type="number" min={12} max={260} value={selected.fontSize}
           onChange={e=>patch(selected.id,{fontSize:Math.round(Number(e.target.value))})}/></div>}
+      {selected.kind==='text'&&<>
+        <div className="field"><label>Fonte instalada no Windows (fallback Arial)</label>
+          <input maxLength={100} value={selected.fontFamily}
+            onChange={e=>patch(selected.id,{fontFamily:e.target.value})}/></div>
+        <div className="twoCols">
+          <div className="field"><label>Peso da fonte (100–900)</label>
+            <input type="number" min={100} max={900} step={100} value={selected.fontWeight}
+              onChange={e=>patch(selected.id,{fontWeight:Math.round(Number(e.target.value))})}/></div>
+          <div className="field"><label>Alinhamento</label>
+            <select value={selected.textAlign}
+              onChange={e=>patch(selected.id,{textAlign:e.target.value as SceneLayer['textAlign']})}>
+              <option value="left">Esquerda</option><option value="center">Centro</option>
+              <option value="right">Direita</option></select></div>
+          <div className="field"><label>Espaçamento entre letras (px)</label>
+            <input type="number" min={-15} max={60} step=".5" value={selected.letterSpacing}
+              onChange={e=>patch(selected.id,{letterSpacing:Number(e.target.value)})}/></div>
+          <div className="field"><label>Altura de linha</label>
+            <input type="number" min={.75} max={2.5} step=".05" value={selected.lineHeight}
+              onChange={e=>patch(selected.id,{lineHeight:Number(e.target.value)})}/></div>
+          <div className="field"><label>Cor do contorno</label>
+            <input type="color" value={selected.strokeColor}
+              onChange={e=>patch(selected.id,{strokeColor:e.target.value})}/></div>
+          <div className="field"><label>Contorno (px)</label>
+            <input type="number" min={0} max={12} step=".5" value={selected.strokeWidth}
+              onChange={e=>patch(selected.id,{strokeWidth:Number(e.target.value)})}/></div>
+        </div>
+        <p className="help">Para animar palavra por palavra, selecione word-reveal em Comportamento. A fonte deve estar instalada no sistema usado no MP4.</p>
+      </>}
+      {selected.kind==='vector'&&<div className="field"><label>Caminho SVG (d) · coordenadas internas</label>
+        <textarea rows={3} value={selected.vectorPath} maxLength={2000}
+          onChange={e=>patch(selected.id,{vectorPath:e.target.value})}/></div>}
       {selected.kind==='character'&&<>
         <div className="field"><label>Personagem</label>
           <select value={selected.characterType}
@@ -197,6 +253,54 @@ export function LayerEditor({shot,selectedId,onSelected,assets,captions,evidence
           <input type="number" step=".1" min={0} max={3} value={selected.behaviorIntensity}
             onChange={e=>patch(selected.id,{behaviorIntensity:Number(e.target.value)})}/></div>
       </div>
+      <div className="panelTitle">EFEITOS VISUAIS / MÁSCARA / DEGRADÊ</div>
+      <div className="twoCols">
+        <div className="field"><label>Desfoque (px)</label><input type="number" min={0} max={40}
+          value={selected.effects.blur} onChange={e=>patch(selected.id,{effects:{
+            ...selected.effects,blur:Number(e.target.value)}})}/></div>
+        <div className="field"><label>Cantos arredondados (px)</label>
+          <input type="number" min={0} max={300} value={selected.effects.radius}
+            onChange={e=>patch(selected.id,{effects:{...selected.effects,radius:Number(e.target.value)}})}/></div>
+        <div className="field"><label>Sombra · desfoque</label><input type="number" min={0} max={80}
+          value={selected.effects.shadowBlur} onChange={e=>patch(selected.id,{effects:{
+            ...selected.effects,shadowBlur:Number(e.target.value)}})}/></div>
+        <div className="field"><label>Cor da sombra</label>
+          <input type="color" value={selected.effects.shadowColor}
+            onChange={e=>patch(selected.id,{effects:{
+              ...selected.effects,shadowColor:e.target.value}})}/></div>
+        <div className="field"><label>Deslocamento da sombra X</label>
+          <input type="number" min={-100} max={100} value={selected.effects.shadowX}
+            onChange={e=>patch(selected.id,{effects:{
+              ...selected.effects,shadowX:Number(e.target.value)}})}/></div>
+        <div className="field"><label>Deslocamento da sombra Y</label>
+          <input type="number" min={-100} max={100} value={selected.effects.shadowY}
+            onChange={e=>patch(selected.id,{effects:{
+              ...selected.effects,shadowY:Number(e.target.value)}})}/></div>
+      </div>
+      <div className="field"><label>Máscara</label><select value={selected.effects.mask}
+        onChange={e=>patch(selected.id,{effects:{...selected.effects,
+          mask:e.target.value as SceneLayer['effects']['mask']}})}>
+        <option value="none">Nenhuma</option><option value="circle">Círculo</option>
+        <option value="ellipse">Elipse</option>
+      </select></div>
+      <div className="field"><label><input type="checkbox" checked={!!selected.effects.gradient}
+        onChange={e=>patch(selected.id,{effects:{...selected.effects,
+          gradient:e.target.checked?{from:selected.color,to:selected.secondaryColor,angle:90}:undefined}})}/>
+        Degradê (forma, texto ou vetor)</label></div>
+      {selected.effects.gradient&&<div className="twoCols">
+        <div className="field"><label>Degradê inicial</label><input type="color"
+          value={selected.effects.gradient.from}
+          onChange={e=>patch(selected.id,{effects:{...selected.effects,gradient:{
+            ...selected.effects.gradient!,from:e.target.value}}})}/></div>
+        <div className="field"><label>Degradê final</label><input type="color"
+          value={selected.effects.gradient.to}
+          onChange={e=>patch(selected.id,{effects:{...selected.effects,gradient:{
+            ...selected.effects.gradient!,to:e.target.value}}})}/></div>
+        <div className="field"><label>Ângulo (0–360)</label><input type="number" min={0} max={360}
+          value={selected.effects.gradient.angle}
+          onChange={e=>patch(selected.id,{effects:{...selected.effects,gradient:{
+            ...selected.effects.gradient!,angle:Number(e.target.value)}}})}/></div>
+      </div>}
       <div className="field"><label>Propriedade de keyframes</label>
         <select value={property} onChange={e=>setProperty(e.target.value as keyof LayerMotion)}>
           {(Object.keys(labels) as (keyof LayerMotion)[]).map(key=>
@@ -233,10 +337,17 @@ export function LayerEditor({shot,selectedId,onSelected,assets,captions,evidence
             if(target===undefined)return;
             modify([...current,{frame:target,value:property==='scale'||property==='opacity'?1:0,easing:'ease-in-out'}]);
           }}>+ Quadro-chave</button>
-        <button disabled={layers.length>=48} onClick={copy}>Duplicar objeto</button>
+        <button disabled={layers.length>=48} onClick={copy}>Duplicar objeto/grupo</button>
         <button onClick={()=>{
-          if(!window.confirm('Remover somente este elemento deste plano?'))return;
-          onEdit({layers:layers.filter(l=>l.id!==selected.id)});onSelected(null);
+          if(!window.confirm('Remover este elemento? Se for um grupo, os elementos internos tambem serao removidos.'))return;
+          const ids=new Set<string>([selected.id]);
+          let found=true;
+          while(found){found=false;for(const layer of layers){
+            if(layer.parentId&&ids.has(layer.parentId)&&!ids.has(layer.id)){
+              ids.add(layer.id);found=true;
+            }
+          }}
+          onEdit({layers:layers.filter(l=>!ids.has(l.id))});onSelected(null);
         }}>Excluir objeto</button>
       </div>
     </>}

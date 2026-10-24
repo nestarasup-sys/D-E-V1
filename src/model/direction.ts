@@ -1,7 +1,7 @@
 import {z} from 'zod';
 import {type Project,projectDuration} from './project';
 import {type Operation,applyOperations} from './operations';
-import {type Shot,shotSchema,channelKitObjectSchema,type Motion,investigationSchema} from './shots';
+import {type Shot,shotSchema,channelKitObjectSchema,type Motion,investigationSchema,cameraPointSchema,transitionSchema} from './shots';
 import {layerSchema,layerObjectSchema} from './layers';
 import {PRESET_CATALOG,getPreset,instantiatePreset} from './presets';
 import {examineShot} from './visual-qa';
@@ -10,7 +10,11 @@ const duration=z.number().int().min(1).max(18000);
 const purpose=z.enum(['hook','context','proof','data','contrast','location','transition','conclusion']);
 const preset=z.enum(['subtle-zoom','pan-left','pan-right','emphasis','still']);
 /** Codex authors scene geometry, not React source or executable JavaScript. */
-export const layerBlueprintSchema=layerObjectSchema.omit({id:true,durationFrames:true}).extend({
+export const layerBlueprintSchema=layerObjectSchema.omit({
+  id:true,durationFrames:true,parentId:true,
+}).extend({
+  key:z.string().regex(/^[a-zA-Z0-9_-]{1,40}$/).optional(),
+  parentKey:z.string().regex(/^[a-zA-Z0-9_-]{1,40}$/).optional(),
   durationFrames:z.number().int().min(1).max(18000).optional(),
 });
 const dataSchema=z.object({
@@ -26,6 +30,8 @@ const beatSchema=z.object({
   style:shotSchema.shape.style.optional(),
   presetId:z.string().max(70).optional(),
   layers:z.array(layerBlueprintSchema).max(48).optional(),
+  cameraPath:z.array(cameraPointSchema).max(24).optional(),
+  transitionIn:transitionSchema.optional(),
   data:dataSchema.optional(),
   title:z.string().max(180),
   subtitle:z.string().max(400).default(''),
@@ -110,10 +116,22 @@ export function compileDirection(project:Project,raw:unknown,newId:()=>string):{
     const source=beat.data?.sourceEvidenceId;
     if(source&&!project.evidence.some(e=>e.id===source))
       throw new Error('Gráfico tem referência inexistente. Cadastre a evidência antes de montar.');
+    // Symbolic keys let an AI describe group hierarchies in a single JSON.
+    const layerIds=beat.layers?.map(()=>newId())??[];
+    const keys=new Map<string,string>();
+    beat.layers?.forEach((layer,j)=>{
+      if(layer.key){
+        if(keys.has(layer.key))throw new Error('Chave de grupo duplicada: '+layer.key);
+        keys.set(layer.key,layerIds[j]);
+      }
+    });
     const layers=beat.layers?beat.layers.map((layer,j)=>{
+      const {key,parentKey,...fields}=layer;
+      const parentId=parentKey?keys.get(parentKey):undefined;
+      if(parentKey&&!parentId)throw new Error('Grupo '+parentKey+' não existe na direção.');
       const start=layer.startFrame??0;
       if(start>=beat.durationFrames)throw new Error('A camada '+(j+1)+' começa depois do fim do plano.');
-      return layerSchema.parse({...layer,id:newId(),
+      return layerSchema.parse({...fields,id:layerIds[j],parentId,
         durationFrames:layer.durationFrames??beat.durationFrames-start});
     }):beat.presetId?instantiatePreset(beat.presetId,{
       title:beat.title,subtitle:beat.subtitle,durationFrames:beat.durationFrames,
@@ -131,6 +149,7 @@ export function compileDirection(project:Project,raw:unknown,newId:()=>string):{
       accentColor:beat.accentColor??project.channelKit.accentColor,
       backgroundColor:beat.backgroundColor??palette[i%palette.length],
       investigation,presetId:beat.presetId,layers,
+      cameraPath:beat.cameraPath,transitionIn:beat.transitionIn,
       motion:motionFor(beat.motionPreset,beat.durationFrames),
       ...(asset?{assetId:asset.id}:{}),
     });

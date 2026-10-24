@@ -7,10 +7,11 @@ import {z} from 'zod';
 const color=z.string().regex(/^#[0-9a-fA-F]{6}$/);
 export const layerKinds=[
   'text','character','object','building','scene','chart','shape','connector','particles','image',
+  'group','vector',
 ] as const;
 export const layerBehaviors=[
   'none','float','pulse','walk','wave','point','nod','think','celebrate','orbit',
-  'shake','parallax','draw','typewriter','count','grow','stagger','slide-in','bounce',
+  'shake','parallax','draw','typewriter','count','grow','stagger','slide-in','bounce','word-reveal',
 ] as const;
 export const layerEasing=z.enum(['linear','ease-in','ease-out','ease-in-out']);
 const frame=z.object({
@@ -22,10 +23,26 @@ const curve=z.array(frame).max(40).default([]);
 export const layerMotionSchema=z.object({
   x:curve,y:curve,scale:curve,rotation:curve,opacity:curve,
 }).strict().default({x:[],y:[],scale:[],rotation:[],opacity:[]});
+/** Safe visual styles: numeric ranges and hex colors, never executable CSS/HTML. */
+export const layerEffectsSchema=z.object({
+  blur:z.number().finite().min(0).max(40).default(0),
+  radius:z.number().finite().min(0).max(300).default(0),
+  shadowBlur:z.number().finite().min(0).max(80).default(0),
+  shadowX:z.number().finite().min(-100).max(100).default(0),
+  shadowY:z.number().finite().min(-100).max(100).default(0),
+  shadowColor:color.default('#000000'),
+  gradient:z.object({
+    from:color,to:color,angle:z.number().finite().min(0).max(360).default(90),
+  }).strict().optional(),
+  mask:z.enum(['none','circle','ellipse']).default('none'),
+}).strict().default({});
+export type LayerEffects=z.infer<typeof layerEffectsSchema>;
+
 export const layerObjectSchema=z.object({
   id:z.string().uuid(),
   name:z.string().trim().min(1).max(90),
   kind:z.enum(layerKinds),
+  parentId:z.string().uuid().optional(),
   chartType:z.enum(['bar','line','donut','ranking','area']).default('bar'),
   x:z.number().finite().min(-400).max(2400),
   y:z.number().finite().min(-400).max(1400),
@@ -56,10 +73,23 @@ export const layerObjectSchema=z.object({
   behavior:z.enum(layerBehaviors).default('none'),
   behaviorIntensity:z.number().finite().min(0).max(3).default(1),
   fontSize:z.number().int().min(12).max(260).default(70),
+  fontFamily:z.string().trim().min(1).max(100).regex(/^[\p{L}\p{N} ,_-]+$/u).default('Arial'),
+  fontWeight:z.number().int().min(100).max(900).default(800),
+  textAlign:z.enum(['left','center','right']).default('left'),
+  letterSpacing:z.number().finite().min(-15).max(60).default(0),
+  lineHeight:z.number().finite().min(.75).max(2.5).default(1.18),
+  strokeColor:color.default('#000000'),
+  strokeWidth:z.number().finite().min(0).max(12).default(0),
+  vectorPath:z.string().max(2000).regex(/^[MmLlHhVvCcSsQqTtAaZz0-9eE .,\\+\\-]*$/).default(''),
+  effects:layerEffectsSchema,
   motion:layerMotionSchema,
   assetId:z.string().uuid().optional(),
 }).strict();
 export const layerSchema=layerObjectSchema.superRefine((layer,ctx)=>{
+  if(layer.kind==='vector'&&!layer.vectorPath.trim())
+    ctx.addIssue({code:'custom',path:['vectorPath'],message:'Vetor precisa de um caminho SVG (d).'});
+  if(layer.parentId===layer.id)
+    ctx.addIssue({code:'custom',path:['parentId'],message:'Uma camada não pode ser seu próprio grupo.'});
   if(layer.kind==='image'&&!layer.assetId)
     ctx.addIssue({code:'custom',path:['assetId'],message:'Camada de imagem exige mídia local importada.'});
   if(layer.values.length&&layer.kind==='chart'&&!layer.sourceEvidenceId)
@@ -76,9 +106,25 @@ const limits={x:[-1920,1920],y:[-1080,1080],scale:[0.1,5],rotation:[-360,360],op
 export function validateLayers(layers:SceneLayer[],durationFrames:number):string[]{
   const issues:string[]=[];
   if(new Set(layers.map(l=>l.id)).size!==layers.length)issues.push('IDs de elementos visuais duplicados.');
+  const byId=new Map(layers.map(layer=>[layer.id,layer]));
   for(const layer of layers){
+    if(layer.parentId){
+      const parent=byId.get(layer.parentId);
+      if(!parent||parent.kind!=='group')
+        issues.push('Grupo pai de "'+layer.name+'" não existe ou não é do tipo group.');
+      if(layer.cueCaptionId)issues.push('Camadas dentro de grupo usam tempo relativo, sem cueCaptionId.');
+      if(parent&&layer.startFrame+layer.durationFrames>parent.durationFrames)
+        issues.push('Camada "'+layer.name+'" ultrapassa o tempo do grupo.');
+      const seen=new Set<string>([layer.id]);
+      let node=parent;
+      while(node){
+        if(seen.has(node.id)){issues.push('Ciclo de grupos na camada "'+layer.name+'".');break;}
+        seen.add(node.id);
+        node=node.parentId?byId.get(node.parentId):undefined;
+      }
+    }
     const start=layer.startFrame;
-    if(!layer.cueCaptionId && start+layer.durationFrames>durationFrames)
+    if(!layer.parentId&&!layer.cueCaptionId && start+layer.durationFrames>durationFrames)
       issues.push('Elemento "'+layer.name+'" ultrapassa o final do plano.');
     for(const key of Object.keys(limits) as (keyof LayerMotion)[]){
       let last=-1;

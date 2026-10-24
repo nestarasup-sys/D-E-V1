@@ -89,6 +89,14 @@ Em \`evidence[]\`, o Codex pode preencher \`sourceExcerpt\`, \`publicationDate\`
 - Alterar manualmente texto/tempos de uma legenda invalida seus \`words[]\`; regenerar a sincronização a partir do áudio, não copiá-la cegamente.
 
 
+## Motion Engine v0.15 — contrato de composição autoral
+
+- Manter `project.version:2` e `direction.version:1`; os 50 presets v0.14 continuam válidos. Não substituir dados de usuário nem migrar projetos silenciosamente.
+- Contrato: `layers` com `group`/`vector`, `parentId` no projeto e `key`/`parentKey` somente na direção, efeitos restritos, tipografia, `cameraPath` e `transitionIn`. Valide ausência de ciclos em grupos e limites de duração. Nenhum HTML, JS, CSS arbitrário ou arquivo de fonte externo no JSON.
+- O render `Documentary`/`ShotVisual`/`AnimatedLayer` é compartilhado por Player e MP4. Modificar JSON, render ou controles exige atualizar `docs/GUIA_DIRETOR_POR_JSON.md`, `docs/MOTION_ENGINE_015.md`, exemplos e testes no mesmo commit.
+- Recurso liberado neste incremento: tipografia configurável, grupos+efeitos+SVG, câmera por pontos e transições 2D. **Não** afirmar que temos personagens com rigs articulados, física, rastreamento automático, B-roll licenciado, análise raster ou pacote `.darkstudio`; ficam no roadmap.
+- `INICIAR.bat` continua abrindo apenas o código local, e `ATUALIZAR.bat` continua seguindo apenas `origin/main` sem apagar dados.
+
 ## Inicializadores Windows e atualizacao Git (2026-10)
 
 - BATs oficiais: `ATUALIZAR.bat` e `INICIAR.bat` na raiz, copias byte-a-byte em `windows/`. Os nomes antigos nao sao mais usados.

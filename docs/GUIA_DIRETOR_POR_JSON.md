@@ -1,13 +1,13 @@
 # Guia Diretor por JSON — Dark Studio
 
 > **Manual operacional e referência de capacidades para humanos, ChatGPT e Codex Local.**
-> **Estado documentado:** Dark Studio **v0.14.0** · `project.json` **schema v2** · `direction.json` **schema v1** · serviço local **protocolo 6**.
+> **Estado documentado:** Dark Studio **v0.15.0 (Motion Engine, primeiro incremento)** · `project.json` **schema v2** · `direction.json` **schema v1** · serviço local **protocolo 6**.
 > **Branch de código:** `main`. **Última revisão editorial deste guia:** 2026-10-24.
 > **Contrato de manutenção:** este guia é **vivo**. Toda nova funcionalidade ou alteração de schema/comando deve atualizar este documento, seus exemplos e os testes do guia no mesmo PR/commit. Consulte [Como manter atualizado](#19-como-atualizar-este-guia-nas-próximas-versões).
 
 ## Para que serve
 
-Este é o documento que uma IA deve ler **antes de escrever o JSON que dirige um vídeo**. Ensina a descobrir as ferramentas disponíveis, estruturar episódios, planejar planos em frames, usar **50 composições v0.14 + 7 estilos investigativos**, construir personagens e animações próprios em camadas, associar fontes e mídias, preparar propostas revisáveis e conferir resultados. É válido para vídeos educativos, histórias, economia, tecnologia, ciência, entretenimento e investigações; **não** somente jornalismo.
+Este é o documento que uma IA deve ler **antes de escrever o JSON que dirige um vídeo**. Ensina a descobrir as ferramentas disponíveis, estruturar episódios, planejar planos em frames, usar **50 composições preservadas da v0.14 + 7 estilos investigativos e recursos autorais v0.15**, construir personagens e animações próprios em camadas, associar fontes e mídias, preparar propostas revisáveis e conferir resultados. É válido para vídeos educativos, histórias, economia, tecnologia, ciência, entretenimento e investigações; **não** somente jornalismo.
 
 **Regra central:** uma IA criativa produz decisões de direção em **JSON declarativo**; o Dark Studio interpreta essas decisões de maneira determinística via Remotion; o Codex Local, quando autorizado, cuida de operações no Windows, mídia, validação e render. O editor **não tem chat/modelo de IA interno** e **não lê qualquer JSON colado na interface como uma importação automática de direção** nesta versão. O caminho suportado é a CLI `direct` / propostas; a interface permite **importar projeto completo**. Não confundir esses dois recursos.
 
@@ -878,6 +878,22 @@ Esta seção complementa a direção declarativa das seções 4–13 com um **pa
 3. Exporte primeiro `Exportar JSON` como cópia verificável do projeto quando fizer sentido e depois `Exportar MP4`. Aguarde o estado real do job e examine imagem, legendas e áudio do arquivo resultante. O teste de um clipe curto não valida automaticamente um episódio longo.
 4. Para direção declarativa reproduzível e auditoria, continue seguindo o fluxo **`info` → `direct` → `Revisar Codex` → `direction-report`/`doctor` → exportação**. O editor não tem chat de IA embutido nem botão para aplicar diretamente `direction.json`.
 
+### 14.8 Motion Engine v0.15 — primeira etapa autoral por JSON
+
+**Núcleo implementado:** tipografia configurável, grupos aninhados, efeitos visuais controlados por números, caminhos vetoriais livres, trajetórias de câmera e transições 2D. Tudo passa pelo schema Zod, aparece no editor, e é desenhado pelo mesmo Remotion usado na prévia e no MP4. Consulte a [especificação e limitações da v0.15](MOTION_ENGINE_015.md) e o [exemplo completo de direção de 12 segundos](examples/MOTION_ENGINE_015.direction.example.json).
+
+**Novo vocabulário dos layers:** tipos `group` e `vector` (além dos dez originais); comportamento `word-reveal` para entrada por palavra (além dos 19 existentes). Cada layer aceita `parentId` de um grupo salvo. Na **direção enviada pela IA**, use `key` no grupo e `parentKey` nos filhos; o compilador cria os IDs, resolve vínculos e rejeita ciclos e pais inválidos. Coordenadas/tempo dos filhos são relativos ao grupo. Os grupos, assim como qualquer elemento, podem receber `motion`. Máximo de 48 layers por plano, incluindo grupos.
+
+**Tipografia:** `fontFamily` (nome de fonte instalada no Windows), `fontWeight` (100–900), `textAlign` (`left`, `center`, `right`), `letterSpacing` (-15…60), `lineHeight` (0.75…2.5), `strokeColor` (hex), `strokeWidth` (0…12). A família de fonte é aplicada com fallback para Arial, não há upload nem empacotamento de fontes neste incremento. `behavior:"word-reveal"` anima cada palavra sem tentar alinhar a narração. Para SVG autoral use `kind:"vector"` com `vectorPath` contendo apenas comandos de caminho válidos; nenhum HTML/JS é executado.
+
+**Efeitos por layer:** `effects.blur` (0…40), `radius` (0…300), `shadowBlur` (0…80), `shadowX` e `shadowY` (-100…100), `shadowColor`, `gradient` com `from`, `to` e `angle` (0…360); `mask` (`none`, `circle` ou `ellipse`). Gradientes se aplicam a texto, forma e caminho vetorial. Grupo pode aplicar transformação e efeitos a todos seus filhos.
+
+**Câmera e transição:** cada `beat` do `direction.json` agora aceita `cameraPath` (até 24 objetos `{frame,x,y,zoom,rotation,easing}`) e `transitionIn` (`{type,durationFrames}`). `cameraPath` usa X de -1920 a 1920 px, Y de -1080 a 1080 px, zoom 0.5–4 e rotação -45° a 45°, frames em ordem estrita. `transitionIn.type` pode ser `cut`, `fade`, `slide-left` ou `wipe`, duração de 1–90 frames, respeitando o tempo do plano. Para planos contíguos, a transição revela os últimos frames do plano anterior. Ambos também podem ser editados no inspetor. Não alteram clipes de voz, legendas nem evidências.
+
+**Fluxo para IA:** confira duração total com `npm run project -- info UUID`, gere o `direction.json` em um único arquivo usando grupos com chaves simbólicas, depois execute `npm run project -- direct UUID CAMINHO_JSON REVISAO`; clique **Revisar Codex** para aprovar. **Ainda não existe botão Importar direction.json diretamente** no editor: `Importar JSON` continua sendo a importação de projeto completo. Para criar o vídeo pronto, arquivos de mídia e áudio externos ainda precisam estar na biblioteca local.
+
+**Limites reais:** personagens articulados com poses detalhadas, tracking automático da câmera, fontes empacotadas, máscara vetorial arbitrária, física de mola, análise dos pixels rasterizados, B-roll licenciado automaticamente e pacote portátil `.darkstudio` **não estão implementados**. Não confunda a expansão do JSON com esses recursos futuros.
+
 ## 15. Referência completa dos comandos locais
 
 Execute na **pasta do repositório**, em PowerShell/CMD. `UUID` deve ser substituído pelo ID real e `REV` pelo SHA-256 exibido em `info`. O usuário pode pedir que o Codex Local execute tudo; não precisa digitar.
@@ -1011,7 +1027,7 @@ Não há pontuação mágica de qualidade, mas uma IA deve conferir:
 | `direction` não cobre o episódio | Soma de beats ≠ soma de `scenes[].durationFrames` | Leia `show UUID`, calcule frames e corrija **beats**; não altere narração escondido |
 | `Intervalos visuais devem ser contínuos` | `startFrame` diferente do cursor esperado | Próximo início = início anterior + duração anterior |
 | `Composição não encontrada` | `presetId` inexistente ou digitado errado | Execute `npm run project -- presets` |
-| `Unrecognized key` / schema inválido | Campo inexistente na API v0.14 | Consulte schema de `direction`, `layers` ou `project`; não invente |
+| `Unrecognized key` / schema inválido | Campo inexistente na API v0.15 | Consulte schema de `direction`, `layers` ou `project`; não invente |
 | `Imagem/mídia não importada` | `assetId` errado/URL externa | Importe mídia local, descubra UUID e recoloque |
 | `Fonte inexistente` | `sourceEvidenceId` não existe em `evidence[]` | Cadastre origem legítima, mantenha `pending` e confirme ID |
 | `Gráfico sem valores` | Receita de gráfico sem `data` | Use placeholder **ilustrativo** ou dados com origem verificável |
@@ -1032,10 +1048,13 @@ Se o vídeo parece estático, verifique primeiro se a **proposta aprovada** cont
 
 ## 18. O que ainda NÃO está implementado
 
-| Capacidade desejada | Estado real na v0.14 |
+| Capacidade desejada | Estado real na v0.15 |
 | --- | --- |
 | Criar direção por JSON e presets/camadas novas | **Implementado**, via CLI/proposta |
 | 50 receitas + 7 visuais investigativos | **Implementado** |
+| Tipografia com família de fonte instalada, gradiente/contorno, palavra a palavra | **Implementado na v0.15**; fontes externas não são empacotadas |
+| Grupos, máscaras simples, blur, sombras, vetores SVG de caminho | **Implementado na v0.15**; não é um motor de máscaras arbitrárias |
+| Câmera por pontos (X/Y/zoom/rotação) e transições 2D | **Implementado na v0.15**; sem tracking automático de objetos |
 | Personagens 2D, ícones, cenários e keyframes | **Implementado**, animação vetorial estilizada |
 | Sync entrada de layer com legenda | **Implementado**, por `cueCaptionId` de bloco |
 | Destaque opcional por palavra | **Implementado**, se receber alinhamento real externo |
@@ -1062,7 +1081,7 @@ Uma funcionalidade futura não deve aparecer aqui como implementada **antes** de
 
 ## 19. Como atualizar este guia nas próximas versões
 
-**Este guia é uma referência de trabalho do produto, não uma fotografia imutável da v0.14.** Ele permanece em `docs/GUIA_DIRETOR_POR_JSON.md` e deve ser a primeira leitura de qualquer IA diretora. O processo abaixo deve ser seguido **na mesma alteração de código que introduzir a capacidade**.
+**Este guia é uma referência de trabalho do produto, não uma fotografia imutável da v0.15.** Ele permanece em `docs/GUIA_DIRETOR_POR_JSON.md` e deve ser a primeira leitura de qualquer IA diretora. O processo abaixo deve ser seguido **na mesma alteração de código que introduzir a capacidade**.
 
 ### 19.1 Contrato de manutenção
 

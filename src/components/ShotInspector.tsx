@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import {motionPropertySchema,motionBounds,retimeMotion,retimeShotLayers,type Shot,type MotionProperty,type Keyframe} from '../model/shots';
+import {motionPropertySchema,motionBounds,retimeMotion,retimeShotLayers,retimeCamera,type Shot,type MotionProperty,type Keyframe,type CameraPoint} from '../model/shots';
 import type {Asset,Evidence,Caption} from '../model/project';
 import {PresetBrowser} from './PresetBrowser';
 import {LayerEditor} from './LayerEditor';
@@ -78,7 +78,9 @@ export function ShotInspector({shot,assets,evidence,captions,selectedLayerId,onS
         onChange={e=>{
           const next=Math.max(1,Math.round(Number(e.target.value)*30));
           if(Number.isFinite(next))onEdit({durationFrames:next,motion:retimeMotion(shot.motion,shot.durationFrames,next),
-            layers:retimeShotLayers(shot.layers,shot.durationFrames,next)});
+            layers:retimeShotLayers(shot.layers,shot.durationFrames,next),
+            cameraPath:retimeCamera(shot.cameraPath,shot.durationFrames,next),
+            transitionIn:{...shot.transitionIn,durationFrames:Math.min(shot.transitionIn.durationFrames,next)}});
         }}/>
     </div></div>
     <div className="twoCols"><div className="field"><label>Cor de destaque</label>
@@ -91,6 +93,56 @@ export function ShotInspector({shot,assets,evidence,captions,selectedLayerId,onS
     <PresetBrowser shot={shot} onEdit={onEdit} onSelected={onSelectedLayer}/>
     <LayerEditor shot={shot} selectedId={selectedLayerId} onSelected={onSelectedLayer}
       assets={assets} captions={captions} evidence={evidence} onEdit={onEdit}/>
+    <div className="shotMotion">
+      <div className="panelTitle">MOTION ENGINE · CÂMERA E TRANSIÇÃO</div>
+      <p className="help">Trajetória de câmera em pixels a partir do centro do canvas. A prévia e o MP4 usam os mesmos frames.</p>
+      <div className="twoCols">
+        <div className="field"><label>Entrada do plano</label>
+          <select value={shot.transitionIn.type}
+            onChange={e=>onEdit({transitionIn:{...shot.transitionIn,
+              type:e.target.value as Shot['transitionIn']['type']}})}>
+            <option value="cut">Corte seco</option><option value="fade">Fusão</option>
+            <option value="slide-left">Deslizar</option><option value="wipe">Revelação</option>
+          </select>
+        </div>
+        <div className="field"><label>Duração da transição (frames)</label>
+          <input type="number" min={1} max={Math.min(90,shot.durationFrames)} step={1}
+            value={shot.transitionIn.durationFrames}
+            onChange={e=>onEdit({transitionIn:{...shot.transitionIn,
+              durationFrames:Math.max(1,Math.min(90,shot.durationFrames,Math.round(Number(e.target.value))))}})}/>
+        </div>
+      </div>
+      <div className="projectActions">
+        <button disabled={shot.durationFrames<2} onClick={()=>onEdit({cameraPath:[
+          {frame:0,x:0,y:0,zoom:1,rotation:0,easing:'ease-in-out'},
+          {frame:shot.durationFrames-1,x:160,y:0,zoom:1.16,rotation:0,easing:'linear'},
+        ]})}>Trajetória cinematográfica</button>
+        <button onClick={()=>onEdit({cameraPath:[]})}>Câmera fixa</button>
+      </div>
+      {shot.cameraPath.map((point,i)=><div className="kfRow" key={'camera-'+i}>
+        <label>Frame<input type="number" min={0} max={shot.durationFrames-1}
+          value={point.frame} onChange={e=>{
+            const points=shot.cameraPath.map((p,j)=>j===i?{...p,frame:Math.round(Number(e.target.value))}:p);
+            onEdit({cameraPath:points.sort((a,b)=>a.frame-b.frame)});
+          }}/></label>
+        {(['x','y','zoom','rotation'] as const).map(k=>
+          <label key={k}>{k}<input type="number" step={k==='zoom'?.05:1}
+            min={k==='zoom'?.5:k==='rotation'?-45:k==='x'?-1920:-1080}
+            max={k==='zoom'?4:k==='rotation'?45:k==='x'?1920:1080}
+            value={point[k]} onChange={e=>onEdit({cameraPath:shot.cameraPath.map((p,j)=>j===i?
+              {...p,[k]:Number(e.target.value)}:p)})}/></label>)}
+        <button title="Remover ponto de câmera" onClick={()=>
+          onEdit({cameraPath:shot.cameraPath.filter((_,j)=>j!==i)})}>×</button>
+      </div>)}
+      <button className="wide" disabled={shot.cameraPath.length>=24||
+        shot.cameraPath.length>=shot.durationFrames} onClick={()=>{
+        const used=new Set(shot.cameraPath.map(p=>p.frame));
+        const frame=Array.from({length:shot.durationFrames},(_,i)=>i).find(i=>!used.has(i));
+        if(frame===undefined)return;
+        const point:CameraPoint={frame,x:0,y:0,zoom:1,rotation:0,easing:'ease-in-out'};
+        onEdit({cameraPath:[...shot.cameraPath,point].sort((a,b)=>a.frame-b.frame)});
+      }}>+ Ponto de câmera</button>
+    </div>
     <div className="shotMotion"><div className="panelTitle">ANIMAÇÃO DO PLANO INTEIRO</div>
       <p className="help">Quadros relativos ao início deste plano (30 FPS). A curva pertence ao quadro-chave de partida.</p>
       <div className="projectActions">

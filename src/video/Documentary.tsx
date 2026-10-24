@@ -1,6 +1,7 @@
 import {AbsoluteFill,Audio,Img,interpolate,OffthreadVideo,Sequence,useCurrentFrame} from 'remotion';
 import type {Project,Scene,MediaClip,Asset,Caption} from '../model/project';
-import {evaluateKeyframes} from '../model/shots';
+import type {ReactNode,CSSProperties} from 'react';
+import {evaluateKeyframes,type Shot} from '../model/shots';
 import {ShotVisual} from './ShotVisual';
 
 function SceneVisual({scene,layer}:{scene:Scene,layer:'background'|'text'}) {
@@ -45,20 +46,53 @@ function ActiveCaption({caption}:{caption:Caption}){
     }}>{word.text}{i<caption.words.length-1?' ':''}</span>;
   })}</>;
 }
+/** Entrada renderizada por frame; o mesmo componente serve ao Player e ao MP4. */
+function ShotEntrance({shot,children}:{shot:Shot;children:ReactNode}){
+  const frame=useCurrentFrame();
+  const {type,durationFrames}=shot.transitionIn;
+  if(type==='cut')return <>{children}</>;
+  const p=Math.max(0,Math.min(1,frame/Math.max(1,durationFrames)));
+  const style:CSSProperties={
+    opacity:type==='fade'?p:1,
+    transform:type==='slide-left'?'translateX('+((1-p)*1920)+'px)':undefined,
+    clipPath:type==='wipe'?'inset(0 '+((1-p)*100)+'% 0 0)':undefined,
+  };
+  return <AbsoluteFill style={style}>{children}</AbsoluteFill>;
+}
 export function Documentary({project}:{project:Project}) {
   let offset=0;
   const assets=new Map(project.assets.map(a=>[a.id,a]));
+  const chronological=[...project.shots].sort((a,b)=>a.startFrame-b.startFrame);
+  const previousFor=new Map(chronological.map((shot,i)=>[shot.id,chronological[i-1]]));
   const positions=project.scenes.map(scene=>{const from=offset;offset+=scene.durationFrames;return {scene,from};});
   return <AbsoluteFill style={{background:'#050911'}}>
     {project.visualMode==='legacy'&&positions.map(({scene,from})=><Sequence key={'background-'+scene.id} from={from} durationInFrames={scene.durationFrames}><SceneVisual scene={scene} layer="background"/></Sequence>)}
     {project.visualMode==='legacy'&&project.clips.filter(c=>c.lane==='visual').map(clip=>{const asset=assets.get(clip.assetId);return asset?<Sequence key={clip.id} from={clip.startFrame} durationInFrames={clip.durationFrames}><ClipVisual clip={clip} asset={asset}/></Sequence>:null;})}
     {project.visualMode==='legacy'&&positions.map(({scene,from})=><Sequence key={'text-'+scene.id} from={from} durationInFrames={scene.durationFrames}><SceneVisual scene={scene} layer="text"/></Sequence>)}
-    {project.visualMode==='shots'&&[...project.shots].sort((a,b)=>a.zIndex-b.zIndex||a.startFrame-b.startFrame).map(shot=>
-      <Sequence key={'shot-'+shot.id} from={shot.startFrame} durationInFrames={shot.durationFrames}>
-        <ShotVisual shot={shot} asset={shot.assetId?assets.get(shot.assetId):undefined} kit={project.channelKit}
-          evidence={project.evidence.find(item=>item.id===shot.investigation.sourceEvidenceId)}
-          assets={assets} captions={project.captions}/>
-      </Sequence>)}
+    {project.visualMode==='shots'&&[...project.shots].sort((a,b)=>a.zIndex-b.zIndex||a.startFrame-b.startFrame).map(shot=>{
+      const previous=previousFor.get(shot.id);
+      const duration=previous&&previous.startFrame+previous.durationFrames===shot.startFrame
+        &&shot.transitionIn.type!=='cut'
+        ?Math.min(shot.transitionIn.durationFrames,previous.durationFrames,shot.durationFrames):0;
+      return <div key={'shot-group-'+shot.id} style={{display:'contents'}}>
+        {duration>0&&previous&&<Sequence from={shot.startFrame} durationInFrames={duration}>
+          <Sequence from={-(previous.durationFrames-duration)} durationInFrames={previous.durationFrames}>
+            <ShotVisual shot={previous} asset={previous.assetId?assets.get(previous.assetId):undefined}
+              kit={project.channelKit}
+              evidence={project.evidence.find(item=>item.id===previous.investigation.sourceEvidenceId)}
+              assets={assets} captions={project.captions}/>
+          </Sequence>
+        </Sequence>}
+        <Sequence from={shot.startFrame} durationInFrames={shot.durationFrames}>
+          <ShotEntrance shot={shot}>
+            <ShotVisual shot={shot} asset={shot.assetId?assets.get(shot.assetId):undefined}
+              kit={project.channelKit}
+              evidence={project.evidence.find(item=>item.id===shot.investigation.sourceEvidenceId)}
+              assets={assets} captions={project.captions}/>
+          </ShotEntrance>
+        </Sequence>
+      </div>;
+    })}
     {project.captions.map(c=><Sequence key={'caption-'+c.id} from={c.startFrame} durationInFrames={c.endFrame-c.startFrame}>
       <AbsoluteFill style={{justifyContent:'flex-end',alignItems:'center',paddingBottom:80,pointerEvents:'none'}}>
         <div style={{fontFamily:'Arial, sans-serif',whiteSpace:'pre-line',fontSize:44,fontWeight:700,

@@ -16,10 +16,10 @@ const guide=read('docs/GUIA_DIRETOR_POR_JSON.md');
 const direction=JSON.parse(read('docs/examples/GUIA_DIRECAO_12S.example.json')) as unknown;
 const operations=JSON.parse(read('docs/examples/GUIA_OPERACOES.example.json')) as unknown;
 
-describe('Guia Diretor por JSON v0.14 (documentação viva)',()=>{
+describe('Guia Diretor por JSON v0.15 (documentação viva)',()=>{
   it('possui 20 seções e metadados de versão do contrato',()=>{
     expect(guide).toContain('Dark Studio');
-    expect(guide).toContain('v0.14');
+    expect(guide).toContain('v0.15');
     expect(guide).toContain('protocolo 6');
     for(let i=1;i<=20;i++)expect(guide).toMatch(new RegExp('^## '+i+'\\. ','m'));
   });
@@ -34,8 +34,8 @@ describe('Guia Diretor por JSON v0.14 (documentação viva)',()=>{
     for(const style of shotSchema.shape.style.removeDefault().options)expect(guide).toContain('`'+style+'`');
   });
   it('documenta tipos de camada, movimentos, personagens, objetos, cenários e SFX',()=>{
-    expect(layerKinds).toHaveLength(10);
-    expect(layerBehaviors).toHaveLength(19);
+    expect(layerKinds).toHaveLength(12);
+    expect(layerBehaviors).toHaveLength(20);
     for(const kind of layerKinds)expect(guide).toContain('`'+kind+'`');
     for(const behavior of layerBehaviors)expect(guide).toContain('`'+behavior+'`');
     for(const kind of layerObjectSchema.shape.characterType.removeDefault().options)expect(guide).toContain('`'+kind+'`');
@@ -64,6 +64,23 @@ describe('Guia Diretor por JSON v0.14 (documentação viva)',()=>{
       expect(editor,'controle ausente no editor: '+label).toContain(label);
       expect(guide,'função ausente no tutorial: '+label).toContain('`'+label+'`');
     }
+  });
+
+  it('o guia e exemplo v0.15 cobrem os fundamentos de composição autoral',()=>{
+    const motionDoc=read('docs/MOTION_ENGINE_015.md');
+    const sample=JSON.parse(read('docs/examples/MOTION_ENGINE_015.direction.example.json')) as unknown;
+    for(const feature of ['fontFamily','fontWeight','letterSpacing','strokeWidth',
+      'word-reveal','parentKey','cameraPath','transitionIn','vectorPath','gradient']){
+      expect(guide,'guia principal sem '+feature).toContain('`'+feature+'`');
+      expect(motionDoc,'especificação sem '+feature).toContain('`'+feature+'`');
+    }
+    const project=projectSchema.parse({...structuredClone(starterProject),
+      scenes:[{...starterProject.scenes[0],durationFrames:360}],shots:[]});
+    const compiled=compileDirection(project,sample,randomUUID);
+    expect(compiled.preview.shots).toHaveLength(2);
+    expect(compiled.preview.shots[0].layers[1].parentId)
+      .toBe(compiled.preview.shots[0].layers[0].id);
+    expect(compiled.preview.scenes).toEqual(project.scenes);
   });
 
   it('compila o exemplo completo de 12 s sem mover voz, legendas, fontes ou cenas',()=>{

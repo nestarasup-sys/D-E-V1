@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import {shotSchema,chapterSchema,channelKitSchema,keyframeSchema,validateMotion} from './shots';
+import {shotSchema,chapterSchema,channelKitSchema,keyframeSchema,validateMotion,validateCamera} from './shots';
 import {validateLayers} from './layers';
 
 export const FPS = 30;
@@ -110,6 +110,10 @@ export const projectSchema = z.object({
   p.shots.forEach((shot,i)=>{
     if(shot.startFrame+shot.durationFrames>total)ctx.addIssue({code:'custom',path:['shots',i],message:'Plano ultrapassa a duração do episódio'});
     validateMotion(shot.motion,shot.durationFrames,ctx,['shots',i,'motion']);
+    validateCamera(shot.cameraPath,shot.durationFrames,ctx,['shots',i,'cameraPath']);
+    if(shot.transitionIn.type!=='cut'&&shot.transitionIn.durationFrames>shot.durationFrames)
+      ctx.addIssue({code:'custom',path:['shots',i,'transitionIn'],
+        message:'Transição de entrada maior que a duração do plano'});
     for(const message of validateLayers(shot.layers,shot.durationFrames)){
       ctx.addIssue({code:'custom',path:['shots',i,'layers'],message});
     }
